@@ -114,7 +114,7 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
           issues.add(path, "TOO_MANY_ITEMS");
           return BAD;
         }
-        if (keys.length !== length + 1 || keys.some((key) => key !== "length" && !/^(0|[1-9]\d*)$/.test(key))) {
+        if (keys.length !== length + 1 || keys.some((key) => typeof key !== "string" || (key !== "length" && !/^(0|[1-9]\d*)$/.test(key)))) {
           issues.add(path, "UNSAFE_OBJECT");
           return BAD;
         }
