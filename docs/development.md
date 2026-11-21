@@ -1,6 +1,6 @@
 # Development
 
-Assay is a single TypeScript/ESM package. Its foundation has **no runtime dependencies** and exports validated data contracts and evidence-coverage inspection but deliberately no evaluation function. The build tools are development-only.
+Assay is a single TypeScript/ESM package. Its foundation has **no runtime dependencies** and exports validated data contracts, evidence-coverage inspection, and pure deterministic objective comparison. The build tools are development-only.
 
 ## Toolchain
 
@@ -40,6 +40,6 @@ Do not write relative `.js` specifiers in TypeScript source. The build produces 
 
 ## Scope of the current checks
 
-The tests verify versioned definitions, observations, findings, safety bounds and evidence coverage. The dist verifier checks that tsdown emitted executable ESM and declarations; it does **not** validate any real comparison behavior. AY-I01 tests cover strict schema validation, bounded inputs, deterministic diagnostics, lineage and missing/truncated evidence. AY-I04 additionally requires a packed third-party consumer and release-security tests.
+The tests verify versioned definitions, observations, findings, safety bounds and evidence coverage. The dist verifier checks that tsdown emitted executable ESM and declarations; it also smoke-tests deterministic comparison using the built ESM package. AY-I01 tests cover strict schema validation, bounded inputs, deterministic diagnostics and evidence coverage; AY-I02 tests cover comparator boundaries, replay, required/advisory precedence and unverified evidence. AY-I04 additionally requires a packed third-party consumer and release-security tests.
 
 Assay source is Apache-2.0 licensed; the npm package remains unpublished and deliberately unpublishable until separately approved. A green check is not release authorization.
