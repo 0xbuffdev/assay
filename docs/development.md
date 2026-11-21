@@ -1,22 +1,45 @@
 # Development
 
-The foundation is an intentionally small one-package ESM project, with zero runtime or development dependencies. It is not yet a distributable library.
+Assay is a single TypeScript/ESM package. Its foundation has **no runtime dependencies** and deliberately exports no evaluation functions. The build tools are development-only.
 
-## Run foundation checks
+## Toolchain
 
-Node.js 24+ and pnpm 11.2.2:
+- Node.js 24+
+- pnpm 11.2.2 with a committed lockfile
+- tsdown for ESM JavaScript and declaration bundling
+- Vitest for automated tests
+- Biome for formatting, import organization and linting
+- TypeScript with `moduleResolution: "bundler"`
+
+Run:
 
 ```sh
 corepack enable
 pnpm install --frozen-lockfile
-pnpm check
+pnpm check:foundation
+pnpm typecheck
+pnpm format:check
+pnpm lint
 pnpm test
+pnpm build
 ```
 
-The check validates repository metadata, required files and the absence of accidentally enabled publishing. The test imports the placeholder TypeScript entry using Node's built-in type stripping; it does **not** satisfy Assay's evaluation test matrix.
+To apply formatting run `pnpm format`. `pnpm check` runs all foundation, type, style, test and build checks. CI executes equivalent read-only checks; no workflow publishes a package.
 
-## Next changes
+## Import convention
 
-AY-I01 introduces reviewed type contracts and tests. At that stage add pinned TypeScript and test/build tooling, lockfile updates, a real `tsc` typecheck, emitted ESM/declarations and a separate consumer installation check. Do not ship source-only `src/index.ts` as an npm package export. Keep the core provider-neutral and avoid a monorepo or premature UI/CLI/service layers.
+Relative TypeScript imports are **extensionless**:
 
-CI remains read-only and cannot publish. PR merge, package license, signed tags and release approval are separate maintainer decisions.
+```ts
+import { validateDefinition } from "./validation/definition";
+```
+
+Do not write relative `.js` specifiers in TypeScript source. The build produces valid ESM files in `dist/`, and the package export map uses the generated `dist/index.js` and `dist/index.d.ts`. That emitted filename is not a source import style.
+
+`tsdown.config.ts` uses the same general tsdown entry/build setup as Throughline, but no React, MDX, compiler extension adapter, browser UI or CLI is needed. `vitest.config.ts` targets Node tests only.
+
+## Scope of the current checks
+
+The tests verify an importable, empty foundation. The dist verifier checks that tsdown emitted executable ESM and declarations; it does **not** validate any real comparison behavior. AY-I01 adds versioned contract tests and independently locked schemas. AY-I04 additionally requires a packed third-party consumer and release-security tests.
+
+No public license or publication is approved. A green check is not release authorization.
