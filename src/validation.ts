@@ -1,12 +1,12 @@
 import {
   ASSAY_SCHEMA_VERSION,
-  CONTRACT_LIMITS,
   type AssessmentDefinition,
+  CONTRACT_LIMITS,
   type Criterion,
   type DiagnosticCode,
+  type EvaluationResult,
   type EvidenceBundle,
   type EvidenceCoverage,
-  type EvaluationResult,
   type Observation,
   type SetItemType,
   type ValidationDiagnostic,
@@ -95,7 +95,11 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
     try {
       const isArray = Array.isArray(value);
       const prototype = Object.getPrototypeOf(value);
-      if (isArray ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) {
+      if (
+        isArray
+          ? prototype !== Array.prototype
+          : prototype !== Object.prototype && prototype !== null
+      ) {
         issues.add(path, "UNSAFE_OBJECT");
         return BAD;
       }
@@ -114,7 +118,12 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
           issues.add(path, "TOO_MANY_ITEMS");
           return BAD;
         }
-        if (keys.length !== length + 1 || keys.some((key) => typeof key !== "string" || (key !== "length" && !/^(0|[1-9]\d*)$/.test(key)))) {
+        if (
+          keys.length !== length + 1 ||
+          keys.some(
+            (key) => typeof key !== "string" || (key !== "length" && !/^(0|[1-9]\d*)$/.test(key)),
+          )
+        ) {
           issues.add(path, "UNSAFE_OBJECT");
           return BAD;
         }
@@ -125,7 +134,7 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
             issues.add(path, "UNSAFE_OBJECT");
             return BAD;
           }
-          const item = visit(descriptor.value, path + "[" + i + "]", depth + 1);
+          const item = visit(descriptor.value, `${path}[${i}]`, depth + 1);
           if (item === BAD) return BAD;
           output.push(item);
         }
@@ -171,7 +180,13 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
   return visit(input, "$", 0);
 }
 
-function object(value: unknown, path: string, keys: readonly string[], required: readonly string[], issues: Diagnostics): value is DataObject {
+function object(
+  value: unknown,
+  path: string,
+  keys: readonly string[],
+  required: readonly string[],
+  issues: Diagnostics,
+): value is DataObject {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     issues.add(path, "INVALID_TYPE");
     return false;
@@ -181,12 +196,17 @@ function object(value: unknown, path: string, keys: readonly string[], required:
     if (!keys.includes(key)) issues.add(path, "UNEXPECTED_FIELD");
   }
   for (const key of required) {
-    if (!Object.hasOwn(source, key)) issues.add(path + "." + key, "MISSING_FIELD");
+    if (!Object.hasOwn(source, key)) issues.add(`${path}.${key}`, "MISSING_FIELD");
   }
   return true;
 }
 
-function choice(value: unknown, choices: readonly string[], path: string, issues: Diagnostics): boolean {
+function choice(
+  value: unknown,
+  choices: readonly string[],
+  path: string,
+  issues: Diagnostics,
+): boolean {
   if (typeof value !== "string" || !choices.includes(value)) {
     issues.add(path, "INVALID_VALUE");
     return false;
@@ -228,7 +248,12 @@ function numberValue(value: unknown, path: string, issues: Diagnostics, nonnegat
   }
 }
 
-function list(value: unknown, path: string, issues: Diagnostics, max: number = CONTRACT_LIMITS.maxArrayLength): value is readonly unknown[] {
+function list(
+  value: unknown,
+  path: string,
+  issues: Diagnostics,
+  max: number = CONTRACT_LIMITS.maxArrayLength,
+): value is readonly unknown[] {
   if (!Array.isArray(value)) {
     issues.add(path, "INVALID_TYPE");
     return false;
@@ -243,12 +268,17 @@ function list(value: unknown, path: string, issues: Diagnostics, max: number = C
 function unique(values: readonly unknown[], path: string, issues: Diagnostics): void {
   const seen = new Set<unknown>();
   for (const [i, value] of values.entries()) {
-    if (seen.has(value)) issues.add(path + "[" + i + "]", "DUPLICATE_ID");
+    if (seen.has(value)) issues.add(`${path}[${i}]`, "DUPLICATE_ID");
     seen.add(value);
   }
 }
 
-function scalarType(value: unknown, itemType: SetItemType, path: string, issues: Diagnostics): void {
+function scalarType(
+  value: unknown,
+  itemType: SetItemType,
+  path: string,
+  issues: Diagnostics,
+): void {
   if (typeof value !== itemType || (itemType === "number" && !Number.isFinite(value))) {
     issues.add(path, "INVALID_TYPE");
   }
@@ -257,96 +287,152 @@ function scalarType(value: unknown, itemType: SetItemType, path: string, issues:
 function setItems(value: unknown, itemType: unknown, path: string, issues: Diagnostics): void {
   if (!list(value, path, issues, CONTRACT_LIMITS.maxSetItems)) return;
   if (itemType === "string" || itemType === "number" || itemType === "boolean") {
-    for (const [i, item] of value.entries()) scalarType(item, itemType, path + "[" + i + "]", issues);
+    for (const [i, item] of value.entries()) scalarType(item, itemType, `${path}[${i}]`, issues);
   }
 }
 
-function expected(value: unknown, visibility: unknown, path: string, kind: "text" | "number" | "set", itemType: unknown, issues: Diagnostics): void {
+function expected(
+  value: unknown,
+  visibility: unknown,
+  path: string,
+  kind: "text" | "number" | "set",
+  itemType: unknown,
+  issues: Diagnostics,
+): void {
   if (!object(value, path, ["type", "value", "referenceId"], ["type"], issues)) return;
   if (value.type === "reference") {
     object(value, path, ["type", "referenceId"], ["type", "referenceId"], issues);
-    identifier(value.referenceId, path + ".referenceId", issues);
+    identifier(value.referenceId, `${path}.referenceId`, issues);
     return;
   }
   if (value.type === "literal") {
     object(value, path, ["type", "value"], ["type", "value"], issues);
     if (visibility === "restricted") issues.add(path, "RESTRICTED_LITERAL");
-    if (kind === "text") textValue(value.value, path + ".value", issues);
-    if (kind === "number") numberValue(value.value, path + ".value", issues);
-    if (kind === "set") setItems(value.value, itemType, path + ".value", issues);
+    if (kind === "text") textValue(value.value, `${path}.value`, issues);
+    if (kind === "number") numberValue(value.value, `${path}.value`, issues);
+    if (kind === "set") setItems(value.value, itemType, `${path}.value`, issues);
     return;
   }
-  issues.add(path + ".type", "INVALID_VALUE");
+  issues.add(`${path}.type`, "INVALID_VALUE");
 }
 
 function parameters(criterion: DataObject, path: string, issues: Diagnostics): void {
   const value = criterion.parameters;
-  const p = path + ".parameters";
+  const p = `${path}.parameters`;
   if (criterion.kind === "exact_text" || criterion.kind === "normalized_text") {
     const normalized = criterion.kind === "normalized_text";
-    if (!object(value, p, normalized ? ["expected", "normalization"] : ["expected"], normalized ? ["expected", "normalization"] : ["expected"], issues)) return;
-    expected(value.expected, criterion.visibility, p + ".expected", "text", undefined, issues);
+    if (
+      !object(
+        value,
+        p,
+        normalized ? ["expected", "normalization"] : ["expected"],
+        normalized ? ["expected", "normalization"] : ["expected"],
+        issues,
+      )
+    )
+      return;
+    expected(value.expected, criterion.visibility, `${p}.expected`, "text", undefined, issues);
     if (normalized) {
       const n = value.normalization;
-      const np = p + ".normalization";
-      if (!object(n, np, ["lineEndings", "unicode", "case", "whitespace", "trim"], ["lineEndings", "unicode", "case", "whitespace", "trim"], issues)) return;
-      choice(n.lineEndings, ["preserve", "lf"], np + ".lineEndings", issues);
-      choice(n.unicode, ["none", "NFC", "NFKC"], np + ".unicode", issues);
-      choice(n.case, ["sensitive", "fold"], np + ".case", issues);
-      choice(n.whitespace, ["preserve", "collapse"], np + ".whitespace", issues);
-      choice(n.trim, ["none", "both"], np + ".trim", issues);
+      const np = `${p}.normalization`;
+      if (
+        !object(
+          n,
+          np,
+          ["lineEndings", "unicode", "case", "whitespace", "trim"],
+          ["lineEndings", "unicode", "case", "whitespace", "trim"],
+          issues,
+        )
+      )
+        return;
+      choice(n.lineEndings, ["preserve", "lf"], `${np}.lineEndings`, issues);
+      choice(n.unicode, ["none", "NFC", "NFKC"], `${np}.unicode`, issues);
+      choice(n.case, ["sensitive", "fold"], `${np}.case`, issues);
+      choice(n.whitespace, ["preserve", "collapse"], `${np}.whitespace`, issues);
+      choice(n.trim, ["none", "both"], `${np}.trim`, issues);
     }
     return;
   }
   if (criterion.kind === "number_with_tolerance") {
-    if (!object(value, p, ["expected", "tolerance", "unit"], ["expected", "tolerance"], issues)) return;
-    expected(value.expected, criterion.visibility, p + ".expected", "number", undefined, issues);
+    if (!object(value, p, ["expected", "tolerance", "unit"], ["expected", "tolerance"], issues))
+      return;
+    expected(value.expected, criterion.visibility, `${p}.expected`, "number", undefined, issues);
     const tolerance = value.tolerance;
-    if (object(tolerance, p + ".tolerance", ["absolute", "relative"], ["absolute", "relative"], issues)) {
-      numberValue(tolerance.absolute, p + ".tolerance.absolute", issues, true);
-      numberValue(tolerance.relative, p + ".tolerance.relative", issues, true);
+    if (
+      object(
+        tolerance,
+        `${p}.tolerance`,
+        ["absolute", "relative"],
+        ["absolute", "relative"],
+        issues,
+      )
+    ) {
+      numberValue(tolerance.absolute, `${p}.tolerance.absolute`, issues, true);
+      numberValue(tolerance.relative, `${p}.tolerance.relative`, issues, true);
     }
-    if (Object.hasOwn(value, "unit")) identifier(value.unit, p + ".unit", issues);
+    if (Object.hasOwn(value, "unit")) identifier(value.unit, `${p}.unit`, issues);
     return;
   }
   if (criterion.kind === "set_equivalence") {
-    if (!object(value, p, ["expected", "itemType", "order", "duplicates"], ["expected", "itemType", "order", "duplicates"], issues)) return;
-    choice(value.itemType, ["string", "number", "boolean"], p + ".itemType", issues);
-    choice(value.order, ["ignore", "preserve"], p + ".order", issues);
-    choice(value.duplicates, ["ignore", "respect"], p + ".duplicates", issues);
-    expected(value.expected, criterion.visibility, p + ".expected", "set", value.itemType, issues);
+    if (
+      !object(
+        value,
+        p,
+        ["expected", "itemType", "order", "duplicates"],
+        ["expected", "itemType", "order", "duplicates"],
+        issues,
+      )
+    )
+      return;
+    choice(value.itemType, ["string", "number", "boolean"], `${p}.itemType`, issues);
+    choice(value.order, ["ignore", "preserve"], `${p}.order`, issues);
+    choice(value.duplicates, ["ignore", "respect"], `${p}.duplicates`, issues);
+    expected(value.expected, criterion.visibility, `${p}.expected`, "set", value.itemType, issues);
     return;
   }
   if (criterion.kind === "observed_execution") {
     if (!object(value, p, ["assertions"], ["assertions"], issues)) return;
-    if (!list(value.assertions, p + ".assertions", issues) ) return;
-    if (value.assertions.length === 0) issues.add(p + ".assertions", "INVALID_VALUE");
+    if (!list(value.assertions, `${p}.assertions`, issues)) return;
+    if (value.assertions.length === 0) issues.add(`${p}.assertions`, "INVALID_VALUE");
     const ids: unknown[] = [];
     for (const [i, assertion] of value.assertions.entries()) {
-      const ap = p + ".assertions[" + i + "]";
+      const ap = `${p}.assertions[${i}]`;
       if (!object(assertion, ap, ["id", "referenceId"], ["id", "referenceId"], issues)) continue;
-      identifier(assertion.id, ap + ".id", issues);
-      identifier(assertion.referenceId, ap + ".referenceId", issues);
+      identifier(assertion.id, `${ap}.id`, issues);
+      identifier(assertion.referenceId, `${ap}.referenceId`, issues);
       ids.push(assertion.id);
     }
-    unique(ids, p + ".assertions", issues);
+    unique(ids, `${p}.assertions`, issues);
     return;
   }
   if (criterion.kind === "manual_evidence") {
     if (object(value, p, ["review"], ["review"], issues)) {
-      choice(value.review, ["required"], p + ".review", issues);
+      choice(value.review, ["required"], `${p}.review`, issues);
     }
   }
 }
 
 function definitionRef(value: unknown, path: string, issues: Diagnostics): void {
-  if (!object(value, path, ["assessmentId", "revision", "revisionDigest"], ["assessmentId", "revision", "revisionDigest"], issues)) return;
-  identifier(value.assessmentId, path + ".assessmentId", issues);
-  revision(value.revision, path + ".revision", issues);
-  digest(value.revisionDigest, path + ".revisionDigest", issues);
+  if (
+    !object(
+      value,
+      path,
+      ["assessmentId", "revision", "revisionDigest"],
+      ["assessmentId", "revision", "revisionDigest"],
+      issues,
+    )
+  )
+    return;
+  identifier(value.assessmentId, `${path}.assessmentId`, issues);
+  revision(value.revision, `${path}.revision`, issues);
+  digest(value.revisionDigest, `${path}.revisionDigest`, issues);
 }
 
-function finish<T>(input: unknown, domain: ValidationDomain, check: (data: unknown, issues: Diagnostics) => void): ValidationResult<T> {
+function finish<T>(
+  input: unknown,
+  domain: ValidationDomain,
+  check: (data: unknown, issues: Diagnostics) => void,
+): ValidationResult<T> {
   const issues = new Diagnostics();
   const data = snapshot(input, issues);
   if (data === BAD) return issues.result(domain, undefined as T);
@@ -357,8 +443,32 @@ function finish<T>(input: unknown, domain: ValidationDomain, check: (data: unkno
 /** Validate and freeze a caller-authorized assessment definition. */
 export function parseAssessmentDefinition(input: unknown): ValidationResult<AssessmentDefinition> {
   return finish(input, "invalid_definition", (data, issues) => {
-    if (!object(data, "$", ["schemaVersion", "assessmentId", "revision", "revisionDigest", "policyVersion", "criteria"], ["schemaVersion", "assessmentId", "revision", "revisionDigest", "policyVersion", "criteria"], issues)) return;
-    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (
+      !object(
+        data,
+        "$",
+        [
+          "schemaVersion",
+          "assessmentId",
+          "revision",
+          "revisionDigest",
+          "policyVersion",
+          "criteria",
+        ],
+        [
+          "schemaVersion",
+          "assessmentId",
+          "revision",
+          "revisionDigest",
+          "policyVersion",
+          "criteria",
+        ],
+        issues,
+      )
+    )
+      return;
+    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION)
+      issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     identifier(data.assessmentId, "$.assessmentId", issues);
     revision(data.revision, "$.revision", issues);
     digest(data.revisionDigest, "$.revisionDigest", issues);
@@ -368,19 +478,43 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
     const ids: unknown[] = [];
     let required = 0;
     for (const [i, criterion] of data.criteria.entries()) {
-      const path = "$.criteria[" + i + "]";
-      if (!object(criterion, path, ["id", "mode", "kind", "visibility", "parameters"], ["id", "mode", "kind", "visibility", "parameters"], issues)) continue;
-      identifier(criterion.id, path + ".id", issues);
-      choice(criterion.mode, ["required", "advisory"], path + ".mode", issues);
-      choice(criterion.visibility, ["public", "restricted"], path + ".visibility", issues);
-      if (choice(criterion.kind, ["exact_text", "normalized_text", "number_with_tolerance", "set_equivalence", "observed_execution", "manual_evidence"], path + ".kind", issues)) {
+      const path = `$.criteria[${i}]`;
+      if (
+        !object(
+          criterion,
+          path,
+          ["id", "mode", "kind", "visibility", "parameters"],
+          ["id", "mode", "kind", "visibility", "parameters"],
+          issues,
+        )
+      )
+        continue;
+      identifier(criterion.id, `${path}.id`, issues);
+      choice(criterion.mode, ["required", "advisory"], `${path}.mode`, issues);
+      choice(criterion.visibility, ["public", "restricted"], `${path}.visibility`, issues);
+      if (
+        choice(
+          criterion.kind,
+          [
+            "exact_text",
+            "normalized_text",
+            "number_with_tolerance",
+            "set_equivalence",
+            "observed_execution",
+            "manual_evidence",
+          ],
+          `${path}.kind`,
+          issues,
+        )
+      ) {
         parameters(criterion, path, issues);
       }
       ids.push(criterion.id);
       if (criterion.mode === "required") required++;
     }
     unique(ids, "$.criteria", issues);
-    if (data.criteria.length > 0 && required === 0) issues.add("$.criteria", "EMPTY_REQUIRED_CRITERIA");
+    if (data.criteria.length > 0 && required === 0)
+      issues.add("$.criteria", "EMPTY_REQUIRED_CRITERIA");
   });
 }
 
@@ -393,50 +527,114 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
  */
 export function parseEvidenceBundle(input: unknown): ValidationResult<EvidenceBundle> {
   return finish(input, "invalid_evidence", (data, issues) => {
-    if (!object(data, "$", ["schemaVersion", "definition", "artifactDigest", "observations"], ["schemaVersion", "definition", "observations"], issues)) return;
-    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (
+      !object(
+        data,
+        "$",
+        ["schemaVersion", "definition", "artifactDigest", "observations"],
+        ["schemaVersion", "definition", "observations"],
+        issues,
+      )
+    )
+      return;
+    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION)
+      issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     definitionRef(data.definition, "$.definition", issues);
-    if (Object.hasOwn(data, "artifactDigest")) digest(data.artifactDigest, "$.artifactDigest", issues);
+    if (Object.hasOwn(data, "artifactDigest"))
+      digest(data.artifactDigest, "$.artifactDigest", issues);
     if (!list(data.observations, "$.observations", issues, CONTRACT_LIMITS.maxObservations)) return;
     const ids: unknown[] = [];
     const refs: unknown[] = [];
     for (const [i, obs] of data.observations.entries()) {
-      const p = "$.observations[" + i + "]";
-      if (!object(obs, p, ["criterionId", "evidenceRef", "completeness", "kind", "value", "itemType", "items", "runRef", "assertions", "artifactRefs"], ["criterionId", "evidenceRef", "completeness", "kind"], issues)) continue;
-      identifier(obs.criterionId, p + ".criterionId", issues);
-      identifier(obs.evidenceRef, p + ".evidenceRef", issues);
-      choice(obs.completeness, ["complete", "truncated"], p + ".completeness", issues);
+      const p = `$.observations[${i}]`;
+      if (
+        !object(
+          obs,
+          p,
+          [
+            "criterionId",
+            "evidenceRef",
+            "completeness",
+            "kind",
+            "value",
+            "itemType",
+            "items",
+            "runRef",
+            "assertions",
+            "artifactRefs",
+          ],
+          ["criterionId", "evidenceRef", "completeness", "kind"],
+          issues,
+        )
+      )
+        continue;
+      identifier(obs.criterionId, `${p}.criterionId`, issues);
+      identifier(obs.evidenceRef, `${p}.evidenceRef`, issues);
+      choice(obs.completeness, ["complete", "truncated"], `${p}.completeness`, issues);
       ids.push(obs.criterionId);
       refs.push(obs.evidenceRef);
       if (obs.kind === "text") {
-        object(obs, p, ["criterionId", "evidenceRef", "completeness", "kind", "value"], ["criterionId", "evidenceRef", "completeness", "kind", "value"], issues);
-        textValue(obs.value, p + ".value", issues);
+        object(
+          obs,
+          p,
+          ["criterionId", "evidenceRef", "completeness", "kind", "value"],
+          ["criterionId", "evidenceRef", "completeness", "kind", "value"],
+          issues,
+        );
+        textValue(obs.value, `${p}.value`, issues);
       } else if (obs.kind === "number") {
-        object(obs, p, ["criterionId", "evidenceRef", "completeness", "kind", "value"], ["criterionId", "evidenceRef", "completeness", "kind", "value"], issues);
-        numberValue(obs.value, p + ".value", issues);
+        object(
+          obs,
+          p,
+          ["criterionId", "evidenceRef", "completeness", "kind", "value"],
+          ["criterionId", "evidenceRef", "completeness", "kind", "value"],
+          issues,
+        );
+        numberValue(obs.value, `${p}.value`, issues);
       } else if (obs.kind === "set") {
-        object(obs, p, ["criterionId", "evidenceRef", "completeness", "kind", "itemType", "items"], ["criterionId", "evidenceRef", "completeness", "kind", "itemType", "items"], issues);
-        choice(obs.itemType, ["string", "number", "boolean"], p + ".itemType", issues);
-        setItems(obs.items, obs.itemType, p + ".items", issues);
+        object(
+          obs,
+          p,
+          ["criterionId", "evidenceRef", "completeness", "kind", "itemType", "items"],
+          ["criterionId", "evidenceRef", "completeness", "kind", "itemType", "items"],
+          issues,
+        );
+        choice(obs.itemType, ["string", "number", "boolean"], `${p}.itemType`, issues);
+        setItems(obs.items, obs.itemType, `${p}.items`, issues);
       } else if (obs.kind === "execution") {
-        object(obs, p, ["criterionId", "evidenceRef", "completeness", "kind", "runRef", "assertions"], ["criterionId", "evidenceRef", "completeness", "kind", "runRef", "assertions"], issues);
-        identifier(obs.runRef, p + ".runRef", issues);
-        if (!list(obs.assertions, p + ".assertions", issues)) continue;
+        object(
+          obs,
+          p,
+          ["criterionId", "evidenceRef", "completeness", "kind", "runRef", "assertions"],
+          ["criterionId", "evidenceRef", "completeness", "kind", "runRef", "assertions"],
+          issues,
+        );
+        identifier(obs.runRef, `${p}.runRef`, issues);
+        if (!list(obs.assertions, `${p}.assertions`, issues)) continue;
         const assertionIds: unknown[] = [];
         for (const [j, assertion] of obs.assertions.entries()) {
-          const ap = p + ".assertions[" + j + "]";
-          if (!object(assertion, ap, ["assertionId", "state"], ["assertionId", "state"], issues)) continue;
-          identifier(assertion.assertionId, ap + ".assertionId", issues);
-          choice(assertion.state, ["confirmed", "refuted", "unknown"], ap + ".state", issues);
+          const ap = `${p}.assertions[${j}]`;
+          if (!object(assertion, ap, ["assertionId", "state"], ["assertionId", "state"], issues))
+            continue;
+          identifier(assertion.assertionId, `${ap}.assertionId`, issues);
+          choice(assertion.state, ["confirmed", "refuted", "unknown"], `${ap}.state`, issues);
           assertionIds.push(assertion.assertionId);
         }
-        unique(assertionIds, p + ".assertions", issues);
+        unique(assertionIds, `${p}.assertions`, issues);
       } else if (obs.kind === "manual") {
-        object(obs, p, ["criterionId", "evidenceRef", "completeness", "kind", "artifactRefs"], ["criterionId", "evidenceRef", "completeness", "kind", "artifactRefs"], issues);
-        if (!list(obs.artifactRefs, p + ".artifactRefs", issues, CONTRACT_LIMITS.maxEvidenceRefs)) continue;
-        for (const [j, id] of obs.artifactRefs.entries()) identifier(id, p + ".artifactRefs[" + j + "]", issues);
-        unique(obs.artifactRefs, p + ".artifactRefs", issues);
-      } else issues.add(p + ".kind", "INVALID_VALUE");
+        object(
+          obs,
+          p,
+          ["criterionId", "evidenceRef", "completeness", "kind", "artifactRefs"],
+          ["criterionId", "evidenceRef", "completeness", "kind", "artifactRefs"],
+          issues,
+        );
+        if (!list(obs.artifactRefs, `${p}.artifactRefs`, issues, CONTRACT_LIMITS.maxEvidenceRefs))
+          continue;
+        for (const [j, id] of obs.artifactRefs.entries())
+          identifier(id, `${p}.artifactRefs[${j}]`, issues);
+        unique(obs.artifactRefs, `${p}.artifactRefs`, issues);
+      } else issues.add(`${p}.kind`, "INVALID_VALUE");
     }
     unique(ids, "$.observations", issues);
     unique(refs, "$.observations", issues);
@@ -446,9 +644,47 @@ export function parseEvidenceBundle(input: unknown): ValidationResult<EvidenceBu
 /** Validate a technical finding record without granting authority to its claim. */
 export function parseEvaluationResult(input: unknown): ValidationResult<EvaluationResult> {
   return finish(input, "invalid_result", (data, issues) => {
-    if (!object(data, "$", ["schemaVersion", "outcome", "definition", "policyVersion", "findings", "evaluator", "warnings"], ["schemaVersion", "outcome", "definition", "policyVersion", "findings", "evaluator", "warnings"], issues)) return;
-    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
-    choice(data.outcome, ["pass", "fail", "inconclusive", "invalid_definition", "invalid_evidence", "evaluation_error"], "$.outcome", issues);
+    if (
+      !object(
+        data,
+        "$",
+        [
+          "schemaVersion",
+          "outcome",
+          "definition",
+          "policyVersion",
+          "findings",
+          "evaluator",
+          "warnings",
+        ],
+        [
+          "schemaVersion",
+          "outcome",
+          "definition",
+          "policyVersion",
+          "findings",
+          "evaluator",
+          "warnings",
+        ],
+        issues,
+      )
+    )
+      return;
+    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION)
+      issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    choice(
+      data.outcome,
+      [
+        "pass",
+        "fail",
+        "inconclusive",
+        "invalid_definition",
+        "invalid_evidence",
+        "evaluation_error",
+      ],
+      "$.outcome",
+      issues,
+    );
     definitionRef(data.definition, "$.definition", issues);
     revision(data.policyVersion, "$.policyVersion", issues);
     if (object(data.evaluator, "$.evaluator", ["id", "version"], ["id", "version"], issues)) {
@@ -456,21 +692,48 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
       revision(data.evaluator.version, "$.evaluator.version", issues);
     }
     if (list(data.warnings, "$.warnings", issues, CONTRACT_LIMITS.maxEvidenceRefs)) {
-      for (const [i, warning] of data.warnings.entries()) reason(warning, "$.warnings[" + i + "]", issues);
+      for (const [i, warning] of data.warnings.entries())
+        reason(warning, `$.warnings[${i}]`, issues);
     }
     if (!list(data.findings, "$.findings", issues, CONTRACT_LIMITS.maxCriteria)) return;
     const ids: unknown[] = [];
     for (const [i, finding] of data.findings.entries()) {
-      const p = "$.findings[" + i + "]";
-      if (!object(finding, p, ["criterionId", "outcome", "reasonCode", "evidenceRefs", "evaluatorId", "evaluatorVersion"], ["criterionId", "outcome", "reasonCode", "evidenceRefs", "evaluatorId", "evaluatorVersion"], issues)) continue;
-      identifier(finding.criterionId, p + ".criterionId", issues);
-      choice(finding.outcome, ["pass", "fail", "inconclusive", "error"], p + ".outcome", issues);
-      reason(finding.reasonCode, p + ".reasonCode", issues);
-      identifier(finding.evaluatorId, p + ".evaluatorId", issues);
-      revision(finding.evaluatorVersion, p + ".evaluatorVersion", issues);
-      if (list(finding.evidenceRefs, p + ".evidenceRefs", issues, CONTRACT_LIMITS.maxEvidenceRefs)) {
-        for (const [j, id] of finding.evidenceRefs.entries()) identifier(id, p + ".evidenceRefs[" + j + "]", issues);
-        unique(finding.evidenceRefs, p + ".evidenceRefs", issues);
+      const p = `$.findings[${i}]`;
+      if (
+        !object(
+          finding,
+          p,
+          [
+            "criterionId",
+            "outcome",
+            "reasonCode",
+            "evidenceRefs",
+            "evaluatorId",
+            "evaluatorVersion",
+          ],
+          [
+            "criterionId",
+            "outcome",
+            "reasonCode",
+            "evidenceRefs",
+            "evaluatorId",
+            "evaluatorVersion",
+          ],
+          issues,
+        )
+      )
+        continue;
+      identifier(finding.criterionId, `${p}.criterionId`, issues);
+      choice(finding.outcome, ["pass", "fail", "inconclusive", "error"], `${p}.outcome`, issues);
+      reason(finding.reasonCode, `${p}.reasonCode`, issues);
+      identifier(finding.evaluatorId, `${p}.evaluatorId`, issues);
+      revision(finding.evaluatorVersion, `${p}.evaluatorVersion`, issues);
+      if (
+        list(finding.evidenceRefs, `${p}.evidenceRefs`, issues, CONTRACT_LIMITS.maxEvidenceRefs)
+      ) {
+        for (const [j, id] of finding.evidenceRefs.entries())
+          identifier(id, `${p}.evidenceRefs[${j}]`, issues);
+        unique(finding.evidenceRefs, `${p}.evidenceRefs`, issues);
       }
       ids.push(finding.criterionId);
     }
@@ -513,26 +776,27 @@ export function inspectEvidenceCoverage(
   const evidenceByCriterion = new Map<string, Observation>();
   for (const [i, observation] of actual.observations.entries()) {
     const criterion = criteria.get(observation.criterionId);
-    const path = "$.observations[" + i + "]";
+    const path = `$.observations[${i}]`;
     if (!criterion) {
-      issues.add(path + ".criterionId", "UNKNOWN_CRITERION");
+      issues.add(`${path}.criterionId`, "UNKNOWN_CRITERION");
       continue;
     }
     const matchingKind =
       ((criterion.kind === "exact_text" || criterion.kind === "normalized_text") &&
         observation.kind === "text") ||
       (criterion.kind === "number_with_tolerance" && observation.kind === "number") ||
-      (criterion.kind === "set_equivalence" && observation.kind === "set" &&
+      (criterion.kind === "set_equivalence" &&
+        observation.kind === "set" &&
         criterion.parameters.itemType === observation.itemType) ||
       (criterion.kind === "observed_execution" && observation.kind === "execution") ||
       (criterion.kind === "manual_evidence" && observation.kind === "manual");
-    if (!matchingKind) issues.add(path + ".kind", "MISMATCHED_OBSERVATION");
+    if (!matchingKind) issues.add(`${path}.kind`, "MISMATCHED_OBSERVATION");
 
     if (criterion.kind === "observed_execution" && observation.kind === "execution") {
       const known = new Set(criterion.parameters.assertions.map((assertion) => assertion.id));
       for (const [j, assertion] of observation.assertions.entries()) {
         if (!known.has(assertion.assertionId)) {
-          issues.add(path + ".assertions[" + j + "].assertionId", "UNKNOWN_CRITERION");
+          issues.add(`${path}.assertions[${j}].assertionId`, "UNKNOWN_CRITERION");
         }
       }
     }
@@ -546,8 +810,11 @@ export function inspectEvidenceCoverage(
     if (!obs) missingRequired.push(criterion.id);
     else if (obs.completeness === "truncated") truncatedRequired.push(criterion.id);
   }
-  return issues.result("invalid_evidence", Object.freeze({
-    missingRequired: Object.freeze(missingRequired),
-    truncatedRequired: Object.freeze(truncatedRequired),
-  }));
+  return issues.result(
+    "invalid_evidence",
+    Object.freeze({
+      missingRequired: Object.freeze(missingRequired),
+      truncatedRequired: Object.freeze(truncatedRequired),
+    }),
+  );
 }
