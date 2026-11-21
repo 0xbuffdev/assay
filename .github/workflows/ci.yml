@@ -39,12 +39,8 @@ jobs:
         run: pnpm check:foundation
       - name: Typecheck
         run: pnpm typecheck
-      - name: Preview Biome corrections for review
-        run: |
-          pnpm exec biome check --write --unsafe .
-          echo 'ASSAY_BIOME_DIFF_BEGIN'
-          git diff -- . ':!pnpm-lock.yaml'
-          echo 'ASSAY_BIOME_DIFF_END'
+      - name: Check Biome formatting and lint
+        run: pnpm check:style
       - name: Unit tests
         run: pnpm test
       - name: Build and verify emitted package entry
