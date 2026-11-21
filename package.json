@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Standalone deterministic technical evaluation (foundation only)",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@11.2.2",
   "engines": {
@@ -39,7 +39,9 @@
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE",
+    "COPYRIGHT.md"
   ],
   "devDependencies": {
     "@biomejs/biome": "2.6.8",

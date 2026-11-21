@@ -14,6 +14,6 @@ Do not commit internal product context, protected grader cases, learner data, se
 
 Use Node 24+ and pinned pnpm 11.2.2. tsdown owns ESM/types bundling, Vitest owns tests and Biome owns formatting/linting. Run `pnpm install --frozen-lockfile`, `pnpm check` and check the exact CI head. Use `moduleResolution: "bundler"` with **extensionless relative imports in TypeScript**; do not add `.js` to TypeScript source import specifiers. The package export map legitimately names emitted `.js` files. Add security and external packed-consumer checks as the relevant AY tickets land.
 
-Use one focused branch/PR per ticket, add reproducible positive/negative cases, update docs, and record exactly which checks ran. Do not change repository visibility/ownership, approve a license, publish a package, tag, merge or deploy without explicit maintainer authorization.
+Use one focused branch/PR per ticket, add reproducible positive/negative cases, update docs, and record exactly which checks ran. Assay source is Apache-2.0 licensed; preserve its license and copyright notices. Do not change repository visibility/ownership, relicense the source, publish a package, tag, merge or deploy without explicit maintainer authorization.
 
 This foundation exports no evaluation API; AY-I01 is the first runtime implementation.
