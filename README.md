@@ -6,7 +6,7 @@ Assay is a standalone, provider-neutral TypeScript library being developed to va
 
 Assay **does not** execute untrusted programs, verify learner identity, award academic credit, issue certificates or depend on OEE/0xNAND. Consumers own execution provenance, official assessment admission and final decisions.
 
-> **Foundation only.** No evaluation API, distributed package or npm release exists yet. The npm package is intentionally unpublishable until the license and release are separately approved.
+> **Foundation only.** No evaluation API, distributed package or npm release exists yet. The npm package is intentionally unpublishable until a separate release authorization.
 
 ## Planned behavior
 
@@ -37,4 +37,4 @@ See [architecture](docs/architecture.md), [development](docs/development.md), [r
 
 ## License
 
-No open-source license grant is approved yet. The repository uses `UNLICENSED` and `private: true` in its package metadata until a separate maintainer decision. Repository visibility and npm publishing are different from source licensing; do not assume reuse rights.
+Assay is licensed under the [Apache License, Version 2.0](LICENSE). See [copyright and attribution](COPYRIGHT.md) for details. The package remains `private: true` to prevent premature npm publication; this flag does not restrict the open-source permissions granted by Apache-2.0. No npm release has been authorized.
