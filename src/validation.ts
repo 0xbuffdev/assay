@@ -228,7 +228,7 @@ function numberValue(value: unknown, path: string, issues: Diagnostics, nonnegat
   }
 }
 
-function list(value: unknown, path: string, issues: Diagnostics, max = CONTRACT_LIMITS.maxArrayLength): value is readonly unknown[] {
+function list(value: unknown, path: string, issues: Diagnostics, max: number = CONTRACT_LIMITS.maxArrayLength): value is readonly unknown[] {
   if (!Array.isArray(value)) {
     issues.add(path, "INVALID_TYPE");
     return false;
