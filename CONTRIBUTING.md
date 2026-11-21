@@ -1,6 +1,6 @@
 # Contributing to Assay
 
-Assay is in early development. Non-sensitive ideas and issues are welcome, but **external code contributions are not accepted until the open-source license and contribution terms are approved**. Public source visibility alone does not grant reuse rights.
+Assay is licensed under the [Apache License, Version 2.0](LICENSE). Non-sensitive ideas and issues are welcome. Propose significant code changes in an issue first; external pull requests remain subject to maintainer review and acceptance. Contributions intentionally submitted for inclusion are handled under Section 5 of Apache-2.0 unless explicitly stated otherwise or covered by a separate agreement.
 
 Read the [public specification](https://github.com/0xbuffdev/context/blob/main/repos/assay/specs/0001-evaluation-core.md) and the current implementation ticket before suggesting behavior.
 
