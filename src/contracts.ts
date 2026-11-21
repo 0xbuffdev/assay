@@ -209,5 +209,5 @@ export type ValidationResult<T> =
 
 export type EvidenceCoverage = Readonly<{
   missingRequired: readonly string[];
-  truncatedRequired: readonly string[];
+  incompleteRequired: readonly string[];
 }>;
