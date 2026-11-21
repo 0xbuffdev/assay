@@ -4,10 +4,7 @@
  * This module does not execute code, compare submitted values, award grades,
  * authenticate evidence, or contact any external service.
  */
-export {
-  ASSAY_SCHEMA_VERSION,
-  CONTRACT_LIMITS,
-} from "./contracts";
+
 export type {
   AssessmentDefinition,
   Completeness,
@@ -17,9 +14,9 @@ export type {
   CriterionMode,
   DefinitionReference,
   DiagnosticCode,
+  EvaluationResult,
   EvidenceBundle,
   EvidenceCoverage,
-  EvaluationResult,
   Expected,
   FindingOutcome,
   Observation,
@@ -34,8 +31,12 @@ export type {
   ValidationResult,
 } from "./contracts";
 export {
+  ASSAY_SCHEMA_VERSION,
+  CONTRACT_LIMITS,
+} from "./contracts";
+export {
   inspectEvidenceCoverage,
   parseAssessmentDefinition,
-  parseEvidenceBundle,
   parseEvaluationResult,
+  parseEvidenceBundle,
 } from "./validation";
