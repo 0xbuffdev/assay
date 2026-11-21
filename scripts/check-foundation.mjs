@@ -11,11 +11,13 @@ const ts = JSON.parse(await readFile(locate("tsconfig.json"), "utf8"));
 assert.equal(pkg.name, "@0xbuff/assay");
 assert.equal(pkg.type, "module");
 assert.equal(pkg.private, true, "Never publish before independent release approval");
-assert.equal(pkg.license, "UNLICENSED", "License approval is a separate decision");
+assert.equal(pkg.license, "Apache-2.0", "Assay source must retain its approved license");
 assert.deepEqual(Object.keys(pkg.exports), ["."]);
 assert.equal(pkg.exports["."].types, "./dist/index.d.ts");
 assert.equal(pkg.exports["."].import, "./dist/index.js");
 assert.equal(pkg.packageManager, "pnpm@11.2.2");
+assert.ok(pkg.files.includes("LICENSE"), "Include license in eventual package artifacts");
+assert.ok(pkg.files.includes("COPYRIGHT.md"), "Include copyright notice in eventual package artifacts");
 assert.equal(pkg.engines.node, ">=24");
 assert.equal(ts.compilerOptions.moduleResolution, "bundler");
 assert.equal(ts.compilerOptions.module, "ESNext");
@@ -30,6 +32,8 @@ assert.deepEqual(Object.keys(pkg.devDependencies ?? {}).sort(), [
 
 for (const file of [
   "README.md",
+  "LICENSE",
+  "COPYRIGHT.md",
   "AGENTS.md",
   "CONTRIBUTING.md",
   "CODE_OF_CONDUCT.md",
