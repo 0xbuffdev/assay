@@ -52,6 +52,11 @@ for (const file of [
   "tsdown.config.ts",
   "vitest.config.ts",
   "src/index.ts",
+  "src/contracts.ts",
+  "src/validation.ts",
+  "tests/contracts.test.ts",
+  "tests/fixtures/contracts.ts",
+  "docs/contracts.md",
   "tests/foundation.test.ts",
   "scripts/verify-dist.mjs",
   ".github/workflows/ci.yml",
@@ -60,7 +65,9 @@ for (const file of [
 }
 
 const entry = await readFile(locate("src/index.ts"), "utf8");
-assert.match(entry, /export \{\}/, "AY-I01 must introduce the first public API");
+assert.match(entry, /parseAssessmentDefinition/, "AY-I01 must expose contract validation");
+assert.match(entry, /parseEvidenceBundle/, "AY-I01 must expose evidence validation");
+assert.doesNotMatch(entry, /export[^\n]*\bevaluate\b/, "AY-I02 owns evaluation logic");
 
 // Prevent extensionful .js specifiers in all authored TypeScript modules.
 for (const rootDirectory of ["src", "tests"]) {
