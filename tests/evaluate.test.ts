@@ -221,7 +221,7 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
       ...fixtureEvidence(),
       observations: [
         complete("check", "text", "wrong"),
-        complete("advice", "text", "great"),
+        { ...complete("advice", "text", "great"), evidenceRef: "obs2" },
       ],
     };
     const r = resolved(evaluate(definition, evidence));
