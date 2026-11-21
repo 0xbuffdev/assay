@@ -16,4 +16,4 @@ Use Node 24+ and pinned pnpm 11.2.2. tsdown owns ESM/types bundling, Vitest owns
 
 Use one focused branch/PR per ticket, add reproducible positive/negative cases, update docs, and record exactly which checks ran. Assay source is Apache-2.0 licensed; preserve its license and copyright notices. Do not change repository visibility/ownership, relicense the source, publish a package, tag, merge or deploy without explicit maintainer authorization.
 
-AY-I01 exports versioned contract parsing and evidence coverage inspection, not an evaluator. AY-I02 must own deterministic comparisons and technical outcome aggregation. Do not invent a `pass` from a valid parse or from missing evidence. See [contracts](docs/contracts.md).
+AY-I01 exports versioned contract parsing and evidence coverage inspection. AY-I02 adds pure deterministic literal comparisons and technical outcome aggregation; review [evaluation](docs/evaluation.md) for normative behavior. Never infer `pass` from a valid parse, missing references, unverified execution or an advisory claim. See [contracts](docs/contracts.md).
