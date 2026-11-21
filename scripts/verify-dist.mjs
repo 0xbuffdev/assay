@@ -65,11 +65,23 @@ const observed = entry.evaluate(
     schemaVersion: 1,
     definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
     observations: [
-      { criterionId: "objective", evidenceRef: "obs1", completeness: "complete", kind: "text", value: "ok" },
+      {
+        criterionId: "objective",
+        evidenceRef: "obs1",
+        completeness: "complete",
+        kind: "text",
+        value: "ok",
+      },
     ],
   },
 );
 assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
 assert.equal(observed.findings[0].reasonCode, "MATCH");
-assert.equal(entry.parseEvaluationResult(observed).ok, true, "Output must match its public contract");
-console.log("Built ESM entry, declarations, contract validation and deterministic evaluation verified");
+assert.equal(
+  entry.parseEvaluationResult(observed).ok,
+  true,
+  "Output must match its public contract",
+);
+console.log(
+  "Built ESM entry, declarations, contract validation and deterministic evaluation verified",
+);
