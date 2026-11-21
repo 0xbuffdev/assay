@@ -14,9 +14,9 @@ export type {
   CriterionMode,
   DefinitionReference,
   DiagnosticCode,
-  EvaluationResult,
   EvaluationFailure,
   EvaluationResponse,
+  EvaluationResult,
   EvidenceBundle,
   EvidenceCoverage,
   Expected,
@@ -32,11 +32,11 @@ export type {
   ValidationDomain,
   ValidationResult,
 } from "./contracts";
-export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluate";
 export {
   ASSAY_SCHEMA_VERSION,
   CONTRACT_LIMITS,
 } from "./contracts";
+export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluate";
 export {
   inspectEvidenceCoverage,
   parseAssessmentDefinition,
