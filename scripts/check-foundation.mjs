@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -55,10 +55,31 @@ for (const file of [
 const entry = await readFile(locate("src/index.ts"), "utf8");
 assert.match(entry, /export \{\}/, "AY-I01 must introduce the first public API");
 
-const sourceImports = [...entry.matchAll(/(?:from\s*|import\s*\()\s*["'](\.{1,2}\/[^"']+)["']/g)];
-assert.ok(
-  sourceImports.every((match) => !match[1].endsWith(".js")),
-  "TypeScript source imports must not use .js extensions",
-);
+// Prevent extensionful .js specifiers in all authored TypeScript modules.
+for (const rootDirectory of ["src", "tests"]) {
+  const pending = [rootDirectory];
+  while (pending.length > 0) {
+    const directory = pending.pop();
+    if (!directory) break;
+
+    for (const item of await readdir(locate(directory), { withFileTypes: true })) {
+      const relativePath = path.join(directory, item.name);
+      if (item.isDirectory()) {
+        pending.push(relativePath);
+      } else if (item.isFile() && /\.tsx?$/.test(item.name)) {
+        const content = await readFile(locate(relativePath), "utf8");
+        const imports = content.matchAll(
+          /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?)["'](\.{1,2}\/[^"']+)["']/g,
+        );
+        for (const match of imports) {
+          assert.ok(
+            !match[1].endsWith(".js"),
+            `Use an extensionless TypeScript import in ${relativePath}: ${match[1]}`,
+          );
+        }
+      }
+    }
+  }
+}
 
 console.log("Assay foundation metadata and source import checks passed");
