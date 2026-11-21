@@ -1,6 +1,6 @@
 # Deterministic technical evaluation (AY-I02)
 
-Assay evaluates caller-authorized *literal* criteria against bounded typed
+Assay evaluates caller-authorized _literal_ criteria against bounded typed
 observations. The source API is `evaluate(definition, evidence)` and the
 implementation is pure: no clock, random source, network request, dynamic
 predicates, AI service, code runner or institutional grade writer.
@@ -75,20 +75,20 @@ bound).
 
 ## Comparison semantics
 
-| Criterion | Exact behavior |
-| --- | --- |
-| `exact_text` | JavaScript UTF-16 code-unit equality (`===`); no hidden whitespace, case, line-ending or Unicode transformation |
-| `normalized_text` | Applies only explicitly declared transformations, in the fixed order below, to both actual and expected values |
-| `number_with_tolerance` | Absolute difference <= `max(absoluteTolerance, relativeTolerance * abs(expected))`, inclusive; no coercion |
-| `set_equivalence` | Scalar equality within a declared string/number/boolean type, with authored order and duplicate policies |
-| `observed_execution` | Always inconclusive until an independently justified, verified observation port is designed; even `confirmed` assertions supplied by a caller are **not** authenticated correctness |
-| `manual_evidence` | Always inconclusive pending authorized review; presence of a document is never correctness |
+| Criterion               | Exact behavior                                                                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `exact_text`            | JavaScript UTF-16 code-unit equality (`===`); no hidden whitespace, case, line-ending or Unicode transformation                                                                     |
+| `normalized_text`       | Applies only explicitly declared transformations, in the fixed order below, to both actual and expected values                                                                      |
+| `number_with_tolerance` | Absolute difference <= `max(absoluteTolerance, relativeTolerance * abs(expected))`, inclusive; no coercion                                                                          |
+| `set_equivalence`       | Scalar equality within a declared string/number/boolean type, with authored order and duplicate policies                                                                            |
+| `observed_execution`    | Always inconclusive until an independently justified, verified observation port is designed; even `confirmed` assertions supplied by a caller are **not** authenticated correctness |
+| `manual_evidence`       | Always inconclusive pending authorized review; presence of a document is never correctness                                                                                          |
 
 **Normalized text transformation order:**
 
 1. `lineEndings: "lf"` converts CRLF and bare CR to LF; `"preserve"` does nothing.
 2. `case: "fold"` applies locale-independent ECMAScript `toLowerCase()`;
-   this is *not* the complete Unicode CaseFolding mapping (e.g. `ß` does
+   this is _not_ the complete Unicode CaseFolding mapping (e.g. `ß` does
    not equal `ss`). `"sensitive"` leaves case untouched.
 3. `unicode: "NFC" | "NFKC"` applies that specific Unicode normalization
    form; `"none"` does nothing.
@@ -122,7 +122,7 @@ The only implemented aggregation policy is **all required criteria must
 pass**. The caller's `policyVersion` is an immutable lineage label, not
 permission to replace this logic with arbitrary thresholds or weights.
 
-- Any *decisive required failure* yields overall `fail`, even alongside
+- Any _decisive required failure_ yields overall `fail`, even alongside
   unresolved requirements; all finding-level reasons remain visible.
 - Otherwise, a required comparator error yields `evaluation_error`, not
   an incorrect-learner verdict.
@@ -132,7 +132,7 @@ permission to replace this logic with arbitrary thresholds or weights.
   `pass`. An advisory failure does not change this outcome, and unresolved
   advisory work only adds the `ADVISORY_UNRESOLVED` warning.
 
-Malformed/unsupported contracts return invalid input envelopes *before*
+Malformed/unsupported contracts return invalid input envelopes _before_
 comparison. Missing required evidence is not malformed input: it produces
 an `inconclusive` finding. Text mismatch for a complete literal criterion
 is a legitimate `fail`; a successful process exit or a forged `trusted`
