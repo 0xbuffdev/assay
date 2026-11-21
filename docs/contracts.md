@@ -90,8 +90,8 @@ Unknown fields, bogus `trusted` claims, duplicate observation IDs, unsupported
 values and malformed data are rejected.
 
 **Absent observations and truncated data are structurally valid.** A caller can
-use `inspectEvidenceCoverage` to identify missing or truncated _required_
-criteria and reject mismatched definition identities, unknown criterion IDs or
+use `inspectEvidenceCoverage` to identify missing or incomplete _required_
+criteria (including truncated output, missing execution assertions and empty manual artifacts) and reject mismatched definition identities, unknown criterion IDs or
 incompatible observation kinds. This helper does not compare observations
 against expected values or conclude `pass`/`fail`.
 
