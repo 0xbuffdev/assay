@@ -1,7 +1,7 @@
-import type { AssessmentDefinition, EvidenceBundle, EvaluationResult } from "../../src/index";
+import type { AssessmentDefinition, EvaluationResult, EvidenceBundle } from "../../src/index";
 
-export const digestA = "sha256:" + "a".repeat(64);
-export const digestB = "sha256:" + "b".repeat(64);
+export const digestA = `sha256:${"a".repeat(64)}`;
+export const digestB = `sha256:${"b".repeat(64)}`;
 
 export function definition(): AssessmentDefinition {
   return {
