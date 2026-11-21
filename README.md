@@ -29,7 +29,9 @@ pnpm check
 pnpm test
 ```
 
-`AY-I01` introduces the first validated contracts; `AY-I02` adds deterministic comparators; `AY-I03` adds optional observation ports; and `AY-I04` establishes external package, security and release acceptance. TypeScript compilation, distributable declarations and packed-consumer verification will be introduced with implementation work, not claimed by this foundation.
+Use `pnpm format` to apply Biome formatting; `pnpm format:check` and `pnpm lint` run non-mutating checks. Relative TypeScript imports use extensionless specifiers (for example `../src/index`); the emitted ESM package still uses `.js` distribution filenames.
+
+`AY-I01` introduces the first validated contracts; `AY-I02` adds deterministic comparators; `AY-I03` adds optional observation ports; and `AY-I04` establishes external package, security and release acceptance. The scaffold already builds an ESM bundle and type declarations using tsdown and verifies them with a self-import. Formal packed-consumer acceptance remains an AY-I04 release gate.
 
 See [architecture](docs/architecture.md), [development](docs/development.md), [release policy](docs/releasing.md), [contributing](CONTRIBUTING.md) and [security](SECURITY.md).
 

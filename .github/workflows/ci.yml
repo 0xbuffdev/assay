@@ -14,10 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  foundation:
-    name: Foundation checks and TypeScript import
+  verify:
+    name: Foundation, types, lint, tests and bundle
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Check out proposed source
         uses: actions/checkout@v6
@@ -31,11 +31,19 @@ jobs:
           node-version: 24
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-      - name: Install reproducible empty dependency set
+      - name: Install exactly locked dependencies
         run: pnpm install --frozen-lockfile
+      - name: Verify lockfile unchanged
+        run: git diff --exit-code -- pnpm-lock.yaml
       - name: Validate repository foundation
-        run: pnpm check
-      - name: Test source import
+        run: pnpm check:foundation
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Check Biome formatting and lint
+        run: pnpm check:style
+      - name: Unit tests
         run: pnpm test
+      - name: Build and verify emitted package entry
+        run: pnpm build
 
-  # Quality-only CI: no deployment, npm publish or write permissions.
+  # Quality-only CI: no npm publish, deploy or write credentials.

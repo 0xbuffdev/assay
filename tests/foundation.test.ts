@@ -1,12 +1,15 @@
-import assert from "node:assert/strict";
-import test from "node:test";
-import * as assay from "../src/index.ts";
+import { describe, expect, it } from "vitest";
 
-test("foundation exports no unreviewed public evaluation contract", () => {
-  assert.deepEqual(Object.keys(assay), []);
-});
+import * as assay from "../src/index";
 
-test("root TypeScript entry imports without optional dependencies", async () => {
-  const entry = await import("../src/index.ts");
-  assert.equal(typeof entry, "object");
+describe("Assay repository foundation", () => {
+  it("exports no unreviewed evaluation behavior", () => {
+    expect(Object.keys(assay)).toEqual([]);
+  });
+
+  it("imports the source module without a runner, host or AI provider", async () => {
+    const entry = await import("../src/index");
+    expect(entry).toBeDefined();
+    expect(Object.keys(entry)).toEqual([]);
+  });
 });
