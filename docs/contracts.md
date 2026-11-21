@@ -132,10 +132,14 @@ individual input object; no implicit network or model access occurs.
 
 The parser copies and freezes accepted data. It rejects cycles, sparse
 arrays, accessor properties, custom prototypes, non-finite numbers, functions,
-symbols and prototype-pollution keys. Failed validation returns bounded,
-ordered `{ path, code }` diagnostics and a domain
-(`invalid_definition`, `invalid_evidence` or `invalid_result`).
-Diagnostics never contain submitted values or unknown field names.
+symbols and prototype-pollution keys. Dense arrays are rejected by
+length before their indexed properties are inspected; objects with too many
+enumerable fields are rejected before property-descriptor inspection.
+Failed validation returns bounded, ordered `{ path, code }` diagnostics and
+a domain (`invalid_definition`, `invalid_evidence` or `invalid_result`).
+Diagnostics include safe, published schema field paths (for example,
+`$.criteria[0].parameters.expected.value`) but never submitted values or
+unknown field names.
 
 The validators accept JavaScript values, **not raw JSON text**. If a caller
 needs to reject duplicate keys in serialized JSON or cryptographically bind
