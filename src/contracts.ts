@@ -172,6 +172,18 @@ export interface EvaluationResult {
   readonly warnings: readonly string[];
 }
 
+/**
+ * Invalid inputs have no reliable assessment identity. Return structured
+ * diagnostics instead of manufacturing an EvaluationResult's lineage.
+ */
+export interface EvaluationFailure {
+  readonly outcome: "invalid_definition" | "invalid_evidence";
+  readonly diagnostics: readonly ValidationDiagnostic[];
+}
+
+/** A complete technical result or an invalid-input diagnostic envelope. */
+export type EvaluationResponse = EvaluationResult | EvaluationFailure;
+
 export type ValidationDomain = "invalid_definition" | "invalid_evidence" | "invalid_result";
 export type DiagnosticCode =
   | "UNSUPPORTED_INPUT"
