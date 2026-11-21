@@ -1,10 +1,10 @@
 # Release policy
 
-**There is no Assay release.** The repository currently sets `version: 0.0.0`, `private: true` and `license: UNLICENSED`; the generated `dist/index.js` and `dist/index.d.ts` are foundation smoke artifacts, **not** a released or supported evaluation API.
+**There is no Assay release.** The repository currently sets `version: 0.0.0`, `private: true` and `license: Apache-2.0`; the generated `dist/index.js` and `dist/index.d.ts` are foundation smoke artifacts, **not** a released or supported evaluation API.
 
 AY-I04 must establish and verify a real release procedure:
 
-1. Obtain explicit open-source license and contribution authorization; check source and dependency rights.
+1. Confirm the approved Apache-2.0 license, copyright notices, contributor rights and third-party dependency notices remain accurate.
 2. Finish accepted contracts, comparator semantics, error states and hostile-input limits.
 3. Run pinned tsdown ESM/declaration builds, Vitest and Biome checks, and verify the exact locked dependency tree.
 4. Inspect the package archive for secrets, protected references, private modules and unexpected files.
