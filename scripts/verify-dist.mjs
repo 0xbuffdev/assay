@@ -9,8 +9,10 @@ const entry = await import("@0xbuff/assay");
 assert.deepEqual(
   Object.keys(entry).sort(),
   [
+    "ASSAY_EVALUATOR_VERSION",
     "ASSAY_SCHEMA_VERSION",
     "CONTRACT_LIMITS",
+    "evaluate",
     "inspectEvidenceCoverage",
     "parseAssessmentDefinition",
     "parseEvaluationResult",
@@ -22,7 +24,7 @@ assert.equal(typeof entry.parseAssessmentDefinition, "function");
 assert.equal(typeof entry.parseEvidenceBundle, "function");
 assert.equal(typeof entry.inspectEvidenceCoverage, "function");
 assert.equal(typeof entry.parseEvaluationResult, "function");
-assert.equal("evaluate" in entry, false, "AY-I02 must implement actual evaluation");
+assert.equal(typeof entry.evaluate, "function", "AY-I02 must expose pure evaluation");
 
 const digest = `sha256:${"a".repeat(64)}`;
 const inspected = entry.parseAssessmentDefinition({
@@ -42,4 +44,32 @@ const inspected = entry.parseAssessmentDefinition({
   ],
 });
 assert.equal(inspected.ok, true, "The emitted ESM entry must validate a real definition");
-console.log("Built ESM entry, declarations and contract validation verified");
+const observed = entry.evaluate(
+  {
+    schemaVersion: 1,
+    assessmentId: "pack-test",
+    revision: "rev1",
+    revisionDigest: digest,
+    policyVersion: "policy1",
+    criteria: [
+      {
+        id: "objective",
+        mode: "required",
+        visibility: "public",
+        kind: "exact_text",
+        parameters: { expected: { type: "literal", value: "ok" } },
+      },
+    ],
+  },
+  {
+    schemaVersion: 1,
+    definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
+    observations: [
+      { criterionId: "objective", evidenceRef: "obs1", completeness: "complete", kind: "text", value: "ok" },
+    ],
+  },
+);
+assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
+assert.equal(observed.findings[0].reasonCode, "MATCH");
+assert.equal(entry.parseEvaluationResult(observed).ok, true, "Output must match its public contract");
+console.log("Built ESM entry, declarations, contract validation and deterministic evaluation verified");
