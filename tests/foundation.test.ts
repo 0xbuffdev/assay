@@ -4,14 +4,16 @@ import * as assay from "../src/index";
 
 describe("Assay independent contract package", () => {
   it("exposes only versioned contract validation, not an unimplemented evaluator", () => {
-    expect(Object.keys(assay).sort()).toEqual([
-      "ASSAY_SCHEMA_VERSION",
-      "CONTRACT_LIMITS",
-      "inspectEvidenceCoverage",
-      "parseAssessmentDefinition",
-      "parseEvaluationResult",
-      "parseEvidenceBundle",
-    ].sort());
+    expect(Object.keys(assay).sort()).toEqual(
+      [
+        "ASSAY_SCHEMA_VERSION",
+        "CONTRACT_LIMITS",
+        "inspectEvidenceCoverage",
+        "parseAssessmentDefinition",
+        "parseEvaluationResult",
+        "parseEvidenceBundle",
+      ].sort(),
+    );
     expect("evaluate" in assay).toBe(false);
   });
 
