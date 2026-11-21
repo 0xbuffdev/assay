@@ -155,7 +155,10 @@ describe("AY-I01 bounded, safe structural validation", () => {
       expect(parseEvidenceBundle(value).ok).toBe(false);
     }
     const numeric = evidence();
-    const corrupted = { ...numeric, observations: [{ ...numeric.observations[1], value: Number.NaN }] };
+    const corrupted = {
+      ...numeric,
+      observations: [{ ...numeric.observations[1], value: Number.NaN }],
+    };
     const checked = parseEvidenceBundle(corrupted);
     expect(checked.ok).toBe(false);
     if (!checked.ok) expect(checked.diagnostics.some((d) => d.code === "UNSAFE_NUMBER")).toBe(true);
@@ -164,7 +167,13 @@ describe("AY-I01 bounded, safe structural validation", () => {
   it("rejects getters without executing them", () => {
     let calls = 0;
     const object = definition() as unknown as JsonRecord;
-    Object.defineProperty(object, "unsafe", { enumerable: true, get: () => { calls++; return "secret"; } });
+    Object.defineProperty(object, "unsafe", {
+      enumerable: true,
+      get: () => {
+        calls++;
+        return "secret";
+      },
+    });
     const r = parseAssessmentDefinition(object);
     expect(r.ok).toBe(false);
     expect(calls).toBe(0);
@@ -194,7 +203,7 @@ describe("AY-I01 bounded, safe structural validation", () => {
     const tooMany = mutated(definition());
     tooMany.criteria = Array.from({ length: CONTRACT_LIMITS.maxCriteria + 1 }, (_, i) => ({
       ...definition().criteria[0],
-      id: "criterion" + i,
+      id: `criterion${i}`,
     }));
     expect(errorCodes(parseAssessmentDefinition(tooMany))).toContain("TOO_MANY_ITEMS");
 
@@ -205,7 +214,7 @@ describe("AY-I01 bounded, safe structural validation", () => {
 
   it("produces deterministic bounded paths without echoing arbitrary field names", () => {
     const invalid = mutated(definition());
-    invalid["CONFIDENTIAL_REFERENCE_DO_NOT_LOG"] = "value";
+    invalid.CONFIDENTIAL_REFERENCE_DO_NOT_LOG = "value";
     const a = parseAssessmentDefinition(invalid);
     const b = parseAssessmentDefinition(invalid);
     expect(a).toEqual(b);
@@ -236,31 +245,36 @@ describe("AY-I01 evidence structure and coverage", () => {
 
   it("rejects forged trusted flags, extra answer keys and inconsistent observations", () => {
     const input = mutated(evidence());
-    input.observations = [{
-      criterionId: "output",
-      evidenceRef: "ev1",
-      kind: "text",
-      completeness: "complete",
-      value: "42",
-      trusted: true,
-      expectedOutput: "TOPSECRET",
-    }];
+    input.observations = [
+      {
+        criterionId: "output",
+        evidenceRef: "ev1",
+        kind: "text",
+        completeness: "complete",
+        value: "42",
+        trusted: true,
+        expectedOutput: "TOPSECRET",
+      },
+    ];
     const r = parseEvidenceBundle(input);
     expect(r.ok).toBe(false);
     expect(JSON.stringify(r)).not.toContain("TOPSECRET");
 
     const bad = inspectEvidenceCoverage(definition(), {
       ...evidence(),
-      observations: [{
-        criterionId: "output",
-        evidenceRef: "e",
-        completeness: "complete",
-        kind: "number",
-        value: 42,
-      }],
+      observations: [
+        {
+          criterionId: "output",
+          evidenceRef: "e",
+          completeness: "complete",
+          kind: "number",
+          value: 42,
+        },
+      ],
     });
     expect(bad.ok).toBe(false);
-    if (!bad.ok) expect(bad.diagnostics.some((d) => d.code === "MISMATCHED_OBSERVATION")).toBe(true);
+    if (!bad.ok)
+      expect(bad.diagnostics.some((d) => d.code === "MISMATCHED_OBSERVATION")).toBe(true);
   });
 
   it("rejects wrong definition lineage, unknown criteria and duplicate observations", () => {
@@ -269,26 +283,32 @@ describe("AY-I01 evidence structure and coverage", () => {
       definition: { ...evidence().definition, revisionDigest: digestB },
     });
     expect(wrong.ok).toBe(false);
-    if (!wrong.ok) expect(wrong.diagnostics.some((d) => d.code === "MISMATCHED_DEFINITION")).toBe(true);
+    if (!wrong.ok)
+      expect(wrong.diagnostics.some((d) => d.code === "MISMATCHED_DEFINITION")).toBe(true);
 
     const unknown = inspectEvidenceCoverage(definition(), {
       ...evidence(),
-      observations: [{
-        kind: "text",
-        criterionId: "bogus",
-        evidenceRef: "e1",
-        completeness: "complete",
-        value: "x",
-      }],
+      observations: [
+        {
+          kind: "text",
+          criterionId: "bogus",
+          evidenceRef: "e1",
+          completeness: "complete",
+          value: "x",
+        },
+      ],
     });
     expect(unknown.ok).toBe(false);
-    if (!unknown.ok) expect(unknown.diagnostics.some((d) => d.code === "UNKNOWN_CRITERION")).toBe(true);
+    if (!unknown.ok)
+      expect(unknown.diagnostics.some((d) => d.code === "UNKNOWN_CRITERION")).toBe(true);
 
     const ev = evidence();
-    expect(parseEvidenceBundle({
-      ...ev,
-      observations: [ev.observations[0], ev.observations[0]],
-    }).ok).toBe(false);
+    expect(
+      parseEvidenceBundle({
+        ...ev,
+        observations: [ev.observations[0], ev.observations[0]],
+      }).ok,
+    ).toBe(false);
   });
 
   it("does not treat a completed execution or submitted manual artifact as correctness", () => {
@@ -332,15 +352,17 @@ describe("AY-I01 typed findings", () => {
 
   it("rejects unstructured reason codes and secret-bearing findings", () => {
     const invalid = mutated(result());
-    invalid.findings = [{
-      criterionId: "output",
-      outcome: "pass",
-      reasonCode: "TOP_SECRET-please-output",
-      evidenceRefs: [],
-      evaluatorId: "assay",
-      evaluatorVersion: "v1",
-      explanation: "secret expectation",
-    }];
+    invalid.findings = [
+      {
+        criterionId: "output",
+        outcome: "pass",
+        reasonCode: "TOP_SECRET-please-output",
+        evidenceRefs: [],
+        evaluatorId: "assay",
+        evaluatorVersion: "v1",
+        explanation: "secret expectation",
+      },
+    ];
     const r = parseEvaluationResult(invalid);
     expect(r.ok).toBe(false);
     expect(JSON.stringify(r)).not.toContain("secret expectation");
