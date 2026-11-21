@@ -232,14 +232,44 @@ describe("AY-I01 evidence structure and coverage", () => {
     expect(coverage.ok).toBe(true);
     if (coverage.ok) {
       expect(coverage.value.missingRequired).toEqual([]);
-      expect(coverage.value.truncatedRequired).toEqual(["quantity"]);
+      expect(coverage.value.incompleteRequired).toEqual(["quantity"]);
     }
 
     const missing = inspectEvidenceCoverage(definition(), { ...evidence(), observations: [] });
     expect(missing.ok).toBe(true);
     if (missing.ok) {
       expect(missing.value.missingRequired).toEqual(["output", "quantity"]);
-      expect(missing.value.truncatedRequired).toEqual([]);
+      expect(missing.value.incompleteRequired).toEqual([]);
+    }
+  });
+
+  it("marks incomplete execution assertions and missing manual artifacts unresolved", () => {
+    const withRequiredReview = {
+      ...definition(),
+      criteria: definition().criteria.map((criterion) =>
+        criterion.kind === "observed_execution" || criterion.kind === "manual_evidence"
+          ? { ...criterion, mode: "required" as const }
+          : criterion,
+      ),
+    };
+    const incomplete = {
+      ...evidence(),
+      observations: [
+        ...evidence().observations,
+        {
+          criterionId: "report",
+          evidenceRef: "manual-empty",
+          kind: "manual",
+          completeness: "complete",
+          artifactRefs: [],
+        },
+      ],
+    };
+    const coverage = inspectEvidenceCoverage(withRequiredReview, incomplete);
+    expect(coverage.ok).toBe(true);
+    if (coverage.ok) {
+      expect(coverage.value.missingRequired).toEqual([]);
+      expect(coverage.value.incompleteRequired).toEqual(["quantity", "program", "report"]);
     }
   });
 
