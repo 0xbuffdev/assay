@@ -1,0 +1,27 @@
+{
+  "name": "@0xbuff/assay",
+  "version": "0.0.0",
+  "description": "Standalone deterministic technical evaluation (foundation only)",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@11.2.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xbuffdev/assay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/0xbuffdev/assay/issues"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "node scripts/check-foundation.mjs",
+    "test": "node --test tests/*.test.ts",
+    "ci": "pnpm check && pnpm test"
+  }
+}
