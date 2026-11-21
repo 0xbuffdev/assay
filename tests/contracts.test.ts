@@ -112,7 +112,7 @@ describe("AY-I01 versioned definition contracts", () => {
     const criteria = structuredClone(definition().criteria);
     const normalized = criteria[1];
     if (normalized.kind !== "normalized_text") throw new Error("fixture");
-    normalized.parameters.normalization.trim = "sneaky" as "none";
+    (normalized.parameters.normalization as { trim: string }).trim = "sneaky";
     hiddenTrim.criteria = criteria;
     expect(errorCodes(parseAssessmentDefinition(hiddenTrim))).toContain("INVALID_VALUE");
   });
