@@ -55,9 +55,7 @@ for (const file of [
 const entry = await readFile(locate("src/index.ts"), "utf8");
 assert.match(entry, /export \{\}/, "AY-I01 must introduce the first public API");
 
-const sourceImports = [
-  ...entry.matchAll(/(?:from\s*|import\s*\()\s*["'](\.{1,2}\/[^"']+)["']/g),
-];
+const sourceImports = [...entry.matchAll(/(?:from\s*|import\s*\()\s*["'](\.{1,2}\/[^"']+)["']/g)];
 assert.ok(
   sourceImports.every((match) => !match[1].endsWith(".js")),
   "TypeScript source imports must not use .js extensions",

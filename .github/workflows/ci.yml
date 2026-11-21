@@ -30,25 +30,20 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-      # Bootstrap lockfile once. Subsequent commit must switch to --frozen-lockfile.
-      - name: Bootstrap dependency lockfile
-        run: pnpm install --no-frozen-lockfile
-      - name: Print dependency lockfile for review
-        run: |
-          echo 'ASSAY_LOCKFILE_BEGIN'
-          cat pnpm-lock.yaml
-          echo 'ASSAY_LOCKFILE_END'
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install exactly locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify lockfile unchanged
+        run: git diff --exit-code -- pnpm-lock.yaml
       - name: Validate repository foundation
         run: pnpm check:foundation
       - name: Typecheck
         run: pnpm typecheck
-      - name: Format and lint (advisory during lockfile bootstrap)
-        run: |
-          pnpm exec biome check --write .
-          git diff -- . ':!pnpm-lock.yaml'
+      - name: Check Biome formatting and lint
+        run: pnpm check:style
       - name: Unit tests
         run: pnpm test
       - name: Build and verify emitted package entry
         run: pnpm build
 
-  # Quality-only CI. Package publication and license approval are separate gates.
+  # Quality-only CI: no npm publish, deploy or write credentials.
