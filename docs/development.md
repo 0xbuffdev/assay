@@ -42,4 +42,4 @@ Do not write relative `.js` specifiers in TypeScript source. The build produces 
 
 The tests verify an importable, empty foundation. The dist verifier checks that tsdown emitted executable ESM and declarations; it does **not** validate any real comparison behavior. AY-I01 adds versioned contract tests and independently locked schemas. AY-I04 additionally requires a packed third-party consumer and release-security tests.
 
-No public license or publication is approved. A green check is not release authorization.
+Assay source is Apache-2.0 licensed; the npm package remains unpublished and deliberately unpublishable until separately approved. A green check is not release authorization.
