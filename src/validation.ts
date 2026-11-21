@@ -803,18 +803,38 @@ export function inspectEvidenceCoverage(
     evidenceByCriterion.set(criterion.id, observation);
   }
   const missingRequired: string[] = [];
-  const truncatedRequired: string[] = [];
+  const incompleteRequired: string[] = [];
   for (const criterion of expected.criteria) {
     if (criterion.mode !== "required") continue;
     const obs = evidenceByCriterion.get(criterion.id);
     if (!obs) missingRequired.push(criterion.id);
-    else if (obs.completeness === "truncated") truncatedRequired.push(criterion.id);
+    else {
+      const missingExecutionAssertion =
+        criterion.kind === "observed_execution" &&
+        obs.kind === "execution" &&
+        criterion.parameters.assertions.some(
+          (expectedAssertion) =>
+            !obs.assertions.some(
+              (observedAssertion) =>
+                observedAssertion.assertionId === expectedAssertion.id &&
+                observedAssertion.state !== "unknown",
+            ),
+        );
+      const missingManualArtifact =
+        criterion.kind === "manual_evidence" &&
+        obs.kind === "manual" &&
+        obs.artifactRefs.length === 0;
+
+      if (obs.completeness === "truncated" || missingExecutionAssertion || missingManualArtifact) {
+        incompleteRequired.push(criterion.id);
+      }
+    }
   }
   return issues.result(
     "invalid_evidence",
     Object.freeze({
       missingRequired: Object.freeze(missingRequired),
-      truncatedRequired: Object.freeze(truncatedRequired),
+      incompleteRequired: Object.freeze(incompleteRequired),
     }),
   );
 }
