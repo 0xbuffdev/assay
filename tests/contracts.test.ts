@@ -164,6 +164,80 @@ describe("AY-I01 bounded, safe structural validation", () => {
     if (!checked.ok) expect(checked.diagnostics.some((d) => d.code === "UNSAFE_NUMBER")).toBe(true);
   });
 
+  it("rejects dense oversized arrays and large objects before allocating descriptor maps", () => {
+    const dense = Array.from({ length: 200_000 }, (_, index) => index);
+    const manyFields = Object.fromEntries(
+      Array.from({ length: 50_000 }, (_, index) => [`field${index}`, index]),
+    );
+    const original = Object.getOwnPropertyDescriptors;
+    const inputs = new Set<object>([dense, manyFields]);
+    const descriptorTargets: object[] = [];
+
+    Object.getOwnPropertyDescriptors = ((value: object) => {
+      if (inputs.has(value)) descriptorTargets.push(value);
+      return original(value);
+    }) as typeof Object.getOwnPropertyDescriptors;
+
+    let oversizedArray: ReturnType<typeof parseEvidenceBundle>;
+    let oversizedObject: ReturnType<typeof parseAssessmentDefinition>;
+    try {
+      oversizedArray = parseEvidenceBundle({ ...evidence(), observations: dense });
+      oversizedObject = parseAssessmentDefinition(manyFields);
+    } finally {
+      Object.getOwnPropertyDescriptors = original;
+    }
+
+    expect(oversizedArray.ok).toBe(false);
+    if (!oversizedArray.ok) {
+      expect(oversizedArray.diagnostics).toContainEqual({
+        path: "$.observations",
+        code: "TOO_MANY_ITEMS",
+      });
+    }
+    expect(oversizedObject.ok).toBe(false);
+    if (!oversizedObject.ok) {
+      expect(oversizedObject.diagnostics).toContainEqual({ path: "$", code: "TOO_MANY_ITEMS" });
+    }
+    expect(descriptorTargets).toEqual([]);
+  });
+
+  it("reports schema-known leaf paths but never discloses unknown keys", () => {
+    const root = mutated(definition());
+    root.revisionDigest = Number.NaN;
+    const invalidRoot = parseAssessmentDefinition(root);
+    expect(invalidRoot.ok).toBe(false);
+    if (!invalidRoot.ok) {
+      expect(invalidRoot.diagnostics).toContainEqual({
+        path: "$.revisionDigest",
+        code: "UNSAFE_NUMBER",
+      });
+    }
+
+    const nested = mutated(definition());
+    const criteria = nested.criteria as JsonRecord[];
+    const parameters = criteria[0].parameters as JsonRecord;
+    const expected = parameters.expected as JsonRecord;
+    expected.value = Number.NaN;
+    const invalidNested = parseAssessmentDefinition(nested);
+    expect(invalidNested.ok).toBe(false);
+    if (!invalidNested.ok) {
+      expect(invalidNested.diagnostics).toContainEqual({
+        path: "$.criteria[0].parameters.expected.value",
+        code: "UNSAFE_NUMBER",
+      });
+    }
+
+    const unknown = mutated(definition());
+    unknown.SECRET_CUSTOM_FIELD = { NEVER_ECHO_THIS_NESTED_KEY: Number.NaN };
+    const invalidUnknown = parseAssessmentDefinition(unknown);
+    expect(invalidUnknown.ok).toBe(false);
+    expect(JSON.stringify(invalidUnknown)).not.toContain("SECRET_CUSTOM_FIELD");
+    expect(JSON.stringify(invalidUnknown)).not.toContain("NEVER_ECHO_THIS_NESTED_KEY");
+    if (!invalidUnknown.ok) {
+      expect(invalidUnknown.diagnostics).toContainEqual({ path: "$", code: "UNSAFE_NUMBER" });
+    }
+  });
+
   it("rejects getters without executing them", () => {
     let calls = 0;
     const object = definition() as unknown as JsonRecord;
