@@ -17,7 +17,10 @@ assert.equal(pkg.exports["."].types, "./dist/index.d.ts");
 assert.equal(pkg.exports["."].import, "./dist/index.js");
 assert.equal(pkg.packageManager, "pnpm@11.2.2");
 assert.ok(pkg.files.includes("LICENSE"), "Include license in eventual package artifacts");
-assert.ok(pkg.files.includes("COPYRIGHT.md"), "Include copyright notice in eventual package artifacts");
+assert.ok(
+  pkg.files.includes("COPYRIGHT.md"),
+  "Include copyright notice in eventual package artifacts",
+);
 assert.equal(pkg.engines.node, ">=24");
 assert.equal(ts.compilerOptions.moduleResolution, "bundler");
 assert.equal(ts.compilerOptions.module, "ESNext");
