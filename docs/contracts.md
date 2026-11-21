@@ -20,13 +20,15 @@ const definition = {
   revision: "rev1",
   revisionDigest: "sha256:" + "a".repeat(64),
   policyVersion: "v1",
-  criteria: [{
-    id: "output",
-    mode: "required",
-    visibility: "public",
-    kind: "exact_text",
-    parameters: { expected: { type: "literal", value: "ok" } },
-  }],
+  criteria: [
+    {
+      id: "output",
+      mode: "required",
+      visibility: "public",
+      kind: "exact_text",
+      parameters: { expected: { type: "literal", value: "ok" } },
+    },
+  ],
 };
 
 const observed = {
@@ -88,7 +90,7 @@ Unknown fields, bogus `trusted` claims, duplicate observation IDs, unsupported
 values and malformed data are rejected.
 
 **Absent observations and truncated data are structurally valid.** A caller can
-use `inspectEvidenceCoverage` to identify missing or truncated *required*
+use `inspectEvidenceCoverage` to identify missing or truncated _required_
 criteria and reject mismatched definition identities, unknown criterion IDs or
 incompatible observation kinds. This helper does not compare observations
 against expected values or conclude `pass`/`fail`.
@@ -114,19 +116,19 @@ from real comparisons remain AY-I02 work.
 `CONTRACT_LIMITS` exposes and tests the exact bounds. They apply to an
 individual input object; no implicit network or model access occurs.
 
-| Limit | Maximum |
-| --- | ---: |
-| Object/array depth | 12 |
-| Visited nodes | 4,096 |
-| UTF-8 budget for input strings and property names | 262,144 bytes |
-| Individual string length | 16,384 UTF-16 code units |
-| Object fields | 32 |
-| Array elements | 128 |
-| Definition criteria | 64 |
-| Evidence observations | 128 |
-| Set elements | 128 |
-| Evidence references per finding | 32 |
-| Returned structured diagnostics | 32 |
+| Limit                                             |                  Maximum |
+| ------------------------------------------------- | -----------------------: |
+| Object/array depth                                |                       12 |
+| Visited nodes                                     |                    4,096 |
+| UTF-8 budget for input strings and property names |            262,144 bytes |
+| Individual string length                          | 16,384 UTF-16 code units |
+| Object fields                                     |                       32 |
+| Array elements                                    |                      128 |
+| Definition criteria                               |                       64 |
+| Evidence observations                             |                      128 |
+| Set elements                                      |                      128 |
+| Evidence references per finding                   |                       32 |
+| Returned structured diagnostics                   |                       32 |
 
 The parser copies and freezes accepted data. It rejects cycles, sparse
 arrays, accessor properties, custom prototypes, non-finite numbers, functions,
