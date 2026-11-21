@@ -6,7 +6,6 @@ import {
   type EvaluationFailure,
   type EvaluationResponse,
   type EvaluationResult,
-  type EvidenceBundle,
   type FindingOutcome,
   type Observation,
   type SetScalar,
@@ -68,7 +67,9 @@ function matchesSet(
   if (order === "preserve") {
     const left = duplicates === "ignore" ? [...new Set(observed)] : observed;
     const right = duplicates === "ignore" ? [...new Set(expected)] : expected;
-    return left.length === right.length && left.every((item, index) => identical(item, right[index]));
+    return (
+      left.length === right.length && left.every((item, index) => identical(item, right[index]))
+    );
   }
 
   if (duplicates === "ignore") {
@@ -153,7 +154,10 @@ function compare(criterion: Criterion, observation: Observation): Comparison {
   }
 }
 
-function invalid(outcome: EvaluationFailure["outcome"], diagnostics: EvaluationFailure["diagnostics"]): EvaluationFailure {
+function invalid(
+  outcome: EvaluationFailure["outcome"],
+  diagnostics: EvaluationFailure["diagnostics"],
+): EvaluationFailure {
   return Object.freeze({ outcome, diagnostics });
 }
 
@@ -197,7 +201,9 @@ export function evaluate(definitionInput: unknown, evidenceInput: unknown): Eval
     return invalid("invalid_evidence", coverage.diagnostics);
   }
 
-  const observations = new Map(evidence.observations.map((observation) => [observation.criterionId, observation]));
+  const observations = new Map(
+    evidence.observations.map((observation) => [observation.criterionId, observation]),
+  );
   const comparisons = new Map<string, Comparison>();
   const findings: CriterionFinding[] = [];
 
@@ -215,22 +221,27 @@ export function evaluate(definitionInput: unknown, evidenceInput: unknown): Eval
       }
     }
     comparisons.set(criterion.id, comparison);
-    findings.push(Object.freeze({
-      criterionId: criterion.id,
-      outcome: comparison.outcome,
-      reasonCode: comparison.reasonCode,
-      evidenceRefs: Object.freeze(observation ? [observation.evidenceRef] : []),
-      evaluatorId: EVALUATOR_ID,
-      evaluatorVersion: ASSAY_EVALUATOR_VERSION,
-    }));
+    findings.push(
+      Object.freeze({
+        criterionId: criterion.id,
+        outcome: comparison.outcome,
+        reasonCode: comparison.reasonCode,
+        evidenceRefs: Object.freeze(observation ? [observation.evidenceRef] : []),
+        evaluatorId: EVALUATOR_ID,
+        evaluatorVersion: ASSAY_EVALUATOR_VERSION,
+      }),
+    );
   }
 
   const warnings: string[] = [];
-  if (definition.criteria.some((criterion) =>
-    criterion.mode === "advisory" &&
-    (comparisons.get(criterion.id)?.outcome === "inconclusive" ||
-     comparisons.get(criterion.id)?.outcome === "error")
-  )) {
+  if (
+    definition.criteria.some(
+      (criterion) =>
+        criterion.mode === "advisory" &&
+        (comparisons.get(criterion.id)?.outcome === "inconclusive" ||
+          comparisons.get(criterion.id)?.outcome === "error"),
+    )
+  ) {
     warnings.push("ADVISORY_UNRESOLVED");
   }
 
