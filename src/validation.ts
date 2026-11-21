@@ -18,6 +18,61 @@ type DataObject = Record<string, unknown>;
 const BAD = Symbol("invalid");
 const encoder = new TextEncoder();
 
+// Only published schema field names may appear in snapshot diagnostic paths.
+// Unknown input keys remain redacted even when their nested values are invalid.
+const DIAGNOSTIC_PATH_FIELDS = new Set([
+  "schemaVersion",
+  "assessmentId",
+  "revision",
+  "revisionDigest",
+  "policyVersion",
+  "criteria",
+  "id",
+  "mode",
+  "kind",
+  "visibility",
+  "parameters",
+  "expected",
+  "type",
+  "value",
+  "referenceId",
+  "normalization",
+  "lineEndings",
+  "unicode",
+  "case",
+  "whitespace",
+  "trim",
+  "tolerance",
+  "absolute",
+  "relative",
+  "unit",
+  "itemType",
+  "order",
+  "duplicates",
+  "assertions",
+  "review",
+  "definition",
+  "artifactDigest",
+  "observations",
+  "criterionId",
+  "evidenceRef",
+  "completeness",
+  "items",
+  "runRef",
+  "assertionId",
+  "state",
+  "artifactRefs",
+  "outcome",
+  "reasonCode",
+  "evidenceRefs",
+  "evaluatorId",
+  "evaluatorVersion",
+  "evaluator",
+  "version",
+  "findings",
+  "warnings",
+]);
+
 class Diagnostics {
   readonly entries: ValidationDiagnostic[] = [];
 
@@ -104,8 +159,40 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
         return BAD;
       }
 
-      const descriptors = Object.getOwnPropertyDescriptors(value);
-      const keys = Reflect.ownKeys(descriptors);
+      // Reject dense oversized arrays before enumerating their indexed keys.
+      // Do not materialize descriptors for every property of unknown input.
+      if (isArray) {
+        if (!Number.isSafeInteger(value.length) || value.length > CONTRACT_LIMITS.maxArrayLength) {
+          issues.add(path, "TOO_MANY_ITEMS");
+          return BAD;
+        }
+      } else {
+        // for...in can stop after the first over-limit enumerable key instead
+        // of allocating an entire property-descriptor map for a large object.
+        let enumerableCount = 0;
+        for (const key in value) {
+          if (!Object.hasOwn(value, key)) {
+            issues.add(path, "UNSAFE_OBJECT");
+            return BAD;
+          }
+          if (++enumerableCount > CONTRACT_LIMITS.maxObjectKeys) {
+            issues.add(path, "TOO_MANY_ITEMS");
+            return BAD;
+          }
+          if (key.length > CONTRACT_LIMITS.maxStringLength) {
+            issues.add(path, "INPUT_TOO_LARGE");
+            return BAD;
+          }
+        }
+      }
+
+      // Enumerate own names only after the cheap preflight, so hidden keys,
+      // symbols, sparse indices and accessors are still rejected.
+      const keys = Reflect.ownKeys(value);
+      if (keys.length > (isArray ? value.length + 1 : CONTRACT_LIMITS.maxObjectKeys)) {
+        issues.add(path, "TOO_MANY_ITEMS");
+        return BAD;
+      }
       if (keys.some((key) => typeof key !== "string")) {
         issues.add(path, "UNSAFE_KEY");
         return BAD;
@@ -114,10 +201,6 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
       active.add(value);
       if (isArray) {
         const length = value.length;
-        if (!Number.isSafeInteger(length) || length > CONTRACT_LIMITS.maxArrayLength) {
-          issues.add(path, "TOO_MANY_ITEMS");
-          return BAD;
-        }
         if (
           keys.length !== length + 1 ||
           keys.some(
@@ -129,7 +212,7 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
         }
         const output: unknown[] = [];
         for (let i = 0; i < length; i++) {
-          const descriptor = descriptors[String(i)];
+          const descriptor = Object.getOwnPropertyDescriptor(value, String(i));
           if (!descriptor || !Object.hasOwn(descriptor, "value")) {
             issues.add(path, "UNSAFE_OBJECT");
             return BAD;
@@ -142,10 +225,6 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
       }
 
       const names = (keys as string[]).sort();
-      if (names.length > CONTRACT_LIMITS.maxObjectKeys) {
-        issues.add(path, "TOO_MANY_ITEMS");
-        return BAD;
-      }
 
       const output: DataObject = Object.create(null) as DataObject;
       for (const key of names) {
@@ -159,12 +238,13 @@ function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
           issues.add(path, "INPUT_TOO_LARGE");
           return BAD;
         }
-        const descriptor = descriptors[key];
+        const descriptor = Object.getOwnPropertyDescriptor(value, key);
         if (!descriptor || !Object.hasOwn(descriptor, "value")) {
           issues.add(path, "UNSAFE_OBJECT");
           return BAD;
         }
-        const item = visit(descriptor.value, path, depth + 1);
+        const fieldPath = DIAGNOSTIC_PATH_FIELDS.has(key) ? `${path}.${key}` : path;
+        const item = visit(descriptor.value, fieldPath, depth + 1);
         if (item === BAD) return BAD;
         output[key] = item;
       }
