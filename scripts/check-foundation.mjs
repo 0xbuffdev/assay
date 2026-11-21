@@ -59,6 +59,7 @@ for (const file of [
   "tests/contracts.test.ts",
   "tests/fixtures/contracts.ts",
   "docs/contracts.md",
+  "docs/evaluation.md",
   "tests/foundation.test.ts",
   "scripts/verify-dist.mjs",
   ".github/workflows/ci.yml",
