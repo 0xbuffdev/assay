@@ -1,7 +1,7 @@
 {
   "name": "@0xbuff/assay",
   "version": "0.0.0",
-  "description": "Standalone deterministic technical evaluation (foundation only)",
+  "description": "Standalone deterministic technical evaluation of versioned criteria and bounded evidence",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
