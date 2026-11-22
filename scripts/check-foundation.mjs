@@ -55,11 +55,14 @@ for (const file of [
   "src/contracts.ts",
   "src/validation.ts",
   "src/evaluate.ts",
+  "src/observation.ts",
   "tests/evaluate.test.ts",
+  "tests/observation.test.ts",
   "tests/contracts.test.ts",
   "tests/fixtures/contracts.ts",
   "docs/contracts.md",
   "docs/evaluation.md",
+  "docs/observations.md",
   "tests/foundation.test.ts",
   "scripts/verify-dist.mjs",
   ".github/workflows/ci.yml",
@@ -71,6 +74,7 @@ const entry = await readFile(locate("src/index.ts"), "utf8");
 assert.match(entry, /parseAssessmentDefinition/, "AY-I01 must expose contract validation");
 assert.match(entry, /parseEvidenceBundle/, "AY-I01 must expose evidence validation");
 assert.match(entry, /evaluate/, "AY-I02 must expose deterministic comparison");
+assert.match(entry, /collectObservations/, "AY-I03 must expose optional observation collection");
 
 // Prevent extensionful .js specifiers in all authored TypeScript modules.
 for (const rootDirectory of ["src", "tests"]) {
