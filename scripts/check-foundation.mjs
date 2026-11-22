@@ -22,6 +22,8 @@ assert.ok(
   "Include copyright notice in eventual package artifacts",
 );
 assert.equal(pkg.engines.node, ">=24");
+assert.equal(pkg.scripts["verify:package"], "node scripts/verify-package.mjs");
+assert.match(pkg.scripts.check, /verify:package/, "Pack must be included in full quality checks");
 assert.equal(ts.compilerOptions.moduleResolution, "bundler");
 assert.equal(ts.compilerOptions.module, "ESNext");
 assert.equal(Object.keys(pkg.dependencies ?? {}).length, 0, "Pure core must have no runtime deps");
@@ -65,6 +67,9 @@ for (const file of [
   "docs/observations.md",
   "tests/foundation.test.ts",
   "scripts/verify-dist.mjs",
+  "scripts/verify-package.mjs",
+  "tests/consumer/consumer.mjs",
+  "tests/consumer/consumer.ts.txt",
   ".github/workflows/ci.yml",
 ]) {
   assert.ok((await stat(locate(file))).isFile(), `Missing required file: ${file}`);

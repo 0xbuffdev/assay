@@ -22,6 +22,7 @@ pnpm format:check
 pnpm lint
 pnpm test
 pnpm build
+pnpm verify:package
 ```
 
 To apply formatting run `pnpm format`. `pnpm check` runs all foundation, type, style, test and build checks. CI executes equivalent read-only checks; no workflow publishes a package.
@@ -40,6 +41,6 @@ Do not write relative `.js` specifiers in TypeScript source. The build produces 
 
 ## Scope of the current checks
 
-The tests verify versioned definitions, observations, findings, safety bounds and evidence coverage. The dist verifier checks that tsdown emitted executable ESM and declarations; it also smoke-tests deterministic comparison using the built ESM package. AY-I01 tests cover strict schema validation, bounded inputs, deterministic diagnostics and evidence coverage; AY-I02 tests cover comparator boundaries, replay, required/advisory precedence and unverified evidence. AY-I03 tests cover mock ports, provenance consistency, truncation, forged trust flags, restricted inputs, unsafe text and thrown provider errors. AY-I04 additionally requires a packed third-party consumer and release-security tests.
+The tests verify versioned definitions, observations, findings, safety bounds and evidence coverage. The dist verifier checks that tsdown emitted executable ESM and declarations; it also smoke-tests deterministic comparison using the built ESM package. AY-I01 tests cover strict schema validation, bounded inputs, deterministic diagnostics and evidence coverage; AY-I02 tests cover comparator boundaries, replay, required/advisory precedence and unverified evidence. AY-I03 tests cover mock ports, provenance consistency, truncation, forged trust flags, restricted inputs, unsafe text and thrown provider errors. AY-I04 adds a standalone offline tarball installation, exact archive allowlist and Apache-2.0 notice audit, hostile-input ESM consumer, and isolated TypeScript declaration consumer. The pack check runs in `pnpm check` and as its own CI step after `pnpm build` on Ubuntu and Windows. It starts npm's JavaScript CLI through the active Node executable (never a Windows `.cmd` shim or shell invocation).
 
-Assay source is Apache-2.0 licensed; the npm package remains unpublished and deliberately unpublishable until separately approved. A green check is not release authorization.
+Assay source is Apache-2.0 licensed; the npm package remains unpublished and deliberately unpublishable until separately approved. The package remains `private: true`. A green packed-consumer check is not release authorization.

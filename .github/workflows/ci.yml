@@ -15,8 +15,12 @@ concurrency:
 
 jobs:
   verify:
-    name: Foundation, types, lint, tests and bundle
-    runs-on: ubuntu-latest
+    name: Foundation, types, lint, tests and packed consumer (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     timeout-minutes: 20
     steps:
       - name: Check out proposed source
@@ -45,5 +49,7 @@ jobs:
         run: pnpm test
       - name: Build and verify emitted package entry
         run: pnpm build
+      - name: Independently verify exact packed package and security boundaries
+        run: pnpm verify:package
 
   # Quality-only CI: no npm publish, deploy or write credentials.

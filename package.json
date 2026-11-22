@@ -34,7 +34,8 @@
     "format:check": "biome format .",
     "lint": "biome lint .",
     "check:style": "biome check .",
-    "check": "pnpm check:foundation && pnpm typecheck && pnpm check:style && pnpm test && pnpm build"
+    "check": "pnpm check:foundation && pnpm typecheck && pnpm check:style && pnpm test && pnpm build && pnpm verify:package",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "files": [
     "dist",
