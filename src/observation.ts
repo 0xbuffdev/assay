@@ -1,15 +1,15 @@
 import {
   ASSAY_SCHEMA_VERSION,
-  CONTRACT_LIMITS,
   type AssessmentDefinition,
+  CONTRACT_LIMITS,
   type EvidenceBundle,
   type Observation,
   type ObservationCollectionResult,
   type ObservationPort,
   type ObservationPortCriterion,
   type ObservationPortKind,
-  type ObservationPortRequest,
   type ObservationPortReceipt,
+  type ObservationPortRequest,
 } from "./contracts";
 import {
   inspectEvidenceCoverage,
@@ -18,7 +18,9 @@ import {
   parseObservationPortReport,
 } from "./validation";
 
-function requestedKind(criterion: AssessmentDefinition["criteria"][number]): ObservationPortKind | null {
+function requestedKind(
+  criterion: AssessmentDefinition["criteria"][number],
+): ObservationPortKind | null {
   switch (criterion.kind) {
     case "exact_text":
     case "normalized_text":
@@ -41,7 +43,10 @@ function error(
   return Object.freeze({ ok: false, outcome, diagnostics });
 }
 
-function invalidEvidence(path: string, code: import("./contracts").DiagnosticCode): ObservationCollectionResult {
+function invalidEvidence(
+  path: string,
+  code: import("./contracts").DiagnosticCode,
+): ObservationCollectionResult {
   return error("invalid_evidence", Object.freeze([Object.freeze({ path, code })]));
 }
 
@@ -123,7 +128,11 @@ export async function collectObservations(
     unknownReport = await port.observe(request);
   } catch {
     // Do not reveal thrown provider messages, stacks, tokens or raw output.
-    return Object.freeze({ ok: false, outcome: "evaluation_error", reasonCode: "OBSERVATION_PORT_ERROR" });
+    return Object.freeze({
+      ok: false,
+      outcome: "evaluation_error",
+      reasonCode: "OBSERVATION_PORT_ERROR",
+    });
   }
 
   const checkedReport = parseObservationPortReport(unknownReport);
@@ -133,10 +142,7 @@ export async function collectObservations(
   if (!sameDefinition(definition, report.definition)) {
     return invalidEvidence("$.definition", "MISMATCHED_DEFINITION");
   }
-  if (
-    evidence.artifactDigest !== undefined &&
-    evidence.artifactDigest !== report.artifactDigest
-  ) {
+  if (evidence.artifactDigest !== undefined && evidence.artifactDigest !== report.artifactDigest) {
     return invalidEvidence("$.artifactDigest", "MISMATCHED_DEFINITION");
   }
 
