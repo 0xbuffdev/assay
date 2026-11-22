@@ -54,9 +54,13 @@ this integrity before comparing evidence; the structural APIs shown here do
 not independently authenticate or verify a publisher.
 
 The example's digest is a syntactically valid **placeholder**, not proof that
-the source was hashed, signed or approved. A production caller must derive and
-authenticate the canonical definition identity outside Assay. The source package
-remains unreleased; the import shown represents the future package entry.
+the source was hashed, signed or approved. For production content integrity,
+use Assay's `computeDefinitionDigest` or `createAssessmentDefinition` to derive
+the canonical hash, then `verifyAssessmentDefinition` or `evaluateVerified` to
+check it. **The host** must authenticate the publisher and independently decide
+whether that definition or digest is authorized; a matching hash alone cannot
+establish origin or grading authority. The source package remains unreleased;
+the import shown represents the future package entry.
 
 ## Definition rules
 
@@ -64,9 +68,11 @@ remains unreleased; the import shown represents the future package entry.
   `revision` and `revisionDigest`, `policyVersion` and 1–64 criteria.
 - At least one criterion must be `required`. IDs must be distinct; the
   sentinel revision `latest` is not a stable identity.
-- The digest syntax is lowercase `sha256:` followed by 64 hex digits. The
-  validator checks **format only**. It does not authenticate a publisher,
-  verify hash correctness or sign a definition.
+- The digest syntax is lowercase `sha256:` followed by 64 hex digits.
+  **Schema version 1 is permanently bound to digest profile v1**; a new
+  canonicalization profile requires a new schema version. Structural parsing
+  checks digest **format only**; the explicit AY-I06 verified APIs check
+  content correctness. Neither authenticates a publisher or signs a definition.
 - Each criterion declares `mode`, `visibility`, `kind` and closed
   `parameters`. There are no executable callback predicates, implicit
   thresholds or default normalization rules.
