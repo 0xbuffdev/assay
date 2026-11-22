@@ -2,10 +2,10 @@ import {
   ASSAY_SCHEMA_VERSION,
   type AssessmentDefinition,
   type CriterionFinding,
-  type PublicTechnicalOutcome,
   type FindingOutcome,
   type PublicCriterionFinding,
   type PublicProjectionResponse,
+  type PublicTechnicalOutcome,
 } from "./contracts";
 import { verifyAssessmentDefinition } from "./integrity";
 import { parseEvaluationResult } from "./validation";
