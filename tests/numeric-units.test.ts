@@ -117,7 +117,11 @@ describe("AY-I05 numeric evidence unit integrity", () => {
 
   it("rejects a claimed provider observation with the wrong unit without trusting provenance", async () => {
     const port: ObservationPort = {
-      observe: async (request) => ({
+      observe: async (request) => {
+        expect(request.criteria).toEqual([
+          { criterionId: "distance", kind: "number", unit: "m" },
+        ]);
+        return {
         schemaVersion: 1,
         definition: request.definition,
         provenance: {
@@ -141,7 +145,8 @@ describe("AY-I05 numeric evidence unit integrity", () => {
             unit: "ft",
           },
         ],
-      }),
+        };
+      },
     };
     const empty: EvidenceBundle = { ...evidence(), observations: [] };
     const result = await collectObservations(definition("m"), empty, port);
