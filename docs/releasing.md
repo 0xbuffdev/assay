@@ -120,7 +120,7 @@ This is a **governance hold**, not a failed source build. The merged technical m
 
 - The maintainer verifies ownership and public publishing permissions for the npm organization **@0xbuff** and package **@0xbuff/assay**. Source manifest metadata and public registry lookups do not prove namespace control.
 - The copyright owner confirms the authority to license all merged source contributions and reviews third-party attribution and any distribution notices. Automatic metadata and allowlist checks are not legal clearance.
-- The maintainer approves the *exact* candidate SHA, package name, public API/version compatibility and a real pre-release version. **0.1.0-beta.1** and the npm **beta** dist-tag are recommendations only, not selected versions or commands to execute.
+- The maintainer approves the _exact_ candidate SHA, package name, public API/version compatibility and a real pre-release version. **0.1.0-beta.1** and the npm **beta** dist-tag are recommendations only, not selected versions or commands to execute.
 - A distinct, reviewed publishing workflow is designed with minimal permissions, a protected environment and a maintainer-controlled approval gate. The existing quality CI must remain read-only, without npm tokens or publish actions.
 - Before approving a release, execute the full suite on the candidate SHA, independently check its packed tarball and source maps, audit the intended release notes, and verify the actual npm publisher identity.
 
