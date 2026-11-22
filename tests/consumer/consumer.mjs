@@ -56,7 +56,14 @@ function valid(result, outcome) {
 assert.deepEqual(
   Object.keys(assay).sort(),
   [
+    "ASSAY_DEFINITION_DIGEST_VERSION",
     "ASSAY_EVALUATOR_VERSION",
+    "collectVerifiedObservations",
+    "computeDefinitionDigest",
+    "createAssessmentDefinition",
+    "evaluateVerified",
+    "verifyAssessmentDefinition",
+    "parseAssessmentDefinitionDraft",
     "ASSAY_SCHEMA_VERSION",
     "CONTRACT_LIMITS",
     "collectObservations",
