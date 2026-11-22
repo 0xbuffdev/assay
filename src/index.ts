@@ -22,6 +22,10 @@ export type {
   EvidenceCoverage,
   Expected,
   FindingOutcome,
+  PublicCriterionFinding,
+  PublicProjectionResponse,
+  PublicTechnicalOutcome,
+  PublicTechnicalResult,
   Observation,
   ObservationBase,
   ObservationCollectionResult,
@@ -55,6 +59,7 @@ export {
   verifyAssessmentDefinition,
 } from "./integrity";
 export { collectObservations } from "./observation";
+export { projectPublicResult } from "./projection";
 export {
   inspectEvidenceCoverage,
   parseAssessmentDefinition,
