@@ -1,3 +1,4 @@
+import { ASSAY_SCHEMA_VERSION } from "./contracts";
 import type {
   AssessmentDefinition,
   AssessmentDefinitionDraft,
@@ -11,10 +12,14 @@ import { collectObservations } from "./observation";
 import { parseAssessmentDefinition, parseAssessmentDefinitionDraft } from "./validation";
 
 /**
- * Versioned content identity, NOT an authenticated publisher signature.
- * The byte-level serialization profile is described in docs/integrity.md.
+ * Persistent schema-to-digest binding: schemaVersion: 1 ALWAYS uses digest v1.
+ * Any change to the digest algorithm or canonical bytes requires a NEW schema
+ * version. Never reinterpret an existing schema-1 record using a new profile.
+ * This content identity does not authenticate a publisher or evidence origin.
+ * See docs/integrity.md for the normative byte-level profile.
  */
 export const ASSAY_DEFINITION_DIGEST_VERSION = "v1" as const;
+const DIGEST_V1_SCHEMA_VERSION: typeof ASSAY_SCHEMA_VERSION = 1;
 const DOMAIN = "assay:definition:v1\n";
 const encoder = new TextEncoder();
 
@@ -107,6 +112,9 @@ function canonical(value: unknown): string {
 }
 
 function hashDraft(draft: AssessmentDefinitionDraft): string {
+  if (draft.schemaVersion !== DIGEST_V1_SCHEMA_VERSION) {
+    throw new TypeError("Unsupported definition digest profile");
+  }
   return sha256(encoder.encode(DOMAIN + canonical(draft)));
 }
 
