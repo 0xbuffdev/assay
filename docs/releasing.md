@@ -5,6 +5,14 @@ licensed, with package version 0.0.0 and **private: true**. The public
 source is usable under its license; this is **not** approval to publish
 an npm package, issue a tag, deploy a service or grant formal credit.
 
+**AY-I09 decision, 2026-11-22: NO-GO for npm publication.** The current
+technical implementation is ready for a separately reviewed **release
+candidate**, but registry ownership, contributor rights, release version,
+trusted publisher setup and human authorization have not been established.
+See the [canonical release decision](https://github.com/0xbuffdev/context/blob/main/repos/assay/reviews/2026-11-22-release-decision.md).
+The optional AY-I08 AI-feedback capability stays deferred until a consumer
+requires it; it is not a deterministic-core release blocker.
+
 AY-I04 adds an automated **release-candidate quality gate**, not a release
 action. This gate is read-only with respect to Git, GitHub releases and the
 npm registry. It does not authenticate a host execution environment or
@@ -103,6 +111,22 @@ and AY-20 are **not proven** by the package tests. Formal assessment
 products must independently enforce admission, origin authenticity,
 protected cases, runner privilege separation and credit decisions.
 A locally mocked execution provider cannot prove production isolation.
+
+## Candidate readiness review — AY-I09
+
+This is a **governance hold**, not a failed source build. The merged technical milestones include numeric unit agreement (AY-I05), canonical definition content identity (AY-I06) and restricted learner-safe projection (AY-I07). The [last reviewed source PR #10](https://github.com/0xbuffdev/assay/pull/10) passed **91/91 unit tests on Ubuntu and 91/91 on Windows**, strict TypeScript and Biome, tsdown ESM/types, and independent packed ESM/TypeScript consumers in [CI run 45011899614](https://github.com/0xbuffdev/assay/actions/runs/45011899614). That CI run covers its reviewed PR head; any later release candidate must be verified again on its **own exact commit**.
+
+**Publication remains blocked pending all of these external decisions:**
+
+- The maintainer verifies ownership and public publishing permissions for the npm organization **@0xbuff** and package **@0xbuff/assay**. Source manifest metadata and public registry lookups do not prove namespace control.
+- The copyright owner confirms the authority to license all merged source contributions and reviews third-party attribution and any distribution notices. Automatic metadata and allowlist checks are not legal clearance.
+- The maintainer approves the *exact* candidate SHA, package name, public API/version compatibility and a real pre-release version. **0.1.0-beta.1** and the npm **beta** dist-tag are recommendations only, not selected versions or commands to execute.
+- A distinct, reviewed publishing workflow is designed with minimal permissions, a protected environment and a maintainer-controlled approval gate. The existing quality CI must remain read-only, without npm tokens or publish actions.
+- Before approving a release, execute the full suite on the candidate SHA, independently check its packed tarball and source maps, audit the intended release notes, and verify the actual npm publisher identity.
+
+For a public package released from a public repository, the recommended future security design is a **stage-only npm trusted publisher** using GitHub Actions OIDC and explicit maintainer review, rather than a long-lived npm token. npm's [official trusted publisher documentation](https://docs.npmjs.com/trusted-publishers/) describes staged publishing and automatic provenance on public GitHub Actions repositories; it currently **does not generate provenance for CircleCI**. The npm publishing credentials and any staging workflow must be reviewed **in their own authorized change**. Nothing in the existing Assay CI enables these privileges.
+
+Until those checks and a separate human approval are recorded, keep version **0.0.0**, the **private** flag and the existing package allowlist unchanged. Do not publish, create a version tag, enable trusted publishers or grant formal host grading authority as part of documentation maintenance.
 
 ## Separate maintainer release decision
 
