@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  createAssessmentDefinition,
-  evaluateVerified,
-  projectPublicResult,
   type AssessmentDefinition,
   type Criterion,
+  createAssessmentDefinition,
   type EvaluationResult,
   type EvidenceBundle,
+  evaluateVerified,
+  projectPublicResult,
 } from "../src/index";
 
 const visible: Criterion = {
@@ -39,10 +39,7 @@ function sealed(criteria: readonly Criterion[]): AssessmentDefinition {
   return result.value;
 }
 
-function evidence(
-  definition: AssessmentDefinition,
-  output = "ok",
-): EvidenceBundle {
+function evidence(definition: AssessmentDefinition, output = "ok"): EvidenceBundle {
   return {
     schemaVersion: 1,
     definition: {
@@ -125,13 +122,15 @@ describe("AY-I07 restricted technical finding projection", () => {
     const numerics = sealed([overflow]);
     const measured: EvidenceBundle = {
       ...evidence(numerics),
-      observations: [{
-        criterionId: "visible",
-        evidenceRef: "publicObservation",
-        kind: "number",
-        completeness: "complete",
-        value: 1e308,
-      }],
+      observations: [
+        {
+          criterionId: "visible",
+          evidenceRef: "publicObservation",
+          kind: "number",
+          completeness: "complete",
+          value: 1e308,
+        },
+      ],
     };
     const error = evaluateVerified(numerics, measured);
     expect(projectPublicResult(numerics, error)).toMatchObject({
@@ -190,7 +189,11 @@ describe("AY-I07 restricted technical finding projection", () => {
       ["error", "evaluation_error"],
       ["inconclusive", "inconclusive"],
     ] as const) {
-      const forged = { ...base, findings: [...base.findings], outcome: total as EvaluationResult["outcome"] };
+      const forged = {
+        ...base,
+        findings: [...base.findings],
+        outcome: total as EvaluationResult["outcome"],
+      };
       forged.findings[1] = {
         ...forged.findings[1],
         outcome: hiddenOutcome,
@@ -244,7 +247,10 @@ describe("AY-I07 restricted technical finding projection", () => {
       { ...full, findings: [full.findings[0], full.findings[0]] },
       { ...full, findings: [...full.findings].reverse() },
       { ...full, findings: [...full.findings, full.findings[1]] },
-      { ...full, findings: [{ ...full.findings[0], criterionId: "UNAUTHORISED_CANARY" }, full.findings[1]] },
+      {
+        ...full,
+        findings: [{ ...full.findings[0], criterionId: "UNAUTHORISED_CANARY" }, full.findings[1]],
+      },
       { ...full, policyVersion: "unrelated" },
       { ...full, definition: { ...full.definition, revision: "rev2" } },
       { ...full, definition: { ...full.definition, revisionDigest: `sha256:${"a".repeat(64)}` } },
