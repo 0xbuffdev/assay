@@ -6,7 +6,7 @@ Assay is a standalone, provider-neutral TypeScript library being developed to va
 
 Assay **does not** execute untrusted programs, verify learner identity, award academic credit, issue certificates or depend on OEE/0xNAND. Consumers own execution provenance, official assessment admission and final decisions.
 
-> **AY-I03 source implemented, unreleased.** Assay validates versioned contracts, compares local literal criteria and can collect bounded facts through an optional host-injected observation port. Runner provenance remains a claim; restricted references and execution assertions are not authenticated by the library. The npm package remains unpublishable until a separate release authorization.
+> **AY-I04 release-readiness checks implemented; still unreleased.** The source supports validated contracts, deterministic comparisons, and optional injected observations. The CI gate now installs and tests an offline tarball in an independent ESM/TypeScript consumer. Provenance and execution trust remain host responsibilities; the npm package is still private and unpublished.
 
 ## Implemented behavior and planned boundaries
 
@@ -31,9 +31,9 @@ pnpm test
 
 Use `pnpm format` to apply Biome formatting; `pnpm format:check` and `pnpm lint` run non-mutating checks. Relative TypeScript imports use extensionless specifiers (for example `../src/index`); the emitted ESM package still uses `.js` distribution filenames.
 
-`AY-I01` provides validated contracts; `AY-I02` provides objective comparators and fail-closed aggregation; `AY-I03` adds a bounded injected observation port and claimed provenance receipts. `AY-I04` establishes external package, security and release acceptance. The scaffold already builds an ESM bundle and type declarations using tsdown and verifies them with a self-import. Formal packed-consumer acceptance remains an AY-I04 release gate.
+`AY-I01` provides validated contracts; `AY-I02` provides objective comparators and fail-closed aggregation; `AY-I03` adds a bounded injected observation port and claimed provenance receipts. `AY-I04` now validates the actual local tarball with an independently installed Node/TypeScript consumer and strict packaging/security gates. Run `pnpm verify:package` after `pnpm build` to repeat that check. Quality acceptance is not a publication authorization.
 
-See the [optional observation port and threat boundaries](docs/observations.md), [evaluation semantics](docs/evaluation.md), [contract API and safety limits](docs/contracts.md), [architecture](docs/architecture.md), [development](docs/development.md), [release policy](docs/releasing.md), [contributing](CONTRIBUTING.md) and [security](SECURITY.md).
+See the [optional observation port and threat boundaries](docs/observations.md), [evaluation semantics](docs/evaluation.md), [contract API and safety limits](docs/contracts.md), [architecture](docs/architecture.md), [development](docs/development.md), [package acceptance and release policy](docs/releasing.md), [contributing](CONTRIBUTING.md) and [security](SECURITY.md).
 
 ## License
 
