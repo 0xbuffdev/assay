@@ -122,29 +122,29 @@ describe("AY-I05 numeric evidence unit integrity", () => {
           { criterionId: "distance", kind: "number", unit: "m" },
         ]);
         return {
-        schemaVersion: 1,
-        definition: request.definition,
-        provenance: {
-          adapterId: "simulated",
-          adapterVersion: "v1",
-          runRef: "run1",
-          toolchainId: "node",
-          toolchainVersion: "v24",
-          capturedStdoutBytes: 0,
-          capturedStderrBytes: 0,
-          stdoutTruncated: false,
-          stderrTruncated: false,
-        },
-        observations: [
-          {
-            criterionId: "distance",
-            evidenceRef: "remoteNumber",
-            completeness: "complete",
-            kind: "number",
-            value: 2,
-            unit: "ft",
+          schemaVersion: 1,
+          definition: request.definition,
+          provenance: {
+            adapterId: "simulated",
+            adapterVersion: "v1",
+            runRef: "run1",
+            toolchainId: "node",
+            toolchainVersion: "v24",
+            capturedStdoutBytes: 0,
+            capturedStderrBytes: 0,
+            stdoutTruncated: false,
+            stderrTruncated: false,
           },
-        ],
+          observations: [
+            {
+              criterionId: "distance",
+              evidenceRef: "remoteNumber",
+              completeness: "complete",
+              kind: "number",
+              value: 2,
+              unit: "ft",
+            },
+          ],
         };
       },
     };
