@@ -109,8 +109,12 @@ parsing a caller-supplied `"pass"` is not verification of correctness or
 official credit.
 
 There are no grade, enrollment, credential, learner identity or entitlement
-fields in the public contracts. Unknown fields are errors. Detailed findings
-from real comparisons remain AY-I02 work.
+fields in the public contracts. Unknown fields are errors. AY-I02 now returns
+real criterion-level findings for complete local literal comparisons through
+[`evaluate`](evaluation.md). Unresolved reference IDs, unverified execution
+claims and manual review remain inconclusive; verified observation integration
+and restricted-reference handling belong to AY-I03. Technical findings do not
+authenticate evidence or award official credit.
 
 ## Validation and safety limits
 
@@ -158,7 +162,10 @@ outside the portable library.
 `inspectEvidenceCoverage(definition: unknown, evidence: unknown)`
 return discriminated `ValidationResult<T>` values. On success the data is
 deeply cloned and frozen; on error the output reports only diagnostic codes
-and paths. No compatibility layer is promised for unshipped versions.
+and paths. The separate `evaluate(definition, evidence)` operation produces
+versioned technical findings or an invalid-input diagnostic envelope as
+documented in [evaluation](evaluation.md). No compatibility layer is promised
+for unshipped versions.
 
 Run `pnpm check` to validate the frozen dependency tree, TypeScript, Biome,
 Vitest and the tsdown ESM/type-declaration build. No package release is
