@@ -134,7 +134,15 @@ try {
   const packed = JSON.parse(
     command(
       process.execPath,
-      [npmEntry, "pack", "--ignore-scripts", "--offline", "--json", "--pack-destination", archiveDir],
+      [
+        npmEntry,
+        "pack",
+        "--ignore-scripts",
+        "--offline",
+        "--json",
+        "--pack-destination",
+        archiveDir,
+      ],
       root,
     ),
   );
