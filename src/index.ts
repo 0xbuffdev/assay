@@ -1,7 +1,7 @@
 /**
- * Assay contract and validation API (AY-I01).
+ * Assay standalone deterministic technical comparison API (AY-I01–I02).
  *
- * This module does not execute code, compare submitted values, award grades,
+ * This module does not execute code, authenticate submitted values, award grades,
  * authenticate evidence, or contact any external service.
  */
 
@@ -14,6 +14,8 @@ export type {
   CriterionMode,
   DefinitionReference,
   DiagnosticCode,
+  EvaluationFailure,
+  EvaluationResponse,
   EvaluationResult,
   EvidenceBundle,
   EvidenceCoverage,
@@ -34,6 +36,7 @@ export {
   ASSAY_SCHEMA_VERSION,
   CONTRACT_LIMITS,
 } from "./contracts";
+export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluate";
 export {
   inspectEvidenceCoverage,
   parseAssessmentDefinition,

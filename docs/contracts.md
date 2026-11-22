@@ -1,9 +1,9 @@
 # Versioned Assay contracts (AY-I01)
 
-Assay's current implementation validates versioned assessment definitions, bounded
-typed evidence and technical finding records. It **does not compare answers,
-execute submitted code, declare competence or award academic credit**. The
-`evaluate` operation is intentionally reserved for AY-I02.
+Assay validates versioned assessment definitions, bounded typed evidence and
+technical finding records. AY-I02 adds deterministic literal comparisons
+through `evaluate` as described in [evaluation](evaluation.md); it still does
+**not execute submitted code, authenticate evidence, declare competence or award academic credit**.
 
 ## Minimal example
 
@@ -76,9 +76,9 @@ remains unreleased; the import shown represents the future package entry.
   requirement. Restricted criteria require reference IDs rather than embedding
   private literal expected answers.
 
-These are **validated shapes**, not running comparators. Actual evaluation
-semantics arrive in AY-I02; optional execution observations and restricted
-result handling arrive in AY-I03.
+These are **validated shapes** consumed by the AY-I02
+[deterministic comparator](evaluation.md). Optional trusted execution and
+restricted result handling remain AY-I03 work.
 
 ## Evidence rules
 
@@ -93,7 +93,8 @@ values and malformed data are rejected.
 use `inspectEvidenceCoverage` to identify missing or incomplete _required_
 criteria (including truncated output, missing execution assertions and empty manual artifacts) and reject mismatched definition identities, unknown criterion IDs or
 incompatible observation kinds. This helper does not compare observations
-against expected values or conclude `pass`/`fail`.
+against expected values or conclude `pass`/`fail`; `evaluate` performs
+local literal comparisons under the documented conditions.
 
 The library cannot establish that submitted observation values came from
 a trustworthy runner. A caller cannot turn `evidenceRef`, `revisionDigest`
@@ -108,8 +109,12 @@ parsing a caller-supplied `"pass"` is not verification of correctness or
 official credit.
 
 There are no grade, enrollment, credential, learner identity or entitlement
-fields in the public contracts. Unknown fields are errors. Detailed findings
-from real comparisons remain AY-I02 work.
+fields in the public contracts. Unknown fields are errors. AY-I02 now returns
+real criterion-level findings for complete local literal comparisons through
+[`evaluate`](evaluation.md). Unresolved reference IDs, unverified execution
+claims and manual review remain inconclusive; verified observation integration
+and restricted-reference handling belong to AY-I03. Technical findings do not
+authenticate evidence or award official credit.
 
 ## Validation and safety limits
 
@@ -157,7 +162,10 @@ outside the portable library.
 `inspectEvidenceCoverage(definition: unknown, evidence: unknown)`
 return discriminated `ValidationResult<T>` values. On success the data is
 deeply cloned and frozen; on error the output reports only diagnostic codes
-and paths. No compatibility layer is promised for unshipped versions.
+and paths. The separate `evaluate(definition, evidence)` operation produces
+versioned technical findings or an invalid-input diagnostic envelope as
+documented in [evaluation](evaluation.md). No compatibility layer is promised
+for unshipped versions.
 
 Run `pnpm check` to validate the frozen dependency tree, TypeScript, Biome,
 Vitest and the tsdown ESM/type-declaration build. No package release is
