@@ -13,7 +13,21 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+// npm.cmd is a Windows batch shim. Node 24 deliberately rejects spawning it
+// without a shell, and enabling a shell would be unsafe with temp paths.
+// Resolve the npm JavaScript entry alongside the active Node installation
+// and launch it using process.execPath on every platform.
+const nodeDirectory = path.dirname(process.execPath);
+const npmEntryCandidates = [
+  path.resolve(nodeDirectory, "node_modules", "npm", "bin", "npm-cli.js"),
+  path.resolve(nodeDirectory, "..", "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+  path.resolve(nodeDirectory, "..", "node_modules", "npm", "bin", "npm-cli.js"),
+];
+const npmEntry = npmEntryCandidates.find((candidate) => existsSync(candidate));
+assert.ok(
+  npmEntry,
+  "npm's JavaScript CLI must be installed alongside the active Node.js executable",
+);
 const fixtureDir = path.join(root, "tests", "consumer");
 const expectedArchiveFiles = [
   "CHANGELOG.md",
@@ -119,8 +133,8 @@ try {
 
   const packed = JSON.parse(
     command(
-      npm,
-      ["pack", "--ignore-scripts", "--offline", "--json", "--pack-destination", archiveDir],
+      process.execPath,
+      [npmEntry, "pack", "--ignore-scripts", "--offline", "--json", "--pack-destination", archiveDir],
       root,
     ),
   );
@@ -151,8 +165,9 @@ try {
   // npm install from a local tarball, from outside the repository:
   // no workspace imports, registry calls, installation scripts or dev dependencies.
   command(
-    npm,
+    process.execPath,
     [
+      npmEntry,
       "install",
       "--offline",
       "--ignore-scripts",
