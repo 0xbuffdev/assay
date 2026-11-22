@@ -27,6 +27,7 @@ The source exposes versioned parsing/coverage from [contracts](contracts.md), pu
 - **AY-I01:** implemented versioned definition/evidence contracts, bounded validation and structured diagnostics.
 - **AY-I02:** implemented exact/normalized text, finite numeric tolerance, set comparators and deterministic required/advisory aggregation.
 - **AY-I06:** explicit content-bound definitions and strict verified evaluator/provider entry points, with versioned portable SHA-256 canonicalization; publisher identity and runtime evidence authenticity remain host-owned.
+- **AY-I07:** explicit public technical result projection that validates lineage and coherence, shows only public criterion outcomes, and withholds hidden aggregate findings; real access control remains host-owned.
 - **AY-I03:** implemented optional injected bounded observation facts, claimed run/artifact/definition provenance and fail-closed protected-reference redaction. Host authentication remains outside the library.
 - **AY-I04:** implemented offline tarball distribution audit, standalone ESM/TypeScript consumer and security acceptance fixtures. Tagging and publication still require separate explicit authorization.
 
