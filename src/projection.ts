@@ -68,7 +68,7 @@ export function projectPublicResult(
     return REJECTED;
   }
 
-  // Require complete ordered correspondence with the authenticated-by-host
+  // Require complete ordered correspondence with the supplied content-verified
   // rubric, rejecting missing, reordered, extra, or inconsistent findings.
   // Structural validation alone does not establish authorship of a result.
   for (const [index, criterion] of definition.criteria.entries()) {
