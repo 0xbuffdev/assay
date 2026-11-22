@@ -7,6 +7,7 @@
 
 export type {
   AssessmentDefinition,
+  AssessmentDefinitionDraft,
   Completeness,
   Criterion,
   CriterionBase,
@@ -45,10 +46,19 @@ export {
   CONTRACT_LIMITS,
 } from "./contracts";
 export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluate";
+export {
+  ASSAY_DEFINITION_DIGEST_VERSION,
+  collectVerifiedObservations,
+  computeDefinitionDigest,
+  createAssessmentDefinition,
+  evaluateVerified,
+  verifyAssessmentDefinition,
+} from "./integrity";
 export { collectObservations } from "./observation";
 export {
   inspectEvidenceCoverage,
   parseAssessmentDefinition,
+  parseAssessmentDefinitionDraft,
   parseEvaluationResult,
   parseEvidenceBundle,
   parseObservationPortReport,

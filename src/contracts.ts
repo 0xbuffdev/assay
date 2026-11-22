@@ -100,6 +100,9 @@ export type Criterion =
         parameters: Readonly<{ review: "required" }>;
       }>);
 
+/** Authored definition before deterministic content hashing. */
+export type AssessmentDefinitionDraft = Omit<AssessmentDefinition, "revisionDigest">;
+
 export interface AssessmentDefinition {
   readonly schemaVersion: typeof ASSAY_SCHEMA_VERSION;
   readonly assessmentId: string;
@@ -283,6 +286,7 @@ export type DiagnosticCode =
   | "EMPTY_REQUIRED_CRITERIA"
   | "RESTRICTED_LITERAL"
   | "MISMATCHED_DEFINITION"
+  | "DEFINITION_DIGEST_MISMATCH"
   | "UNKNOWN_CRITERION"
   | "MISMATCHED_OBSERVATION"
   | "TOO_MANY_DIAGNOSTICS";

@@ -9,7 +9,14 @@ const entry = await import("@0xbuff/assay");
 assert.deepEqual(
   Object.keys(entry).sort(),
   [
+    "ASSAY_DEFINITION_DIGEST_VERSION",
     "ASSAY_EVALUATOR_VERSION",
+    "collectVerifiedObservations",
+    "computeDefinitionDigest",
+    "createAssessmentDefinition",
+    "evaluateVerified",
+    "verifyAssessmentDefinition",
+    "parseAssessmentDefinitionDraft",
     "ASSAY_SCHEMA_VERSION",
     "collectObservations",
     "CONTRACT_LIMITS",
@@ -22,6 +29,34 @@ assert.deepEqual(
   ].sort(),
 );
 assert.equal(entry.ASSAY_SCHEMA_VERSION, 1);
+
+const golden = entry.createAssessmentDefinition({
+  schemaVersion: 1,
+  assessmentId: "vector",
+  revision: "rev1",
+  policyVersion: "policy1",
+  criteria: [
+    {
+      id: "output",
+      mode: "required",
+      visibility: "public",
+      kind: "exact_text",
+      parameters: { expected: { type: "literal", value: "café\n" } },
+    },
+  ],
+});
+assert.equal(golden.ok, true);
+assert.equal(
+  golden.value.revisionDigest,
+  "sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b",
+);
+assert.equal(entry.verifyAssessmentDefinition(golden.value).ok, true);
+const modified = {
+  ...golden.value,
+  policyVersion: "newPolicy",
+};
+assert.equal(entry.verifyAssessmentDefinition(modified).ok, false);
+
 assert.equal(typeof entry.parseAssessmentDefinition, "function");
 assert.equal(typeof entry.parseEvidenceBundle, "function");
 assert.equal(typeof entry.inspectEvidenceCoverage, "function");

@@ -4,6 +4,7 @@
 
 ### Added
 
+- AY-I06: versioned deterministic definition content hashes, unsigned draft sealing, integrity verification and explicitly guarded evaluator/observation-port paths; pure synchronous SHA-256 without runtime dependencies. Content hashes do not authenticate publishers.
 - AY-I05: numeric observations carry an optional unit identifier; unit-bearing criteria reject absent or different observation units rather than silently comparing incompatible quantities.
 - AY-I04: offline packed archive audit and isolated third-party ESM/TypeScript consumer acceptance; strict file/license/dependency checks, malicious-evidence fixture and release decision documentation. Verified Ubuntu/Windows package checks use npm's JavaScript CLI rather than a platform-specific shell shim. No package publication.
 - AY-I03: optional provider-neutral observation collection, bounded provenance claims, public-only requests, strict report validation, capture-truncation handling and security/threat fixtures.
