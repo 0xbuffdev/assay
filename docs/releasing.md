@@ -93,6 +93,11 @@ admission or genuine external runner isolation.
 | AY-18, AY-20               | Optional port and consumer fixtures | Technical evidence is not authenticated academic credit        |
 | AY-22                      | Contract and negative fixtures      | Unknown kinds and corrupt evidence are typed errors            |
 
+AY-I07 additionally verifies the [public projection](projection.md) against
+private-identifier canaries and hidden-outcome permutations. This masks
+**technical result disclosure**, not host-side account authorization, hidden
+case isolation or side-channel defenses.
+
 The **host-owned** verification aspects of AY-12, AY-13, AY-15, AY-18
 and AY-20 are **not proven** by the package tests. Formal assessment
 products must independently enforce admission, origin authenticity,
