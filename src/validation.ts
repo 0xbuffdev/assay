@@ -676,11 +676,12 @@ export function parseEvidenceBundle(input: unknown): ValidationResult<EvidenceBu
         object(
           obs,
           p,
-          ["criterionId", "evidenceRef", "completeness", "kind", "value"],
+          ["criterionId", "evidenceRef", "completeness", "kind", "value", "unit"],
           ["criterionId", "evidenceRef", "completeness", "kind", "value"],
           issues,
         );
         numberValue(obs.value, `${p}.value`, issues);
+        if (Object.hasOwn(obs, "unit")) identifier(obs.unit, `${p}.unit`, issues);
       } else if (obs.kind === "set") {
         object(
           obs,
@@ -978,13 +979,26 @@ export function inspectEvidenceCoverage(
     const matchingKind =
       ((criterion.kind === "exact_text" || criterion.kind === "normalized_text") &&
         observation.kind === "text") ||
-      (criterion.kind === "number_with_tolerance" && observation.kind === "number") ||
+      (criterion.kind === "number_with_tolerance" &&
+        observation.kind === "number" &&
+        // Absent units are valid only when both sides deliberately omit them.
+        criterion.parameters.unit === observation.unit) ||
       (criterion.kind === "set_equivalence" &&
         observation.kind === "set" &&
         criterion.parameters.itemType === observation.itemType) ||
       (criterion.kind === "observed_execution" && observation.kind === "execution") ||
       (criterion.kind === "manual_evidence" && observation.kind === "manual");
-    if (!matchingKind) issues.add(`${path}.kind`, "MISMATCHED_OBSERVATION");
+    if (!matchingKind) {
+      if (
+        criterion.kind === "number_with_tolerance" &&
+        observation.kind === "number" &&
+        criterion.parameters.unit !== observation.unit
+      ) {
+        issues.add(`${path}.unit`, "MISMATCHED_OBSERVATION");
+      } else {
+        issues.add(`${path}.kind`, "MISMATCHED_OBSERVATION");
+      }
+    }
 
     if (criterion.kind === "observed_execution" && observation.kind === "execution") {
       const known = new Set(criterion.parameters.assertions.map((assertion) => assertion.id));
