@@ -35,13 +35,15 @@ const golden = entry.createAssessmentDefinition({
   assessmentId: "vector",
   revision: "rev1",
   policyVersion: "policy1",
-  criteria: [{
-    id: "output",
-    mode: "required",
-    visibility: "public",
-    kind: "exact_text",
-    parameters: { expected: { type: "literal", value: "café\n" } },
-  }],
+  criteria: [
+    {
+      id: "output",
+      mode: "required",
+      visibility: "public",
+      kind: "exact_text",
+      parameters: { expected: { type: "literal", value: "café\n" } },
+    },
+  ],
 });
 assert.equal(golden.ok, true);
 assert.equal(
