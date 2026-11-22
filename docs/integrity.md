@@ -107,22 +107,8 @@ Unsigned draft:
 
 Canonical JSON (single line; the newline in the value is escaped):
 
-```json
-{
-  "assessmentId": "vector",
-  "criteria": [
-    {
-      "id": "output",
-      "kind": "exact_text",
-      "mode": "required",
-      "parameters": { "expected": { "type": "literal", "value": "café\n" } },
-      "visibility": "public"
-    }
-  ],
-  "policyVersion": "policy1",
-  "revision": "rev1",
-  "schemaVersion": 1
-}
+```text
+{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":1}
 ```
 
 SHA-256 over UTF-8 bytes of the domain separator plus canonical JSON:
