@@ -3,7 +3,12 @@
  * from the installed tarball, never from Assay's repository or source tree.
  */
 import {
+  ASSAY_DEFINITION_DIGEST_VERSION,
   ASSAY_SCHEMA_VERSION,
+  createAssessmentDefinition,
+  evaluateVerified,
+  type AssessmentDefinitionDraft,
+  verifyAssessmentDefinition,
   collectObservations,
   evaluate,
   type AssessmentDefinition,
@@ -16,6 +21,38 @@ import {
 } from "@0xbuff/assay";
 
 const digest = "sha256:" + "a".repeat(64);
+
+const version: "v1" = ASSAY_DEFINITION_DIGEST_VERSION;
+const authoredDraft: AssessmentDefinitionDraft = {
+  schemaVersion: ASSAY_SCHEMA_VERSION,
+  assessmentId: "typed-integrity",
+  revision: "rev1",
+  policyVersion: "policy1",
+  criteria: [{
+    id: "output",
+    kind: "exact_text",
+    mode: "required",
+    visibility: "public",
+    parameters: { expected: { type: "literal", value: "ok" } },
+  }],
+};
+const boundedDefinition = createAssessmentDefinition(authoredDraft);
+if (boundedDefinition.ok) {
+  const verified = verifyAssessmentDefinition(boundedDefinition.value);
+  const pure: EvaluationResponse = evaluateVerified(boundedDefinition.value, {
+    schemaVersion: ASSAY_SCHEMA_VERSION,
+    definition: {
+      assessmentId: boundedDefinition.value.assessmentId,
+      revision: boundedDefinition.value.revision,
+      revisionDigest: boundedDefinition.value.revisionDigest,
+    },
+    observations: [],
+  });
+  void pure;
+  void verified;
+}
+void version;
+
 
 const definition: AssessmentDefinition = {
   schemaVersion: ASSAY_SCHEMA_VERSION,
