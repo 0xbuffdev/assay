@@ -176,7 +176,7 @@ describe("AY-I07 restricted technical finding projection", () => {
     // The authorized technical record is neither changed nor promoted to a
     // learner response. Its full evidence and private findings remain intact.
     expect(full.findings[1].criterionId).toBe("SECRET_CRITERION_CANARY");
-    expect(full.findings[1].reasonCode).toBe("REFERENCE_UNAVAILABLE");
+    expect(full.findings[1].reasonCode).toBe("EVIDENCE_MISSING");
   });
 
   it("returns indistinguishable public responses for any restricted outcome or error", () => {
