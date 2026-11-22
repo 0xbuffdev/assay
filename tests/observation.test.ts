@@ -64,6 +64,13 @@ function successful(value: ObservationCollectionResult): Extract<ObservationColl
   return value;
 }
 
+function failed(
+  value: ObservationCollectionResult,
+): Exclude<ObservationCollectionResult, { ok: true }> {
+  if (value.ok) throw new Error("Expected invalid input or port error");
+  return value;
+}
+
 function provider(value: unknown): ObservationPort {
   return { observe: async () => value };
 }
@@ -122,7 +129,7 @@ describe("AY-I03 optional injected observation port", () => {
   it("supports an independently authorized local literal comparison without formal credit", async () => {
     const collected = successful(await collectObservations(definition(), evidence(), provider(report())));
     const result = evaluate(definition(), collected.evidence);
-    expect(result.outcome).toBe("pass");
+    expect(failed(result).outcome).toBe("pass");
     expect("grade" in result).toBe(false);
     expect("certificate" in result).toBe(false);
     expect(Object.isFrozen(collected.evidence)).toBe(true);
@@ -201,7 +208,7 @@ describe("AY-I03 optional injected observation port", () => {
       );
       expect(response.evidence.observations[0].completeness).toBe("truncated");
       const result = evaluate(definition(), response.evidence);
-      expect(result.outcome).toBe("inconclusive");
+      expect(failed(result).outcome).toBe("inconclusive");
       if ("findings" in result) expect(result.findings[0].reasonCode).toBe("EVIDENCE_TRUNCATED");
     }
   });
@@ -215,7 +222,7 @@ describe("AY-I03 optional injected observation port", () => {
     ]) {
       const value = await collectObservations(definition(), evidence(), provider(data));
       expect(value.ok).toBe(false);
-      expect(value.outcome).toBe("invalid_evidence");
+      expect(failed(value).outcome).toBe("invalid_evidence");
     }
 
     const invalid = await collectObservations(definition(), evidence(), provider(report({
@@ -227,7 +234,7 @@ describe("AY-I03 optional injected observation port", () => {
         completeness: "complete",
       }],
     })));
-    expect(invalid.outcome).toBe("invalid_evidence");
+    expect(failed(invalid).outcome).toBe("invalid_evidence");
     expect(JSON.stringify(invalid)).not.toContain("private");
   });
 
@@ -235,12 +242,12 @@ describe("AY-I03 optional injected observation port", () => {
     const wrongDefinition = await collectObservations(definition(), evidence(), provider(report({
       definition: { ...report().definition, revisionDigest: digestB },
     })));
-    expect(wrongDefinition.outcome).toBe("invalid_evidence");
+    expect(failed(wrongDefinition).outcome).toBe("invalid_evidence");
 
     const wrongArtifact = await collectObservations(definition(), evidence(), provider(report({
       artifactDigest: digestB,
     })));
-    expect(wrongArtifact.outcome).toBe("invalid_evidence");
+    expect(failed(wrongArtifact).outcome).toBe("invalid_evidence");
     expect(JSON.stringify(wrongArtifact)).not.toContain(digestB);
   });
 
@@ -257,11 +264,11 @@ describe("AY-I03 optional injected observation port", () => {
       assertions: [{ assertionId: "unit1", state: "confirmed" as const }],
     };
     const wrongRun = await collectObservations(configured, evidence(), provider(report({ observations: [observation] })));
-    expect(wrongRun.outcome).toBe("invalid_evidence");
+    expect(failed(wrongRun).outcome).toBe("invalid_evidence");
     const wrongAssertion = await collectObservations(configured, evidence(), provider(report({
       observations: [{ ...observation, runRef: "run1", assertions: [{ assertionId: "unlisted", state: "confirmed" }] }],
     })));
-    expect(wrongAssertion.outcome).toBe("invalid_evidence");
+    expect(failed(wrongAssertion).outcome).toBe("invalid_evidence");
   });
 
   it("rejects duplicate evidence references, wrong kinds and provider attempts to replace evidence", async () => {
@@ -274,7 +281,7 @@ describe("AY-I03 optional injected observation port", () => {
         completeness: "complete",
       }],
     })));
-    expect(incompatible.outcome).toBe("invalid_evidence");
+    expect(failed(incompatible).outcome).toBe("invalid_evidence");
 
     const root = exampleDefinition();
     const base: EvidenceBundle = { ...exampleEvidence(), artifactDigest: digestA };
@@ -289,7 +296,7 @@ describe("AY-I03 optional injected observation port", () => {
         items: ["a", "b"],
       }],
     })));
-    expect(reused.outcome).toBe("invalid_evidence");
+    expect(failed(reused).outcome).toBe("invalid_evidence");
   });
 
   it("accepts an empty report without treating a completed run as passing evidence", async () => {
@@ -332,7 +339,7 @@ describe("AY-I03 optional injected observation port", () => {
       get: () => { count++; return []; },
     });
     const result = await collectObservations(definition(), evidence(), provider(malicious));
-    expect(result.outcome).toBe("invalid_evidence");
+    expect(failed(result).outcome).toBe("invalid_evidence");
     expect(count).toBe(0);
   });
 
@@ -356,9 +363,9 @@ describe("AY-I03 optional injected observation port", () => {
   it("returns invalid inputs before invoking the runner and does not mint credit", async () => {
     const observe = vi.fn(async () => report());
     const bad = await collectObservations({ ...definition(), criteria: [] }, evidence(), { observe });
-    expect(bad.outcome).toBe("invalid_definition");
+    expect(failed(bad).outcome).toBe("invalid_definition");
     const forged = await collectObservations(definition(), { ...evidence(), trusted: true }, { observe });
-    expect(forged.outcome).toBe("invalid_evidence");
+    expect(failed(forged).outcome).toBe("invalid_evidence");
     expect(observe).not.toHaveBeenCalled();
     const valid = successful(await collectObservations(definition(), evidence(), provider(report())));
     expect("credential" in valid).toBe(false);
