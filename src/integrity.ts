@@ -1,5 +1,5 @@
-import { ASSAY_SCHEMA_VERSION } from "./contracts";
 import type {
+  ASSAY_SCHEMA_VERSION,
   AssessmentDefinition,
   AssessmentDefinitionDraft,
   EvaluationResponse,
