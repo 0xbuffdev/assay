@@ -1,42 +1,55 @@
 # Assay
 
-**Deterministic technical evaluation against explicit criteria and bounded evidence.**
+**Deterministic technical evaluation from explicit criteria and bounded evidence.**
 
-Assay is a standalone, provider-neutral TypeScript library being developed to validate versioned technical assessment definitions, compare typed observations and return reproducible criterion-level findings.
+Assay is a standalone TypeScript library for checking technical observations against versioned assessment definitions. It produces reproducible criterion-level findings, distinguishes missing evidence from incorrect results, and can construct a deliberately restricted public-facing view.
 
-Assay **does not** execute untrusted programs, verify learner identity, award academic credit, issue certificates or depend on OEE/0xNAND. Consumers own execution provenance, official assessment admission and final decisions.
+Assay evaluates evidence; it does **not** execute learner code, authenticate a submitted observation, resolve protected reference answers, issue grades or award credentials. Those responsibilities stay with the application using it.
 
-> **AY-I04 release-readiness checks implemented; still unreleased.** The source supports validated contracts, deterministic comparisons, and optional injected observations. The CI gate now installs and tests an offline tarball in an independent ESM/TypeScript consumer. Provenance and execution trust remain host responsibilities; the npm package is still private and unpublished.
+**Availability:** The Apache-2.0 source is public. The npm package is **not published**; its source version remains 0.0.0 with the private publication guard enabled. There is no supported npm install command yet.
 
-## Implemented behavior and planned boundaries
+## How it works
 
-- Strictly validate versioned definitions, bounded evidence and comparison policy.
-- Compare exact/normalized text, numbers with explicit tolerance and unit agreement, and sets under declared semantics.
-- Create versioned, content-bound definitions and verify SHA-256 content identity before protected/strict evaluation (`createAssessmentDefinition`, `evaluateVerified`); hashes are not publisher signatures.
-- Produce a narrowly scoped learner-safe projection with `projectPublicResult`; restricted findings and aggregates are withheld, while host authorization stays mandatory.
-- Distinguish `pass`, `fail`, `inconclusive`, `invalid_definition`, `invalid_evidence` and `evaluation_error`.
-- Keep required criteria separate from advisory findings. Empty requirements, missing references and provider errors never silently pass.
-- Return reproducible, versioned findings rather than a host-controlled grade.
+1. **Define the requirements.** Author typed criteria for exact or normalized text, numeric values with explicit tolerances and units, sets, reported execution assertions, or manual evidence. Every assessment needs at least one required criterion.
+2. **Bind the definition to its content.** Use [definition integrity](docs/integrity.md) to create or verify a deterministic, versioned SHA-256 digest. A hash identifies content; it does not authenticate its publisher.
+3. **Supply observations.** Pass bounded, typed evidence directly or use an [optional injected observation port](docs/observations.md). A provider's claimed provenance is not independent proof of execution.
+4. **Evaluate.** Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). Required findings determine the technical outcome; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
+5. **Present only appropriate findings.** The full technical record is for an authorized host. Use the [learner-safe projection](docs/projection.md) to omit restricted findings, evidence references and hidden aggregate outcomes. The host must still decide who is allowed to see any result.
 
-Strict validation, objective deterministic comparison and optional bounded observation collection are implemented. Verified execution provenance, protected reference resolution, and formal host decisions are **not**. The accepted [specification](https://github.com/0xbuffdev/context/blob/main/repos/assay/specs/0001-evaluation-core.md) and [AY implementation tickets](https://github.com/0xbuffdev/context/blob/main/repos/assay/tickets.md) govern the work.
+The pure library has **no runtime dependencies**, network requirement, model provider, private workspace or mandatory executor.
 
-## Development
+## Develop from source
 
-The source exports strict schema validation, pure deterministic `evaluate()` and optional async `collectObservations()`. On Node.js 24+ with pnpm 11.2.2:
+Requires Node.js 24+ and pnpm 11.2.2.
 
-```sh
+~~~sh
+git clone https://github.com/0xbuffdev/assay.git
+cd assay
 corepack enable
 pnpm install --frozen-lockfile
 pnpm check
+~~~
+
+The full check validates contracts, security cases, TypeScript, Biome, the tsdown ESM/types build and an **independent offline consumer of the actual npm tarball**. It does not publish or deploy anything.
+
+Use these commands for focused work:
+
+~~~sh
 pnpm test
-```
+pnpm typecheck
+pnpm check:style
+pnpm build
+pnpm verify:package
+~~~
 
-Use `pnpm format` to apply Biome formatting; `pnpm format:check` and `pnpm lint` run non-mutating checks. Relative TypeScript imports use extensionless specifiers (for example `../src/index`); the emitted ESM package still uses `.js` distribution filenames.
+The last command checks the packed package after a build, using a temporary isolated ESM/TypeScript consumer. Authored TypeScript files use extensionless relative imports.
 
-`AY-I01` provides validated contracts; `AY-I02` provides objective comparators and fail-closed aggregation; `AY-I03` adds a bounded injected observation port and claimed provenance receipts. `AY-I04` now validates the actual local tarball with an independently installed Node/TypeScript consumer and strict packaging/security gates. Run `pnpm verify:package` after `pnpm build` to repeat that check. Quality acceptance is not a publication authorization.
+## Documentation
 
-See the [optional observation port and threat boundaries](docs/observations.md), [evaluation semantics](docs/evaluation.md), [contract API and safety limits](docs/contracts.md), [architecture](docs/architecture.md), [development](docs/development.md), [package acceptance and release policy](docs/releasing.md), [contributing](CONTRIBUTING.md) and [security](SECURITY.md).
+The [contract reference](docs/contracts.md) defines accepted input and result types. [Architecture](docs/architecture.md) explains the responsibilities of the evaluator and host. [Release and package verification](docs/releasing.md) describes the current source-quality gate and remaining publication approvals.
+
+For changes to Assay, follow [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and the [specification](https://github.com/0xbuffdev/context/blob/main/repos/assay/specs/0001-evaluation-core.md). Accepted implementation history and decisions are maintained in the [canonical tickets](https://github.com/0xbuffdev/context/blob/main/repos/assay/tickets.md).
 
 ## License
 
-Assay is licensed under the [Apache License, Version 2.0](LICENSE). See [copyright and attribution](COPYRIGHT.md) for details. The package remains `private: true` to prevent premature npm publication; this flag does not restrict the open-source permissions granted by Apache-2.0. No npm release has been authorized.
+Apache License 2.0. See [LICENSE](LICENSE) and [copyright and attribution](COPYRIGHT.md). Public source availability does not authorize an npm release.
