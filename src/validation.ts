@@ -837,7 +837,6 @@ function reason(value: unknown, path: string, issues: Diagnostics): void {
   }
 }
 
-
 /**
  * Parse a port's bounded facts and claimed provenance without trusting any
  * boolean marker, provider name or reported run identifier.
@@ -845,7 +844,9 @@ function reason(value: unknown, path: string, issues: Diagnostics): void {
  * The outer envelope is checked here; AY-I01's evidence parser checks every
  * returned typed observation and rejects unknown observation fields.
  */
-export function parseObservationPortReport(input: unknown): ValidationResult<ObservationPortReport> {
+export function parseObservationPortReport(
+  input: unknown,
+): ValidationResult<ObservationPortReport> {
   return finish(input, "invalid_evidence", (data, issues) => {
     if (
       !object(
@@ -913,9 +914,7 @@ export function parseObservationPortReport(input: unknown): ValidationResult<Obs
         }
       }
       if (
-        captured.every(
-          (n) => typeof n === "number" && Number.isSafeInteger(n) && n >= 0,
-        ) &&
+        captured.every((n) => typeof n === "number" && Number.isSafeInteger(n) && n >= 0) &&
         (captured[0] as number) + (captured[1] as number) > CONTRACT_LIMITS.maxCapturedBytes
       ) {
         issues.add("$.provenance", "INPUT_TOO_LARGE");
@@ -931,9 +930,7 @@ export function parseObservationPortReport(input: unknown): ValidationResult<Obs
     const reportEvidence = parseEvidenceBundle({
       schemaVersion: data.schemaVersion,
       definition: data.definition,
-      ...(Object.hasOwn(data, "artifactDigest")
-        ? { artifactDigest: data.artifactDigest }
-        : {}),
+      ...(Object.hasOwn(data, "artifactDigest") ? { artifactDigest: data.artifactDigest } : {}),
       observations: data.observations,
     });
     if (!reportEvidence.ok) {
