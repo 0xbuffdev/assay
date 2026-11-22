@@ -75,14 +75,14 @@ bound).
 
 ## Comparison semantics
 
-| Criterion               | Exact behavior                                                                                                                                                                      |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `exact_text`            | JavaScript UTF-16 code-unit equality (`===`); no hidden whitespace, case, line-ending or Unicode transformation                                                                     |
-| `normalized_text`       | Applies only explicitly declared transformations, in the fixed order below, to both actual and expected values                                                                      |
-| `number_with_tolerance` | Absolute difference <= `max(absoluteTolerance, relativeTolerance * abs(expected))`, inclusive; no coercion                                                                          |
-| `set_equivalence`       | Scalar equality within a declared string/number/boolean type, with authored order and duplicate policies                                                                            |
+| Criterion               | Exact behavior                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `exact_text`            | JavaScript UTF-16 code-unit equality (`===`); no hidden whitespace, case, line-ending or Unicode transformation                      |
+| `normalized_text`       | Applies only explicitly declared transformations, in the fixed order below, to both actual and expected values                       |
+| `number_with_tolerance` | Absolute difference <= `max(absoluteTolerance, relativeTolerance * abs(expected))`, inclusive; no coercion                           |
+| `set_equivalence`       | Scalar equality within a declared string/number/boolean type, with authored order and duplicate policies                             |
 | `observed_execution`    | Always inconclusive even if the AY-I03 optional observation port reports `confirmed`; the port does **not** authenticate correctness |
-| `manual_evidence`       | Always inconclusive pending authorized review; presence of a document is never correctness                                                                                          |
+| `manual_evidence`       | Always inconclusive pending authorized review; presence of a document is never correctness                                           |
 
 **Normalized text transformation order:**
 
