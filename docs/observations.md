@@ -125,8 +125,11 @@ is supplied **only** by the host. Its request is immutable and includes:
 - `schemaVersion: 1`, `definition` ID/revision/digest, optional caller
   `artifactDigest`, and `limits.maxCapturedBytes: 65536`.
 - A list of **missing public** criterion IDs and expected observation kinds
-  (`text`, `number`, `set`, or `execution`). Public execution criteria
-  may include **assertion IDs** but never private assertion reference IDs.
+  (`text`, `number`, `set`, or `execution`). Public numeric criteria
+  may include a declared **unit identifier** so the provider can report the
+  matching measurement unit without receiving the expected numeric value.
+  Public execution criteria may include **assertion IDs** but never private
+  assertion reference IDs.
 - No expected literals, reference outputs, hidden criteria, secret test
   sources, script bodies, command strings, accounts, credentials, or
   runner-specific configuration.
