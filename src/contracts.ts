@@ -276,7 +276,12 @@ export type EvaluationResponse = EvaluationResult | EvaluationFailure;
  * underlying definition contains any restricted criterion, even an advisory.
  * It does not report a hidden pass, failure, count, or review authority.
  */
-export type PublicTechnicalOutcome = "pass" | "fail" | "inconclusive" | "evaluation_error" | "withheld";
+export type PublicTechnicalOutcome =
+  | "pass"
+  | "fail"
+  | "inconclusive"
+  | "evaluation_error"
+  | "withheld";
 
 export interface PublicCriterionFinding {
   readonly criterionId: string;
