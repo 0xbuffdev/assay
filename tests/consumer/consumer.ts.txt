@@ -7,6 +7,9 @@ import {
   ASSAY_SCHEMA_VERSION,
   createAssessmentDefinition,
   evaluateVerified,
+  projectPublicResult,
+  type PublicProjectionResponse,
+  type PublicTechnicalResult,
   type AssessmentDefinitionDraft,
   verifyAssessmentDefinition,
   collectObservations,
@@ -52,6 +55,25 @@ if (boundedDefinition.ok) {
   void verified;
 }
 void version;
+
+const projected: PublicProjectionResponse = projectPublicResult(
+  definition,
+  evaluate(definition, evidence),
+);
+if (projected.ok) {
+  const publicTechnical: PublicTechnicalResult = projected.value;
+  const outcome: "pass" | "fail" | "inconclusive" | "evaluation_error" | "withheld" =
+    publicTechnical.outcome;
+  void outcome;
+}
+// @ts-expect-error a public projection never exposes raw evidence references
+const cannotExposeEvidence: PublicTechnicalResult["findings"][number]["evidenceRefs"] = [];
+// @ts-expect-error a public technical view never exposes private criterion reason codes
+const cannotExposeReasons: PublicTechnicalResult["findings"][number]["reasonCode"] = "MATCH";
+void projected;
+void cannotExposeEvidence;
+void cannotExposeReasons;
+
 
 
 const definition: AssessmentDefinition = {
