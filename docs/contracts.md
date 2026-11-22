@@ -48,6 +48,11 @@ const coverage = inspectEvidenceCoverage(definition, observed);
 // This is NOT a pass or fail: the required observation is missing.
 ```
 
+For new definitions, use [canonical content integrity](integrity.md) to create a
+validated, content-bound digest from an unsigned draft. `evaluateVerified` checks
+this integrity before comparing evidence; the structural APIs shown here do
+not independently authenticate or verify a publisher.
+
 The example's digest is a syntactically valid **placeholder**, not proof that
 the source was hashed, signed or approved. A production caller must derive and
 authenticate the canonical definition identity outside Assay. The source package
