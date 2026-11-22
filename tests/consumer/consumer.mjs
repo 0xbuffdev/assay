@@ -107,6 +107,64 @@ const sealedEvidence = {
   observations: [text("output", "ok")],
 };
 assert.equal(assay.evaluateVerified(sealed, sealedEvidence).outcome, "pass");
+
+const visibleProjection = assay.projectPublicResult(
+  sealed,
+  assay.evaluateVerified(sealed, sealedEvidence),
+);
+assert.deepEqual(visibleProjection, {
+  ok: true,
+  value: {
+    schemaVersion: 1,
+    outcome: "pass",
+    findings: [{ criterionId: "output", outcome: "pass" }],
+  },
+});
+
+const privateSealed = assay.createAssessmentDefinition({
+  ...unsigned,
+  criteria: [
+    ...unsigned.criteria,
+    required("PRIVATE_CRITERION_CANARY", "exact_text", {
+      expected: { type: "reference", referenceId: "PRIVATE_REFERENCE_CANARY" },
+    }, "restricted"),
+  ],
+});
+assert.equal(privateSealed.ok, true);
+const privateEvidence = {
+  ...sealedEvidence,
+  definition: {
+    ...sealedEvidence.definition,
+    revisionDigest: privateSealed.value.revisionDigest,
+  },
+};
+const privateTechnical = assay.evaluateVerified(privateSealed.value, privateEvidence);
+assert.equal(privateTechnical.outcome, "inconclusive");
+const privateProjection = assay.projectPublicResult(privateSealed.value, privateTechnical);
+assert.deepEqual(privateProjection, {
+  ok: true,
+  value: {
+    schemaVersion: 1,
+    outcome: "withheld",
+    findings: [{ criterionId: "output", outcome: "pass" }],
+  },
+});
+assert.equal(JSON.stringify(privateProjection).includes("PRIVATE_"), false);
+assert.deepEqual(
+  assay.projectPublicResult({
+    ...privateSealed.value,
+    criteria: privateSealed.value.criteria.map((c) => ({
+      ...c,
+      visibility: "public",
+    })),
+  }, privateTechnical),
+  { ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" },
+);
+assert.deepEqual(
+  assay.projectPublicResult(privateSealed.value, { ...privateTechnical, outcome: "pass" }),
+  { ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" },
+);
+
 const changedBody = {
   ...sealed,
   criteria: [
