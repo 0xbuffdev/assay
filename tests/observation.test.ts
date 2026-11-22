@@ -129,7 +129,7 @@ describe("AY-I03 optional injected observation port", () => {
   it("supports an independently authorized local literal comparison without formal credit", async () => {
     const collected = successful(await collectObservations(definition(), evidence(), provider(report())));
     const result = evaluate(definition(), collected.evidence);
-    expect(failed(result).outcome).toBe("pass");
+    expect(result.outcome).toBe("pass");
     expect("grade" in result).toBe(false);
     expect("certificate" in result).toBe(false);
     expect(Object.isFrozen(collected.evidence)).toBe(true);
@@ -208,7 +208,7 @@ describe("AY-I03 optional injected observation port", () => {
       );
       expect(response.evidence.observations[0].completeness).toBe("truncated");
       const result = evaluate(definition(), response.evidence);
-      expect(failed(result).outcome).toBe("inconclusive");
+      expect(result.outcome).toBe("inconclusive");
       if ("findings" in result) expect(result.findings[0].reasonCode).toBe("EVIDENCE_TRUNCATED");
     }
   });
