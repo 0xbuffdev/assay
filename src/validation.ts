@@ -1,6 +1,7 @@
 import {
   ASSAY_SCHEMA_VERSION,
   type AssessmentDefinition,
+  type AssessmentDefinitionDraft,
   CONTRACT_LIMITS,
   type Criterion,
   type DiagnosticCode,
@@ -605,6 +606,54 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
     unique(ids, "$.criteria", issues);
     if (data.criteria.length > 0 && required === 0)
       issues.add("$.criteria", "EMPTY_REQUIRED_CRITERIA");
+  });
+}
+
+
+/**
+ * Parse an unsigned, authored definition without accepting an asserted digest.
+ * Snapshot first: neither authoring nor verification may execute input getters.
+ */
+export function parseAssessmentDefinitionDraft(
+  input: unknown,
+): ValidationResult<AssessmentDefinitionDraft> {
+  const issues = new Diagnostics();
+  const data = snapshot(input, issues);
+  if (data === BAD) {
+    return issues.result("invalid_definition", undefined as AssessmentDefinitionDraft);
+  }
+  if (
+    !object(
+      data,
+      "$",
+      ["schemaVersion", "assessmentId", "revision", "policyVersion", "criteria"],
+      ["schemaVersion", "assessmentId", "revision", "policyVersion", "criteria"],
+      issues,
+    )
+  ) {
+    return issues.result("invalid_definition", undefined as AssessmentDefinitionDraft);
+  }
+  if (issues.entries.length > 0) {
+    return issues.result("invalid_definition", undefined as AssessmentDefinitionDraft);
+  }
+
+  // Reuse the full definition validator, including semantic parameter checks;
+  // the fixed syntactically valid placeholder is discarded before returning.
+  const checked = parseAssessmentDefinition({
+    ...data,
+    revisionDigest: "sha256:" + "0".repeat(64),
+  });
+  if (!checked.ok) return checked;
+  const value = checked.value;
+  return Object.freeze({
+    ok: true,
+    value: Object.freeze({
+      schemaVersion: value.schemaVersion,
+      assessmentId: value.assessmentId,
+      revision: value.revision,
+      policyVersion: value.policyVersion,
+      criteria: value.criteria,
+    }),
   });
 }
 
