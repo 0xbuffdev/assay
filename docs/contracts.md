@@ -68,7 +68,11 @@ remains unreleased; the import shown represents the future package entry.
 - Text comparisons declare a literal or reference expectation; normalized text
   also declares line-ending, Unicode, case, whitespace and trim choices.
 - Numeric criteria require explicit finite, nonnegative absolute **and**
-  relative tolerances; no implicit string-to-number coercion.
+  relative tolerances; no implicit string-to-number coercion. Numeric observations
+  have an optional `unit` identifier. If the criterion declares `unit`, its
+  observation must carry the **same** identifier; if omitted, both must omit
+  it. Mismatch or absence returns `invalid_evidence` before comparison,
+  without any unit conversion.
 - Set criteria declare element type, ordering and duplicate policy.
 - Execution criteria declare assertion and reference IDs, **not** an embedded
   command or code runner.

@@ -118,7 +118,13 @@ export type ObservationBase = Readonly<{
 
 export type Observation =
   | (ObservationBase & Readonly<{ kind: "text"; value: string }>)
-  | (ObservationBase & Readonly<{ kind: "number"; value: number }>)
+  | (ObservationBase &
+      Readonly<{
+        kind: "number";
+        value: number;
+        /** Required exactly when the matching numeric criterion declares a unit. */
+        unit?: string;
+      }>)
   | (ObservationBase &
       Readonly<{
         kind: "set";
@@ -161,6 +167,8 @@ export type ObservationPortKind = "text" | "number" | "set" | "execution";
 export type ObservationPortCriterion = Readonly<{
   criterionId: string;
   kind: ObservationPortKind;
+  /** Public unit metadata for numeric observations, never an expected value. */
+  unit?: string;
   assertionIds?: readonly string[];
 }>;
 

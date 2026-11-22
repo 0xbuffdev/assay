@@ -60,6 +60,7 @@ for (const file of [
   "src/observation.ts",
   "tests/evaluate.test.ts",
   "tests/observation.test.ts",
+  "tests/numeric-units.test.ts",
   "tests/contracts.test.ts",
   "tests/fixtures/contracts.ts",
   "docs/contracts.md",

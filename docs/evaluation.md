@@ -103,7 +103,13 @@ assessment revision, which the caller must version and authenticate.
 **Numeric semantics:** Every number, expected value, and tolerance must
 already be finite. Tolerances must be nonnegative, with both absolute and
 relative components explicitly declared. Comparisons use IEEE-754 JavaScript
-`number`, so input producers must agree on units and precision beforehand.
+`number`. If a numeric criterion declares `parameters.unit`, its numeric
+observation **must** declare an identical `unit` identifier. If the criterion
+omits `unit`, the observation must omit it too. Missing or mismatched units
+produce `invalid_evidence` with a value-free `MISMATCHED_OBSERVATION`
+diagnostic at the observation's `.unit` path. No automatic unit conversion,
+unit inference or precision normalization occurs; producers remain responsible
+for declaring and converting measurements before assessment.
 A nonfinite intermediate relative bound yields `evaluation_error`, never a
 spurious `pass`. A difference overflowing to infinity against a finite
 bound is a definite mismatch. The relative bound is based on the magnitude
