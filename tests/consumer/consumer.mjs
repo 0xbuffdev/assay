@@ -77,6 +77,51 @@ assert.deepEqual(
 );
 assert.equal(assay.ASSAY_SCHEMA_VERSION, 1);
 
+assert.equal(assay.ASSAY_DEFINITION_DIGEST_VERSION, "v1");
+const unsigned = {
+  schemaVersion: 1,
+  assessmentId: "packed-integrity",
+  revision: "rev1",
+  policyVersion: "policy1",
+  criteria: [required("output", "exact_text", {
+    expected: { type: "literal", value: "ok" },
+  })],
+};
+const created = assay.createAssessmentDefinition(unsigned);
+assert.equal(created.ok, true);
+const sealed = created.value;
+const separatelyComputed = assay.computeDefinitionDigest(unsigned);
+assert.equal(separatelyComputed.ok, true);
+assert.equal(sealed.revisionDigest, separatelyComputed.value);
+assert.equal(assay.verifyAssessmentDefinition(sealed).ok, true);
+const sealedEvidence = {
+  schemaVersion: 1,
+  definition: {
+    assessmentId: sealed.assessmentId,
+    revision: sealed.revision,
+    revisionDigest: sealed.revisionDigest,
+  },
+  observations: [text("output", "ok")],
+};
+assert.equal(assay.evaluateVerified(sealed, sealedEvidence).outcome, "pass");
+const changedBody = {
+  ...sealed,
+  criteria: [{
+    ...sealed.criteria[0],
+    parameters: { expected: { type: "literal", value: "forged" } },
+  }],
+};
+assert.deepEqual(
+  assay.verifyAssessmentDefinition(changedBody).diagnostics,
+  [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
+);
+assert.equal(assay.evaluateVerified(changedBody, sealedEvidence).outcome, "invalid_definition");
+assert.equal(
+  assay.createAssessmentDefinition({ ...unsigned, revisionDigest: sealed.revisionDigest }).ok,
+  false,
+);
+
+
 const exact = required("stdout", "exact_text", {
   expected: { type: "literal", value: "ok\n" },
 });
