@@ -22,25 +22,25 @@ The pure library has **no runtime dependencies**, network requirement, model pro
 
 Requires Node.js 24+ and pnpm 11.2.2.
 
-~~~sh
+```sh
 git clone https://github.com/0xbuffdev/assay.git
 cd assay
 corepack enable
 pnpm install --frozen-lockfile
 pnpm check
-~~~
+```
 
 The full check validates contracts, security cases, TypeScript, Biome, the tsdown ESM/types build and an **independent offline consumer of the actual npm tarball**. It does not publish or deploy anything.
 
 Use these commands for focused work:
 
-~~~sh
+```sh
 pnpm test
 pnpm typecheck
 pnpm check:style
 pnpm build
 pnpm verify:package
-~~~
+```
 
 The last command checks the packed package after a build, using a temporary isolated ESM/TypeScript consumer. Authored TypeScript files use extensionless relative imports.
 
