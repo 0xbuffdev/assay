@@ -72,6 +72,17 @@ parseAssessmentDefinitionDraft rejects caller-supplied revisionDigest fields ins
 
 Version constant: ASSAY_DEFINITION_DIGEST_VERSION = "v1".
 
+**Permanent persisted-record binding:** Every definition with `schemaVersion: 1`
+**MUST use digest profile v1**, including its exact `assay:definition:v1` domain
+separator and canonical JSON rules below. A stored definition identifies its
+profile through `schemaVersion`; the `sha256:` prefix identifies the hash
+algorithm, not a separately selectable canonicalization profile. **Any future
+change** to canonicalization, hashed fields, domain separation, or algorithm
+**MUST increment `schemaVersion`**, publish a separate profile and golden
+vectors, and never reinterpret persisted schema-1 bytes under the new profile.
+An implementation that no longer supports an earlier schema must reject it
+explicitly rather than silently verify it using a different profile.
+
 - Accept **only** a validated unsigned AssessmentDefinitionDraft, with exact fields schemaVersion, assessmentId, revision, policyVersion and criteria. Invalid, additional, accessor, cyclic, non-finite, too-large and unknown schema fields are rejected before hashing.
 - Include every authored field, including the complete criteria array in authored order, each criterion's visibility, mode, kind, parameters, reference IDs, numeric units and normalization policy. The only excluded field is the self-referential **top-level** revisionDigest, which does not exist in the unsigned draft.
 - Canonicalize the validated draft recursively as compact JSON. Object keys are sorted by ECMAScript's default UTF-16 code-unit order (Array.prototype.sort with no comparator). Arrays retain their declared order. Keys and primitive strings use JSON.stringify escaping. **No** Unicode normalization, whitespace trimming, reordering of criteria, or case transformation occurs.
@@ -117,7 +128,7 @@ SHA-256 over UTF-8 bytes of the domain separator plus canonical JSON:
 sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b
 ```
 
-This vector is independently verified against the Node crypto implementation in tests. Any future change to hashing, canonicalization or included authored fields requires a separately reviewed **new digest profile version** and new golden vectors; never silently reinterpret a v1 digest.
+This vector is independently verified against the Node crypto implementation in tests and a reloaded, persisted schema-1 record. Any future change to hashing, canonicalization or included authored fields requires a separately reviewed **new schema version and digest profile** with new golden vectors; never silently reinterpret a v1 digest.
 
 ## Security limits and migration rules
 
