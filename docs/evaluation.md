@@ -1,5 +1,11 @@
 # Deterministic technical evaluation (AY-I02)
 
+The full technical `EvaluationResult` may include restricted criterion IDs, evidence
+references and aggregate conclusions influenced by protected checks. It is an
+authorized **host-side record**, not a learner API response. For a bounded
+learner-facing view, use [public result projection](projection.md) and enforce
+access authorization in the host; do not directly serialize the full result.
+
 Assay evaluates caller-authorized _literal_ criteria against bounded typed
 observations. The source API is `evaluate(definition, evidence)` and the
 implementation is pure: no clock, random source, network request, dynamic
