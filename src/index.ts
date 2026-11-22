@@ -1,5 +1,5 @@
 /**
- * Assay standalone technical comparison and optional observation API (AY-I01–I03).
+ * Assay standalone evaluation, content-integrity and learner-safe projection API.
  *
  * This module does not execute code, authenticate submitted values, award grades,
  * authenticate evidence, or contact any external service.
@@ -32,6 +32,10 @@ export type {
   ObservationPortReceipt,
   ObservationPortReport,
   ObservationPortRequest,
+  PublicCriterionFinding,
+  PublicProjectionResponse,
+  PublicTechnicalOutcome,
+  PublicTechnicalResult,
   ReferenceVisibility,
   SetItemType,
   SetScalar,
@@ -55,6 +59,7 @@ export {
   verifyAssessmentDefinition,
 } from "./integrity";
 export { collectObservations } from "./observation";
+export { projectPublicResult } from "./projection";
 export {
   inspectEvidenceCoverage,
   parseAssessmentDefinition,

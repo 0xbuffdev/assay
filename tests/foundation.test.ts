@@ -23,6 +23,7 @@ describe("Assay independent contract package", () => {
         "parseEvaluationResult",
         "parseEvidenceBundle",
         "parseObservationPortReport",
+        "projectPublicResult",
       ].sort(),
     );
     expect(assay.evaluate).toBeTypeOf("function");

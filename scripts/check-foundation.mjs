@@ -59,14 +59,17 @@ for (const file of [
   "src/evaluate.ts",
   "src/observation.ts",
   "src/integrity.ts",
+  "src/projection.ts",
   "tests/evaluate.test.ts",
   "tests/observation.test.ts",
   "tests/numeric-units.test.ts",
   "tests/integrity.test.ts",
+  "tests/projection.test.ts",
   "tests/contracts.test.ts",
   "tests/fixtures/contracts.ts",
   "docs/contracts.md",
   "docs/integrity.md",
+  "docs/projection.md",
   "docs/evaluation.md",
   "docs/observations.md",
   "tests/foundation.test.ts",
@@ -85,6 +88,7 @@ assert.match(entry, /parseEvidenceBundle/, "AY-I01 must expose evidence validati
 assert.match(entry, /evaluate/, "AY-I02 must expose deterministic comparison");
 assert.match(entry, /collectObservations/, "AY-I03 must expose optional observation collection");
 assert.match(entry, /evaluateVerified/, "AY-I06 must expose verified definition evaluation");
+assert.match(entry, /projectPublicResult/, "AY-I07 must expose restricted-safe projections");
 
 // Prevent extensionful .js specifiers in all authored TypeScript modules.
 for (const rootDirectory of ["src", "tests"]) {

@@ -118,6 +118,12 @@ or `runRef` strings into authenticated proof by naming them.
 
 ## Findings
 
+A complete `EvaluationResult` is **not** safe to serialize directly for learners.
+It may expose restricted criterion identities, evidence references, private
+reason codes, warnings and aggregate conclusions. Use the explicit
+[learner-safe projection](projection.md) after host authentication and source
+approval. The projection does not authenticate a purported result.
+
 `parseEvaluationResult` validates the shape of a typed, versioned technical
 finding record, with criterion outcomes, reason codes, evidence references,
 evaluator identity and warnings. It is **structural validation, not attestation**:
