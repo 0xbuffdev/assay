@@ -113,6 +113,14 @@ const numeric = (value) => ({
 });
 valid(checked([number], [numeric(102)]), "pass");
 valid(checked([number], [numeric(103)]), "fail");
+const metered = {
+  ...number,
+  parameters: { ...number.parameters, unit: "m" },
+};
+valid(checked([metered], [{ ...numeric(100), unit: "m" }]), "pass");
+assert.equal(checked([metered], [numeric(100)]).outcome, "invalid_evidence");
+assert.equal(checked([metered], [{ ...numeric(100), unit: "ft" }]).outcome, "invalid_evidence");
+assert.equal(checked([number], [{ ...numeric(100), unit: "m" }]).outcome, "invalid_evidence");
 assert.equal(checked([number], [numeric(Number.NaN)]).outcome, "invalid_evidence");
 assert.equal(checked([number], [numeric(Infinity)]).outcome, "invalid_evidence");
 
