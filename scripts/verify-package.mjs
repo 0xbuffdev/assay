@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -71,14 +71,25 @@ try {
       default: "./dist/index.js",
     },
   });
-  for (const field of ["dependencies", "peerDependencies", "optionalDependencies", "bundledDependencies", "bundleDependencies"]) {
+  for (const field of [
+    "dependencies",
+    "peerDependencies",
+    "optionalDependencies",
+    "bundledDependencies",
+    "bundleDependencies",
+  ]) {
     assert.equal(
       Object.keys(manifest[field] ?? {}).length,
       0,
-      "The standalone public package must not require runtime/peer dependencies: " + field,
+      `The standalone public package must not require runtime/peer dependencies: ${field}`,
     );
   }
-  for (const field of ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"]) {
+  for (const field of [
+    "dependencies",
+    "peerDependencies",
+    "optionalDependencies",
+    "devDependencies",
+  ]) {
     for (const spec of Object.values(manifest[field] ?? {})) {
       assert.equal(typeof spec, "string", "Dependency specifier must be a literal string");
       assert.ok(
@@ -102,7 +113,7 @@ try {
     assert.equal(
       Object.hasOwn(manifest.scripts ?? {}, name),
       false,
-      "Package lifecycle scripts must not execute while installing the archive: " + name,
+      `Package lifecycle scripts must not execute while installing the archive: ${name}`,
     );
   }
 
@@ -134,7 +145,7 @@ try {
   };
   await writeFile(
     path.join(consumerDir, "package.json"),
-    JSON.stringify(consumerManifest, null, 2) + "\n",
+    `${JSON.stringify(consumerManifest, null, 2)}\n`,
   );
 
   // npm install from a local tarball, from outside the repository:
@@ -163,13 +174,21 @@ try {
   assert.deepEqual(await readdir(path.join(nodeModules, "@0xbuff")), ["assay"]);
 
   const installed = path.join(nodeModules, "@0xbuff", "assay");
-  const installedManifest = JSON.parse(await readFile(path.join(installed, "package.json"), "utf8"));
+  const installedManifest = JSON.parse(
+    await readFile(path.join(installed, "package.json"), "utf8"),
+  );
   assert.equal(installedManifest.name, "@0xbuff/assay");
   assert.equal(installedManifest.private, true);
   assert.equal(installedManifest.license, "Apache-2.0");
   assert.deepEqual(installedManifest.exports, manifest.exports);
-  assert.match(await readFile(path.join(installed, "LICENSE"), "utf8"), /Apache License\s+Version 2\.0/);
-  assert.match(await readFile(path.join(installed, "COPYRIGHT.md"), "utf8"), /Copyright 2026 0xBUFF/);
+  assert.match(
+    await readFile(path.join(installed, "LICENSE"), "utf8"),
+    /Apache License\s+Version 2\.0/,
+  );
+  assert.match(
+    await readFile(path.join(installed, "COPYRIGHT.md"), "utf8"),
+    /Copyright 2026 0xBUFF/,
+  );
 
   // Inspect built source, sourcemap and declarations for known canaries from
   // tests. An allowlist is essential; substring scanning is supplemental and
@@ -199,7 +218,7 @@ try {
   );
   await writeFile(
     path.join(consumerDir, "tsconfig.json"),
-    JSON.stringify(
+    `${JSON.stringify(
       {
         compilerOptions: {
           target: "ES2022",
@@ -215,7 +234,7 @@ try {
       },
       null,
       2,
-    ) + "\n",
+    )}\n`,
   );
   const compiler = path.join(root, "node_modules", "typescript", "bin", "tsc");
   assert.ok(existsSync(compiler), "The authoring toolchain must include TypeScript");
