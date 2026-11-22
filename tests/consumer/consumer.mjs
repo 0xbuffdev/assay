@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import * as assay from "@0xbuff/assay";
 
-const digest = (letter) => "sha256:" + letter.repeat(64);
+const digest = (letter) => `sha256:${letter.repeat(64)}`;
 const lineage = (revision = "rev1", revisionDigest = digest("a")) => ({
   assessmentId: "external-consumer",
   revision,
@@ -137,10 +137,7 @@ const positiveAdvice = advisory("hint", "exact_text", {
   expected: { type: "literal", value: "nice" },
 });
 valid(
-  checked(
-    [exact, positiveAdvice],
-    [text("stdout", "incorrect"), text("hint", "nice")],
-  ),
+  checked([exact, positiveAdvice], [text("stdout", "incorrect"), text("hint", "nice")]),
   "fail",
 );
 assert.equal(checked([], []).outcome, "invalid_definition");
@@ -157,9 +154,14 @@ assert.equal(
   "invalid_evidence",
 );
 
-const hidden = required("hidden-output", "exact_text", {
-  expected: { type: "reference", referenceId: "private-ref" },
-}, "restricted");
+const hidden = required(
+  "hidden-output",
+  "exact_text",
+  {
+    expected: { type: "reference", referenceId: "private-ref" },
+  },
+  "restricted",
+);
 const unresolved = valid(checked([hidden], [text("hidden-output", "guessed")]), "inconclusive");
 assert.equal(unresolved.findings[0].reasonCode, "REFERENCE_UNAVAILABLE");
 assert.ok(!JSON.stringify(unresolved).includes("private-ref"));
@@ -186,7 +188,10 @@ const fakeExecution = {
   assertions: [{ assertionId: "smoke", state: "confirmed" }],
 };
 valid(checked([asserted], [fakeExecution]), "inconclusive");
-assert.equal(checked([asserted], [{ ...fakeExecution, trusted: true }]).outcome, "invalid_evidence");
+assert.equal(
+  checked([asserted], [{ ...fakeExecution, trusted: true }]).outcome,
+  "invalid_evidence",
+);
 assert.equal(
   checked([exact], [{ ...text("stdout", "ok\n"), expected: "ok\n" }]).outcome,
   "invalid_evidence",
