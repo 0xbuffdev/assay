@@ -28,7 +28,8 @@ const vector = {
 };
 
 const expected = "sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b";
-const canonical = '{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":1}';
+const canonical =
+  '{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":1}';
 
 function seal(input: unknown) {
   const result = createAssessmentDefinition(input);
@@ -54,9 +55,9 @@ function observed(revisionDigest: string, value = "café\n") {
 describe("AY-I06 versioned canonical definition integrity", () => {
   it("matches a fixed independent SHA-256 golden vector including UTF-8 and newline", () => {
     expect(ASSAY_DEFINITION_DIGEST_VERSION).toBe("v1");
-    const reference = "sha256:" + createHash("sha256")
-      .update("assay:definition:v1\n" + canonical, "utf8")
-      .digest("hex");
+    const reference = `sha256:${createHash("sha256")
+      .update(`assay:definition:v1\n${canonical}`, "utf8")
+      .digest("hex")}`;
     expect(reference).toBe(expected);
     const calculated = computeDefinitionDigest(vector);
     expect(calculated).toEqual({ ok: true, value: expected });
@@ -69,13 +70,15 @@ describe("AY-I06 versioned canonical definition integrity", () => {
 
   it("canonicalizes object property insertion order but respects authored array order", () => {
     const shuffled = {
-      criteria: [{
-        parameters: { expected: { value: "café\n", type: "literal" } },
-        kind: "exact_text",
-        visibility: "public",
-        mode: "required",
-        id: "output",
-      }],
+      criteria: [
+        {
+          parameters: { expected: { value: "café\n", type: "literal" } },
+          kind: "exact_text",
+          visibility: "public",
+          mode: "required",
+          id: "output",
+        },
+      ],
       policyVersion: "policy1",
       revision: "rev1",
       assessmentId: "vector",
@@ -104,9 +107,26 @@ describe("AY-I06 versioned canonical definition integrity", () => {
       { ...vector, assessmentId: "vector2" },
       { ...vector, revision: "rev2" },
       { ...vector, policyVersion: "policy2" },
-      { ...vector, criteria: [{ ...vector.criteria[0], mode: "advisory" }, ...vector.criteria.slice(1),
-        { id: "mandatory", mode: "required", visibility: "public", kind: "manual_evidence", parameters: { review: "required" } }] },
-      { ...vector, criteria: [{ ...vector.criteria[0], parameters: { expected: { type: "literal", value: "café" } } }] },
+      {
+        ...vector,
+        criteria: [
+          { ...vector.criteria[0], mode: "advisory" },
+          ...vector.criteria.slice(1),
+          {
+            id: "mandatory",
+            mode: "required",
+            visibility: "public",
+            kind: "manual_evidence",
+            parameters: { review: "required" },
+          },
+        ],
+      },
+      {
+        ...vector,
+        criteria: [
+          { ...vector.criteria[0], parameters: { expected: { type: "literal", value: "café" } } },
+        ],
+      },
       { ...vector, criteria: [{ ...vector.criteria[0], id: "renamed" }] },
     ];
     for (const changed of variants) {
@@ -116,26 +136,37 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     }
     const normalized = {
       ...vector,
-      criteria: [{
-        ...vector.criteria[0],
-        kind: "normalized_text",
-        parameters: {
-          expected: { type: "literal", value: "café\n" },
-          normalization: {
-            lineEndings: "lf", unicode: "NFC", case: "sensitive",
-            whitespace: "preserve", trim: "none",
+      criteria: [
+        {
+          ...vector.criteria[0],
+          kind: "normalized_text",
+          parameters: {
+            expected: { type: "literal", value: "café\n" },
+            normalization: {
+              lineEndings: "lf",
+              unicode: "NFC",
+              case: "sensitive",
+              whitespace: "preserve",
+              trim: "none",
+            },
           },
         },
-      }],
+      ],
     };
     const altered = {
       ...normalized,
-      criteria: [{
-        ...normalized.criteria[0],
-        parameters: { ...normalized.criteria[0].parameters, normalization: {
-          ...normalized.criteria[0].parameters.normalization, case: "fold",
-        } },
-      }],
+      criteria: [
+        {
+          ...normalized.criteria[0],
+          parameters: {
+            ...normalized.criteria[0].parameters,
+            normalization: {
+              ...normalized.criteria[0].parameters.normalization,
+              case: "fold",
+            },
+          },
+        },
+      ],
     };
     expect(seal(normalized).revisionDigest).not.toBe(seal(altered).revisionDigest);
   });
@@ -144,7 +175,12 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     const good = seal(vector);
     const tampered = {
       ...good,
-      criteria: [{ ...good.criteria[0], parameters: { expected: { type: "literal", value: "PRIVATE_MARKER" } } }],
+      criteria: [
+        {
+          ...good.criteria[0],
+          parameters: { expected: { type: "literal", value: "PRIVATE_MARKER" } },
+        },
+      ],
     };
     const integrity = verifyAssessmentDefinition(tampered);
     expect(integrity).toEqual({
@@ -158,15 +194,18 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     expect("findings" in forged).toBe(false);
     // The deliberately unverified low-level comparator still accepts caller
     // claims: this is why the explicit verified API must be selected.
-    expect(evaluate(tampered, observed(good.revisionDigest, "PRIVATE_MARKER")).outcome).toBe("pass");
+    expect(evaluate(tampered, observed(good.revisionDigest, "PRIVATE_MARKER")).outcome).toBe(
+      "pass",
+    );
   });
 
   it("evaluates a genuine content-bound definition using matching evidence", () => {
     const signed = seal(vector);
     expect(evaluateVerified(signed, observed(signed.revisionDigest)).outcome).toBe("pass");
     expect(evaluateVerified(signed, observed(signed.revisionDigest, "wrong")).outcome).toBe("fail");
-    expect(evaluateVerified(signed, observed("sha256:" + "b".repeat(64))).outcome)
-      .toBe("invalid_evidence");
+    expect(evaluateVerified(signed, observed(`sha256:${"b".repeat(64)}`)).outcome).toBe(
+      "invalid_evidence",
+    );
   });
 
   it("rejects untrusted or malformed unsigned drafts without invoking getters", () => {
@@ -224,7 +263,11 @@ describe("AY-I06 versioned canonical definition integrity", () => {
         });
         return {
           schemaVersion: 1,
-          definition: { assessmentId: "vector", revision: "rev1", revisionDigest: sealed.revisionDigest },
+          definition: {
+            assessmentId: "vector",
+            revision: "rev1",
+            revisionDigest: sealed.revisionDigest,
+          },
           provenance: {
             adapterId: "fixture",
             adapterVersion: "v1",
@@ -236,13 +279,15 @@ describe("AY-I06 versioned canonical definition integrity", () => {
             stdoutTruncated: false,
             stderrTruncated: false,
           },
-          observations: [{
-            criterionId: "output",
-            evidenceRef: "port1",
-            kind: "text",
-            completeness: "complete",
-            value: "café\n",
-          }],
+          observations: [
+            {
+              criterionId: "output",
+              evidenceRef: "port1",
+              kind: "text",
+              completeness: "complete",
+              value: "café\n",
+            },
+          ],
         };
       }),
     };
@@ -261,16 +306,21 @@ describe("AY-I06 versioned canonical definition integrity", () => {
   it("binds lengthy Unicode and numeric values to independent Node SHA-256 bytes", () => {
     const large = {
       ...vector,
-      criteria: [{
-        ...vector.criteria[0],
-        kind: "set_equivalence",
-        parameters: {
-          expected: { type: "literal", value: Array.from({ length: 80 }, (_, i) => "élément-" + i) },
-          itemType: "string",
-          order: "ignore",
-          duplicates: "respect",
+      criteria: [
+        {
+          ...vector.criteria[0],
+          kind: "set_equivalence",
+          parameters: {
+            expected: {
+              type: "literal",
+              value: Array.from({ length: 80 }, (_, i) => `élément-${i}`),
+            },
+            itemType: "string",
+            order: "ignore",
+            duplicates: "respect",
+          },
         },
-      }],
+      ],
     };
     const result = computeDefinitionDigest(large);
     expect(result.ok).toBe(true);
@@ -280,24 +330,27 @@ describe("AY-I06 versioned canonical definition integrity", () => {
       const p = large.criteria[0].parameters;
       const encoded = JSON.stringify({
         assessmentId: "vector",
-        criteria: [{
-          id: "output",
-          kind: "set_equivalence",
-          mode: "required",
-          parameters: {
-            duplicates: p.duplicates,
-            expected: { type: "literal", value: p.expected.value },
-            itemType: p.itemType,
-            order: p.order,
+        criteria: [
+          {
+            id: "output",
+            kind: "set_equivalence",
+            mode: "required",
+            parameters: {
+              duplicates: p.duplicates,
+              expected: { type: "literal", value: p.expected.value },
+              itemType: p.itemType,
+              order: p.order,
+            },
+            visibility: "public",
           },
-          visibility: "public",
-        }],
+        ],
         policyVersion: "policy1",
         revision: "rev1",
         schemaVersion: 1,
       });
-      const independent = "sha256:" + createHash("sha256")
-        .update("assay:definition:v1\n" + encoded).digest("hex");
+      const independent = `sha256:${createHash("sha256")
+        .update(`assay:definition:v1\n${encoded}`)
+        .digest("hex")}`;
       expect(result.value).toBe(independent);
     }
   });
