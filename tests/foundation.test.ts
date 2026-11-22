@@ -6,7 +6,14 @@ describe("Assay independent contract package", () => {
   it("exposes validated contracts and the pure deterministic evaluator", () => {
     expect(Object.keys(assay).sort()).toEqual(
       [
+        "ASSAY_DEFINITION_DIGEST_VERSION",
         "ASSAY_EVALUATOR_VERSION",
+        "collectVerifiedObservations",
+        "computeDefinitionDigest",
+        "createAssessmentDefinition",
+        "evaluateVerified",
+        "verifyAssessmentDefinition",
+        "parseAssessmentDefinitionDraft",
         "ASSAY_SCHEMA_VERSION",
         "collectObservations",
         "CONTRACT_LIMITS",
