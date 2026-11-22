@@ -26,6 +26,7 @@ assert.deepEqual(
     "parseEvaluationResult",
     "parseEvidenceBundle",
     "parseObservationPortReport",
+    "projectPublicResult",
   ].sort(),
 );
 assert.equal(entry.ASSAY_SCHEMA_VERSION, 1);
