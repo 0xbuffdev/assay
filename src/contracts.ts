@@ -167,6 +167,8 @@ export type ObservationPortKind = "text" | "number" | "set" | "execution";
 export type ObservationPortCriterion = Readonly<{
   criterionId: string;
   kind: ObservationPortKind;
+  /** Public unit metadata for numeric observations, never an expected value. */
+  unit?: string;
   assertionIds?: readonly string[];
 }>;
 
