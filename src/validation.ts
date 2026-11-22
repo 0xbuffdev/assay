@@ -609,7 +609,6 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
   });
 }
 
-
 /**
  * Parse an unsigned, authored definition without accepting an asserted digest.
  * Snapshot first: neither authoring nor verification may execute input getters.
@@ -641,7 +640,7 @@ export function parseAssessmentDefinitionDraft(
   // the fixed syntactically valid placeholder is discarded before returning.
   const checked = parseAssessmentDefinition({
     ...data,
-    revisionDigest: "sha256:" + "0".repeat(64),
+    revisionDigest: `sha256:${"0".repeat(64)}`,
   });
   if (!checked.ok) return checked;
   const value = checked.value;
