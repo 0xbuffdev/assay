@@ -146,7 +146,7 @@ describe("AY-I07 restricted technical finding projection", () => {
   it("does not reveal any restricted identifier, evidence reference, reason or aggregate verdict", () => {
     const definition = sealed([visible, restricted]);
     const full = technical(definition);
-    const hidden = structuredClone(full);
+    const hidden = { ...full, findings: [...full.findings] };
     hidden.findings[1] = {
       ...hidden.findings[1],
       evidenceRefs: ["SECRET_EVIDENCE_CANARY"],
@@ -190,7 +190,7 @@ describe("AY-I07 restricted technical finding projection", () => {
       ["error", "evaluation_error"],
       ["inconclusive", "inconclusive"],
     ] as const) {
-      const forged = structuredClone(base);
+      const forged = { ...base, findings: [...base.findings], outcome: total as EvaluationResult["outcome"] };
       forged.findings[1] = {
         ...forged.findings[1],
         outcome: hiddenOutcome,
