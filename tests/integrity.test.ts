@@ -194,7 +194,11 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     const sealed = seal(mutable);
     mutable.criteria[0].parameters.expected.value = "rewritten";
     expect(verifyAssessmentDefinition(sealed).ok).toBe(true);
-    expect(sealed.criteria[0].parameters.expected.value).toBe("café\n");
+    const criterion = sealed.criteria[0];
+    if (criterion.kind !== "exact_text" || criterion.parameters.expected.type !== "literal") {
+      throw new Error("Unexpected sealed criterion shape");
+    }
+    expect(criterion.parameters.expected.value).toBe("café\n");
   });
 
   it("rejects invalid digest before invoking an optional observation port", async () => {
