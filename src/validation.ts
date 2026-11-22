@@ -620,7 +620,7 @@ export function parseAssessmentDefinitionDraft(
   const issues = new Diagnostics();
   const data = snapshot(input, issues);
   if (data === BAD) {
-    return issues.result("invalid_definition", undefined as AssessmentDefinitionDraft);
+    return issues.result("invalid_definition", undefined as unknown as AssessmentDefinitionDraft);
   }
   if (
     !object(
@@ -631,10 +631,10 @@ export function parseAssessmentDefinitionDraft(
       issues,
     )
   ) {
-    return issues.result("invalid_definition", undefined as AssessmentDefinitionDraft);
+    return issues.result("invalid_definition", undefined as unknown as AssessmentDefinitionDraft);
   }
   if (issues.entries.length > 0) {
-    return issues.result("invalid_definition", undefined as AssessmentDefinitionDraft);
+    return issues.result("invalid_definition", undefined as unknown as AssessmentDefinitionDraft);
   }
 
   // Reuse the full definition validator, including semantic parameter checks;
