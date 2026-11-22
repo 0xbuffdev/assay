@@ -1,5 +1,5 @@
 /**
- * Assay standalone technical comparison and optional observation API (AY-I01–I03).
+ * Assay standalone evaluation, content-integrity and learner-safe projection API.
  *
  * This module does not execute code, authenticate submitted values, award grades,
  * authenticate evidence, or contact any external service.
