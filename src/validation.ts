@@ -647,6 +647,7 @@ export function parseEvidenceBundle(input: unknown): ValidationResult<EvidenceBu
             "completeness",
             "kind",
             "value",
+            "unit",
             "itemType",
             "items",
             "runRef",
