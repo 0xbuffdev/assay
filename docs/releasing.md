@@ -30,8 +30,10 @@ pnpm verify:package
 ```
 
 CI executes the pack verification as a separate final step on **the same
-checked-out commit** after the other checks, using read-only GitHub
-permissions. No workflow uses publish tokens.
+checked-out commit** on Ubuntu and Windows (Node.js 24), after the other
+checks, using read-only GitHub permissions. No workflow uses publish tokens.
+The verifier invokes npm's JavaScript CLI with the active Node executable
+instead of spawning a Windows batch shim or enabling shell interpolation.
 
 ## What the packed-consumer gate does
 
