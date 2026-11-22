@@ -9,7 +9,14 @@ const entry = await import("@0xbuff/assay");
 assert.deepEqual(
   Object.keys(entry).sort(),
   [
+    "ASSAY_DEFINITION_DIGEST_VERSION",
     "ASSAY_EVALUATOR_VERSION",
+    "collectVerifiedObservations",
+    "computeDefinitionDigest",
+    "createAssessmentDefinition",
+    "evaluateVerified",
+    "verifyAssessmentDefinition",
+    "parseAssessmentDefinitionDraft",
     "ASSAY_SCHEMA_VERSION",
     "collectObservations",
     "CONTRACT_LIMITS",
