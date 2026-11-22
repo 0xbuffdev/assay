@@ -1,0 +1,3 @@
+# Keep source and documentation line endings identical on all platforms.
+# Binary files stay binary through Git's automatic text detection.
+* text=auto eol=lf
