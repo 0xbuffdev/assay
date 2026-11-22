@@ -28,24 +28,22 @@ A successful call returns:
 **Example:**
 
 ```ts
-import {
-  createAssessmentDefinition,
-  evaluateVerified,
-  projectPublicResult,
-} from "@0xbuff/assay";
+import { createAssessmentDefinition, evaluateVerified, projectPublicResult } from "@0xbuff/assay";
 
 const drafted = createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "example",
   revision: "rev1",
   policyVersion: "policy1",
-  criteria: [{
-    id: "public-output",
-    mode: "required",
-    visibility: "public",
-    kind: "exact_text",
-    parameters: { expected: { type: "literal", value: "ok" } },
-  }],
+  criteria: [
+    {
+      id: "public-output",
+      mode: "required",
+      visibility: "public",
+      kind: "exact_text",
+      parameters: { expected: { type: "literal", value: "ok" } },
+    },
+  ],
 });
 if (!drafted.ok) throw new Error("Definition invalid");
 const definition = drafted.value;
@@ -57,13 +55,15 @@ const technical = evaluateVerified(definition, {
     revision: definition.revision,
     revisionDigest: definition.revisionDigest,
   },
-  observations: [{
-    criterionId: "public-output",
-    evidenceRef: "host-reference",
-    completeness: "complete",
-    kind: "text",
-    value: "ok",
-  }],
+  observations: [
+    {
+      criterionId: "public-output",
+      evidenceRef: "host-reference",
+      completeness: "complete",
+      kind: "text",
+      value: "ok",
+    },
+  ],
 });
 const response = projectPublicResult(definition, technical);
 // Only `response` may be considered for a learner API, after host authorization.
