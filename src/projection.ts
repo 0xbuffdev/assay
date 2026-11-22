@@ -2,7 +2,7 @@ import {
   ASSAY_SCHEMA_VERSION,
   type AssessmentDefinition,
   type CriterionFinding,
-  type EvaluationResult,
+  type PublicTechnicalOutcome,
   type FindingOutcome,
   type PublicCriterionFinding,
   type PublicProjectionResponse,
@@ -23,7 +23,7 @@ const REJECTED: PublicProjectionResponse = Object.freeze({
 function aggregate(
   definition: AssessmentDefinition,
   findings: readonly CriterionFinding[],
-): EvaluationResult["outcome"] {
+): Exclude<PublicTechnicalOutcome, "withheld"> {
   const required: FindingOutcome[] = [];
   for (const [index, criterion] of definition.criteria.entries()) {
     if (criterion.mode === "required") required.push(findings[index].outcome);
