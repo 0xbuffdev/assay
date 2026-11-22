@@ -52,13 +52,15 @@ const definition = {
   revision: "rev1",
   revisionDigest: `sha256:${"a".repeat(64)}`,
   policyVersion: "policy1",
-  criteria: [{
-    id: "stdout",
-    kind: "exact_text",
-    mode: "required",
-    visibility: "public",
-    parameters: { expected: { type: "literal", value: "ok" } },
-  }],
+  criteria: [
+    {
+      id: "stdout",
+      kind: "exact_text",
+      mode: "required",
+      visibility: "public",
+      parameters: { expected: { type: "literal", value: "ok" } },
+    },
+  ],
 };
 
 const startingEvidence = {
@@ -88,13 +90,15 @@ const mockPort = {
         stdoutTruncated: false,
         stderrTruncated: false,
       },
-      observations: [{
-        criterionId: "stdout",
-        evidenceRef: "stdout1",
-        kind: "text",
-        completeness: "complete",
-        value: "ok",
-      }],
+      observations: [
+        {
+          criterionId: "stdout",
+          evidenceRef: "stdout1",
+          kind: "text",
+          completeness: "complete",
+          value: "ok",
+        },
+      ],
     };
   },
 };
@@ -182,7 +186,7 @@ implies official assessment credit.
   environment accessible to untrusted programs and outside prompts/logging.
 - **No magic trust flags.** `trusted: true`, `isVerified`, arbitrary scores
   and fake pass statuses are not contract fields. They are rejected, not
-  interpreted. Adapter names, run IDs and digests are provenance *claims*.
+  interpreted. Adapter names, run IDs and digests are provenance _claims_.
 - **No unsafe result rendering.** Captured text is ordinary data. The
   library never interpolates it into HTML or a rendered diagnostic.
   Consumers must escape or safely render untrusted strings themselves.
