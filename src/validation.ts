@@ -72,6 +72,15 @@ const DIAGNOSTIC_PATH_FIELDS = new Set([
   "version",
   "findings",
   "warnings",
+  "provenance",
+  "adapterId",
+  "adapterVersion",
+  "toolchainId",
+  "toolchainVersion",
+  "capturedStdoutBytes",
+  "capturedStderrBytes",
+  "stdoutTruncated",
+  "stderrTruncated",
 ]);
 
 class Diagnostics {
