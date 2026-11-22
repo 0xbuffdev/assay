@@ -110,12 +110,12 @@ void verifyCollection;
 // Compile-time regression checks: these must stay rejected by the public API.
 // @ts-expect-error unsupported comparator kind is not part of the tagged union
 const unsupported: Criterion = { id: "x", mode: "required", visibility: "public", kind: "magic", parameters: {} };
-// @ts-expect-error wrong observation kind/value pairing
 const malformedObservation: EvidenceBundle["observations"][number] = {
   criterionId: "x",
   evidenceRef: "y",
   completeness: "complete",
   kind: "number",
+  // @ts-expect-error numeric observation must reject string payloads
   value: "not-a-number",
 };
 // @ts-expect-error host callbacks must return a Promise, not immediate unverified facts
