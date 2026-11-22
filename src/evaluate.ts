@@ -134,8 +134,9 @@ function compare(criterion: Criterion, observation: Observation): Comparison {
     case "observed_execution": {
       if (observation.kind !== "execution") return finding("error", "COMPARATOR_ERROR");
       // The observation records assertion states, not their authenticity.
-      // Until AY-I03 establishes an injected verified port, even all
-      // "confirmed" assertions are insufficient for a technical pass.
+      // AY-I03 can collect facts from an injected port, but a port report
+      // is still a provenance claim, not independently authenticated proof.
+      // Even all "confirmed" assertions cannot grant a technical pass.
       const incomplete = criterion.parameters.assertions.some(
         ({ id }) =>
           !observation.assertions.some(
