@@ -125,9 +125,14 @@ const privateSealed = assay.createAssessmentDefinition({
   ...unsigned,
   criteria: [
     ...unsigned.criteria,
-    required("PRIVATE_CRITERION_CANARY", "exact_text", {
-      expected: { type: "reference", referenceId: "PRIVATE_REFERENCE_CANARY" },
-    }, "restricted"),
+    required(
+      "PRIVATE_CRITERION_CANARY",
+      "exact_text",
+      {
+        expected: { type: "reference", referenceId: "PRIVATE_REFERENCE_CANARY" },
+      },
+      "restricted",
+    ),
   ],
 });
 assert.equal(privateSealed.ok, true);
@@ -151,13 +156,16 @@ assert.deepEqual(privateProjection, {
 });
 assert.equal(JSON.stringify(privateProjection).includes("PRIVATE_"), false);
 assert.deepEqual(
-  assay.projectPublicResult({
-    ...privateSealed.value,
-    criteria: privateSealed.value.criteria.map((c) => ({
-      ...c,
-      visibility: "public",
-    })),
-  }, privateTechnical),
+  assay.projectPublicResult(
+    {
+      ...privateSealed.value,
+      criteria: privateSealed.value.criteria.map((c) => ({
+        ...c,
+        visibility: "public",
+      })),
+    },
+    privateTechnical,
+  ),
   { ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" },
 );
 assert.deepEqual(
