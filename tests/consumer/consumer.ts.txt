@@ -1,0 +1,128 @@
+/**
+ * Compiled only in a fresh temporary consumer. It must resolve all imports
+ * from the installed tarball, never from Assay's repository or source tree.
+ */
+import {
+  ASSAY_SCHEMA_VERSION,
+  collectObservations,
+  evaluate,
+  type AssessmentDefinition,
+  type Criterion,
+  type EvidenceBundle,
+  type EvaluationResponse,
+  type ObservationPort,
+  type ObservationPortRequest,
+  type ValidationResult,
+} from "@0xbuff/assay";
+
+const digest = "sha256:" + "a".repeat(64);
+
+const definition: AssessmentDefinition = {
+  schemaVersion: ASSAY_SCHEMA_VERSION,
+  assessmentId: "typed-consumer",
+  revision: "rev1",
+  revisionDigest: digest,
+  policyVersion: "policy1",
+  criteria: [
+    {
+      id: "output",
+      mode: "required",
+      visibility: "public",
+      kind: "exact_text",
+      parameters: { expected: { type: "literal", value: "ok" } },
+    },
+  ],
+};
+
+const evidence: EvidenceBundle = {
+  schemaVersion: ASSAY_SCHEMA_VERSION,
+  definition: {
+    assessmentId: definition.assessmentId,
+    revision: definition.revision,
+    revisionDigest: definition.revisionDigest,
+  },
+  observations: [
+    {
+      criterionId: "output",
+      evidenceRef: "output-1",
+      completeness: "complete",
+      kind: "text",
+      value: "ok",
+    },
+  ],
+};
+
+const result: EvaluationResponse = evaluate(definition, evidence);
+if ("diagnostics" in result) {
+  const path: string | undefined = result.diagnostics[0]?.path;
+  void path;
+} else {
+  const verdict: "pass" | "fail" | "inconclusive" | "evaluation_error" |
+    "invalid_definition" | "invalid_evidence" = result.outcome;
+  const reason: string | undefined = result.findings[0]?.reasonCode;
+  void verdict;
+  void reason;
+}
+
+const port: ObservationPort = {
+  async observe(request: ObservationPortRequest): Promise<unknown> {
+    const ids: readonly string[] = request.criteria.map((criterion) => criterion.criterionId);
+    const max: number = request.limits.maxCapturedBytes;
+    void ids;
+    void max;
+    return {
+      schemaVersion: ASSAY_SCHEMA_VERSION,
+      definition: request.definition,
+      observations: [],
+      provenance: {
+        adapterId: "fixture",
+        adapterVersion: "v1",
+        runRef: "run1",
+        toolchainId: "none",
+        toolchainVersion: "v1",
+        capturedStdoutBytes: 0,
+        capturedStderrBytes: 0,
+        stdoutTruncated: false,
+        stderrTruncated: false,
+      },
+    };
+  },
+};
+
+async function verifyCollection(): Promise<void> {
+  const collected = await collectObservations(definition, evidence, port);
+  if (collected.ok) {
+    const claims: string | undefined = collected.receipt?.provenance.adapterId;
+    void claims;
+  } else if (collected.outcome === "evaluation_error") {
+    const reason: "OBSERVATION_PORT_ERROR" = collected.reasonCode;
+    void reason;
+  } else {
+    const details: readonly { readonly path: string }[] = collected.diagnostics;
+    void details;
+  }
+}
+
+const permitted: Criterion = definition.criteria[0];
+void permitted;
+void verifyCollection;
+
+// Compile-time regression checks: these must stay rejected by the public API.
+// @ts-expect-error unsupported comparator kind is not part of the tagged union
+const unsupported: Criterion = { id: "x", mode: "required", visibility: "public", kind: "magic", parameters: {} };
+// @ts-expect-error wrong observation kind/value pairing
+const malformedObservation: EvidenceBundle["observations"][number] = {
+  criterionId: "x",
+  evidenceRef: "y",
+  completeness: "complete",
+  kind: "number",
+  value: "not-a-number",
+};
+// @ts-expect-error host callbacks must return a Promise, not immediate unverified facts
+const nonAsyncPort: ObservationPort = { observe: () => ({}) };
+void unsupported;
+void malformedObservation;
+void nonAsyncPort;
+
+const validated: ValidationResult<AssessmentDefinition> | null = null;
+void validated;
