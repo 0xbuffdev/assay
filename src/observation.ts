@@ -98,6 +98,10 @@ export async function collectObservations(
     const requested: ObservationPortCriterion = Object.freeze({
       criterionId: criterion.id,
       kind,
+      ...(criterion.kind === "number_with_tolerance" &&
+      criterion.parameters.unit !== undefined
+        ? { unit: criterion.parameters.unit }
+        : {}),
       ...(criterion.kind === "observed_execution"
         ? { assertionIds: Object.freeze(criterion.parameters.assertions.map((a) => a.id)) }
         : {}),
