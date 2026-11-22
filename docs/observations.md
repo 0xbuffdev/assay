@@ -1,0 +1,204 @@
+# Optional observation ports and provenance (AY-I03)
+
+Assay can evaluate caller-supplied local evidence without a runner. **An
+execution provider is optional**. AY-I03 adds `collectObservations` for hosts
+that choose to inject their own observation port, plus
+`parseObservationPortReport` for closed validation of the returned facts.
+
+The port does **not** authenticate a runner, safely sandbox untrusted code,
+resolve restricted references, sign results, grant credit, or become an
+external service dependency. A caller-supplied adapter ID, run reference or
+claimed successful assertion cannot establish trust. Applications with
+formal grading requirements **must independently authenticate** the
+definition publisher, artifact, provider execution, review authority and
+result provenance behind an appropriate privilege boundary.
+
+## Collection pipeline
+
+```text
+Caller-authorized definition + existing typed evidence
+      |
+      +-- Validate definition, evidence and lineage
+      |
+      +-- Select only missing PUBLIC objective/execution criteria
+      |   (no expected value or reference ID; no restricted criteria)
+      |
+      +-- No candidates? Return validated evidence; port not called
+      |
+      +-- Invoke host-injected port with a frozen bounded request
+      |
+      +-- Validate untrusted response (closed schema + provenance)
+      |
+      +-- Check definition/artifact/run references and allowed criteria
+      |
+      +-- Downgrade captured observations to truncated if output is cut
+      |
+      +-- Validate combined evidence and return a claimed provenance receipt
+      |
+      +-- Consumer may call pure evaluate(definition, evidence)
+```
+
+The engine never executes a program itself. It does not compile or run
+source code, invoke a command or call a network endpoint.
+
+## Using a mock port
+
+```ts
+import { collectObservations, evaluate } from "@0xbuff/assay";
+
+const definition = {
+  schemaVersion: 1,
+  assessmentId: "public-demo",
+  revision: "rev1",
+  revisionDigest: `sha256:${"a".repeat(64)}`,
+  policyVersion: "policy1",
+  criteria: [
+    {
+      id: "stdout",
+      kind: "exact_text",
+      mode: "required",
+      visibility: "public",
+      parameters: { expected: { type: "literal", value: "ok" } },
+    },
+  ],
+};
+
+const startingEvidence = {
+  schemaVersion: 1,
+  definition: {
+    assessmentId: definition.assessmentId,
+    revision: definition.revision,
+    revisionDigest: definition.revisionDigest,
+  },
+  observations: [],
+};
+
+const mockPort = {
+  async observe(request) {
+    // request lists only public IDs, expected fact kinds and resource limits.
+    return {
+      schemaVersion: 1,
+      definition: request.definition,
+      provenance: {
+        adapterId: "fixture",
+        adapterVersion: "v1",
+        runRef: "local-run",
+        toolchainId: "node",
+        toolchainVersion: "v24",
+        capturedStdoutBytes: 2,
+        capturedStderrBytes: 0,
+        stdoutTruncated: false,
+        stderrTruncated: false,
+      },
+      observations: [
+        {
+          criterionId: "stdout",
+          evidenceRef: "stdout1",
+          kind: "text",
+          completeness: "complete",
+          value: "ok",
+        },
+      ],
+    };
+  },
+};
+
+const collected = await collectObservations(definition, startingEvidence, mockPort);
+
+if (collected.ok) {
+  const result = evaluate(definition, collected.evidence);
+  // result.outcome === "pass" for a LOCAL caller-authorized literal rubric.
+  // This is not authenticated execution, academic credit or a credential.
+  // collected.receipt records claimed run/adapter/toolchain facts only.
+}
+```
+
+No actual executor is installed or published. The mock is deliberately
+ungraded. The example digest is syntactically valid but is not a signature,
+a verified artifact hash or proof of publisher identity.
+
+## Contracts and limits
+
+`ObservationPort.observe(request: ObservationPortRequest): Promise<unknown>`
+is supplied **only** by the host. Its request is immutable and includes:
+
+- `schemaVersion: 1`, `definition` ID/revision/digest, optional caller
+  `artifactDigest`, and `limits.maxCapturedBytes: 65536`.
+- A list of **missing public** criterion IDs and expected observation kinds
+  (`text`, `number`, `set`, or `execution`). Public execution criteria
+  may include **assertion IDs** but never private assertion reference IDs.
+- No expected literals, reference outputs, hidden criteria, secret test
+  sources, script bodies, command strings, accounts, credentials, or
+  runner-specific configuration.
+
+The port's response must be a closed, versioned
+`ObservationPortReport` with the same definition reference, optional
+artifact digest, typed observations and bounded `provenance`. The provenance
+records `adapterId`, `adapterVersion`, `runRef`, `toolchainId`,
+`toolchainVersion`, `capturedStdoutBytes`, `capturedStderrBytes`,
+`stdoutTruncated` and `stderrTruncated`. The captured byte counts must
+be safe nonnegative integers whose **combined total does not exceed
+65,536**; truncation flags are required booleans. The data format does
+not encode or validate output-origin authenticity.
+
+`parseObservationPortReport` uses the same bounded object snapshot as the
+existing evidence validator. Unknown fields, symbols, custom prototypes,
+functions, getter properties, cycles, duplicate observation IDs, bad
+numerical counts, unbounded data or `trusted`/grade flags are rejected.
+The collector also rejects unknown or restricted criterion IDs, wrong
+observation kinds, duplicate existing evidence refs, wrong execution run
+references, unlisted assertions, mismatched definition lineage, or
+conflicting artifact digests.
+
+If either output truncation flag is true, all returned observations are
+marked `completeness: "truncated"` before evaluation. An incomplete stdout
+capture cannot satisfy an exact-text required criterion. An empty report
+is legal but cannot satisfy missing required evidence.
+
+## Results and failure handling
+
+`collectObservations` resolves to a discriminated
+`ObservationCollectionResult`:
+
+- `{ ok: true, evidence, receipt }`: validated, frozen combined evidence
+  and an immutable **claimed** run receipt. `receipt: null` means there
+  were no public eligible missing criteria, so no port call occurred.
+- `{ ok: false, outcome: "invalid_definition" | "invalid_evidence",
+  diagnostics }`: invalid caller input, port response or inconsistent
+  observation. Codes and safe schema paths contain no raw values.
+- `{ ok: false, outcome: "evaluation_error", reasonCode:
+  "OBSERVATION_PORT_ERROR" }`: provider threw or failed. No exception
+  message, stack, stdout/stderr text or private reference is returned.
+
+The receipt is **not** embedded into the pure `EvaluationResult` as a trust
+marker. `evaluate` continues to return `EXECUTION_UNVERIFIED` for
+self-reported execution assertion states, even if the report came through
+an injected port. Hosts can separately verify run provenance and manage
+formal decisions. An objective `exact_text` criterion may still produce
+a **technical** pass on complete values from a mock or provider; this never
+implies official assessment credit.
+
+## Threat boundaries
+
+- **No protected inputs to ports.** Restricted criteria are not requested.
+  Expected literals and reference IDs are not included in the request,
+  even for public criteria. Hidden test source must remain outside an
+  environment accessible to untrusted programs and outside prompts/logging.
+- **No magic trust flags.** `trusted: true`, `isVerified`, arbitrary scores
+  and fake pass statuses are not contract fields. They are rejected, not
+  interpreted. Adapter names, run IDs and digests are provenance _claims_.
+- **No unsafe result rendering.** Captured text is ordinary data. The
+  library never interpolates it into HTML or a rendered diagnostic.
+  Consumers must escape or safely render untrusted strings themselves.
+- **No implicit provider use.** The package imports no runner, LLM or
+  private application. A host chooses whether to call the async collector.
+  The pure `evaluate` API remains synchronous and independent.
+- **No release or formal credit authorization.** AY-I04 handles packed
+  external consumer and security acceptance. A local mock cannot prove
+  host isolation, executor controls, real artifact provenance or academic
+  admission.
+
+These limits are tested with simulated runner reports, missing references,
+truncated streams, forged markers, wrong revision/digest, malicious HTML
+text, and provider failures. Tests intentionally contain **no real hidden
+test sources, secrets or learner data**.

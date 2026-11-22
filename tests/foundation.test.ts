@@ -8,12 +8,14 @@ describe("Assay independent contract package", () => {
       [
         "ASSAY_EVALUATOR_VERSION",
         "ASSAY_SCHEMA_VERSION",
+        "collectObservations",
         "CONTRACT_LIMITS",
         "evaluate",
         "inspectEvidenceCoverage",
         "parseAssessmentDefinition",
         "parseEvaluationResult",
         "parseEvidenceBundle",
+        "parseObservationPortReport",
       ].sort(),
     );
     expect(assay.evaluate).toBeTypeOf("function");
@@ -24,5 +26,7 @@ describe("Assay independent contract package", () => {
     expect(entry.parseAssessmentDefinition).toBeTypeOf("function");
     expect(entry.parseEvidenceBundle).toBeTypeOf("function");
     expect(entry.evaluate).toBeTypeOf("function");
+    expect(entry.collectObservations).toBeTypeOf("function");
+    expect(entry.parseObservationPortReport).toBeTypeOf("function");
   });
 });

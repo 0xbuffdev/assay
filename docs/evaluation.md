@@ -75,14 +75,14 @@ bound).
 
 ## Comparison semantics
 
-| Criterion               | Exact behavior                                                                                                                                                                      |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `exact_text`            | JavaScript UTF-16 code-unit equality (`===`); no hidden whitespace, case, line-ending or Unicode transformation                                                                     |
-| `normalized_text`       | Applies only explicitly declared transformations, in the fixed order below, to both actual and expected values                                                                      |
-| `number_with_tolerance` | Absolute difference <= `max(absoluteTolerance, relativeTolerance * abs(expected))`, inclusive; no coercion                                                                          |
-| `set_equivalence`       | Scalar equality within a declared string/number/boolean type, with authored order and duplicate policies                                                                            |
-| `observed_execution`    | Always inconclusive until an independently justified, verified observation port is designed; even `confirmed` assertions supplied by a caller are **not** authenticated correctness |
-| `manual_evidence`       | Always inconclusive pending authorized review; presence of a document is never correctness                                                                                          |
+| Criterion               | Exact behavior                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `exact_text`            | JavaScript UTF-16 code-unit equality (`===`); no hidden whitespace, case, line-ending or Unicode transformation                      |
+| `normalized_text`       | Applies only explicitly declared transformations, in the fixed order below, to both actual and expected values                       |
+| `number_with_tolerance` | Absolute difference <= `max(absoluteTolerance, relativeTolerance * abs(expected))`, inclusive; no coercion                           |
+| `set_equivalence`       | Scalar equality within a declared string/number/boolean type, with authored order and duplicate policies                             |
+| `observed_execution`    | Always inconclusive even if the AY-I03 optional observation port reports `confirmed`; the port does **not** authenticate correctness |
+| `manual_evidence`       | Always inconclusive pending authorized review; presence of a document is never correctness                                           |
 
 **Normalized text transformation order:**
 
@@ -148,9 +148,10 @@ not copied into returned results. Execution assertion states are
 **observations only**; `confirmed` is not proof of a trusted sandbox.
 `manual_evidence` remains `REVIEW_REQUIRED` or `ARTIFACT_MISSING`.
 
-Resolving restricted references, proving execution origin and recording
-authorized review decisions belong to AY-I03 or host-owned security
-boundaries, not to this deterministic comparator milestone.
+AY-I03 adds an [optional port for bounded typed observation collection](observations.md)
+and claimed run/adapter provenance. Resolving restricted references, proving
+execution origin and recording authorized review decisions still require an
+independent host-owned security boundary, not the comparator or the port.
 
 ## Verification
 

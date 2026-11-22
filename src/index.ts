@@ -1,5 +1,5 @@
 /**
- * Assay standalone deterministic technical comparison API (AY-I01–I02).
+ * Assay standalone technical comparison and optional observation API (AY-I01–I03).
  *
  * This module does not execute code, authenticate submitted values, award grades,
  * authenticate evidence, or contact any external service.
@@ -23,6 +23,14 @@ export type {
   FindingOutcome,
   Observation,
   ObservationBase,
+  ObservationCollectionResult,
+  ObservationPort,
+  ObservationPortCriterion,
+  ObservationPortKind,
+  ObservationPortProvenance,
+  ObservationPortReceipt,
+  ObservationPortReport,
+  ObservationPortRequest,
   ReferenceVisibility,
   SetItemType,
   SetScalar,
@@ -37,9 +45,11 @@ export {
   CONTRACT_LIMITS,
 } from "./contracts";
 export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluate";
+export { collectObservations } from "./observation";
 export {
   inspectEvidenceCoverage,
   parseAssessmentDefinition,
   parseEvaluationResult,
   parseEvidenceBundle,
+  parseObservationPortReport,
 } from "./validation";

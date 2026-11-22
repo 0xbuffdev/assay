@@ -77,8 +77,9 @@ remains unreleased; the import shown represents the future package entry.
   private literal expected answers.
 
 These are **validated shapes** consumed by the AY-I02
-[deterministic comparator](evaluation.md). Optional trusted execution and
-restricted result handling remain AY-I03 work.
+[deterministic comparator](evaluation.md). AY-I03 additionally provides the [optional observation port](observations.md)
+with bounded claimed provenance and protected-reference redaction. Verified
+execution trust and protected answer resolution remain host responsibilities.
 
 ## Evidence rules
 
