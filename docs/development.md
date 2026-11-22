@@ -23,6 +23,7 @@ pnpm lint
 pnpm test
 pnpm build
 pnpm verify:package
+# See docs/integrity.md for authored definition digest vectors and guarded APIs
 ```
 
 To apply formatting run `pnpm format`. `pnpm check` runs all foundation, type, style, test and build checks. CI executes equivalent read-only checks; no workflow publishes a package.
