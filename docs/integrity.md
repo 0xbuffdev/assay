@@ -11,7 +11,7 @@ Assay has two explicit trust boundaries:
 
 Author an **unsigned draft** (all fields except revisionDigest). Then call:
 
-~~~ts
+```ts
 import {
   createAssessmentDefinition,
   verifyAssessmentDefinition,
@@ -60,7 +60,7 @@ const evidence = {
 };
 const outcome = evaluateVerified(definition, evidence);
 // outcome is a technical result, NOT a formal grade
-~~~
+```
 
 Use collectVerifiedObservations to guard optional injected provider requests before any provider invocation. It verifies definition content before calling collectObservations and does **not** verify the adapter's run or publisher.
 
@@ -85,7 +85,7 @@ Version constant: ASSAY_DEFINITION_DIGEST_VERSION = "v1".
 
 Unsigned draft:
 
-~~~json
+```json
 {
   "schemaVersion": 1,
   "assessmentId": "vector",
@@ -103,19 +103,33 @@ Unsigned draft:
     }
   ]
 }
-~~~
+```
 
 Canonical JSON (single line; the newline in the value is escaped):
 
-~~~json
-{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":1}
-~~~
+```json
+{
+  "assessmentId": "vector",
+  "criteria": [
+    {
+      "id": "output",
+      "kind": "exact_text",
+      "mode": "required",
+      "parameters": { "expected": { "type": "literal", "value": "café\n" } },
+      "visibility": "public"
+    }
+  ],
+  "policyVersion": "policy1",
+  "revision": "rev1",
+  "schemaVersion": 1
+}
+```
 
 SHA-256 over UTF-8 bytes of the domain separator plus canonical JSON:
 
-~~~text
+```text
 sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b
-~~~
+```
 
 This vector is independently verified against the Node crypto implementation in tests. Any future change to hashing, canonicalization or included authored fields requires a separately reviewed **new digest profile version** and new golden vectors; never silently reinterpret a v1 digest.
 
