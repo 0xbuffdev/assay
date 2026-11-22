@@ -14,20 +14,20 @@ replace a publisher-ownership and legal-rights review.
 
 With Node.js 24+ and pinned pnpm 11.2.2:
 
-~~~sh
+```sh
 corepack enable
 pnpm install --frozen-lockfile
 pnpm check
-~~~
+```
 
 The full command verifies repository invariants, TypeScript, Biome, Vitest,
 tsdown ESM/type declarations and the actual packed package. To run the
 distribution-only gate after building:
 
-~~~sh
+```sh
 pnpm build
 pnpm verify:package
-~~~
+```
 
 CI executes the pack verification as a separate final step on **the same
 checked-out commit** after the other checks, using read-only GitHub
@@ -80,16 +80,16 @@ The canonical [Assay specification acceptance cases](https://github.com/0xbuffde
 are covered as public-library behavior, not as proof of formal academic
 admission or genuine external runner isolation.
 
-| Cases | Test evidence | Scope |
-| --- | --- | --- |
-| AY-01, AY-19 | Offline packed consumer, ESM, TS | Independent public package |
-| AY-02, AY-03, AY-09, AY-14 | Unit and consumer tests | Empty, absent and truncated requirements cannot silently pass |
-| AY-04–AY-07 | Comparators and external consumer | Deterministic text, numeric tolerance and set policies |
-| AY-08, AY-10–AY-12 | Comparator and adversarial fixtures | Required/advisory precedence, comparator errors, manual review |
-| AY-13, AY-15, AY-21 | Security and consumer fixtures | Forged trust, hidden references and malicious text |
-| AY-16, AY-17 | Replay and version fixtures | Stable results and distinct revision lineage |
-| AY-18, AY-20 | Optional port and consumer fixtures | Technical evidence is not authenticated academic credit |
-| AY-22 | Contract and negative fixtures | Unknown kinds and corrupt evidence are typed errors |
+| Cases                      | Test evidence                       | Scope                                                          |
+| -------------------------- | ----------------------------------- | -------------------------------------------------------------- |
+| AY-01, AY-19               | Offline packed consumer, ESM, TS    | Independent public package                                     |
+| AY-02, AY-03, AY-09, AY-14 | Unit and consumer tests             | Empty, absent and truncated requirements cannot silently pass  |
+| AY-04–AY-07                | Comparators and external consumer   | Deterministic text, numeric tolerance and set policies         |
+| AY-08, AY-10–AY-12         | Comparator and adversarial fixtures | Required/advisory precedence, comparator errors, manual review |
+| AY-13, AY-15, AY-21        | Security and consumer fixtures      | Forged trust, hidden references and malicious text             |
+| AY-16, AY-17               | Replay and version fixtures         | Stable results and distinct revision lineage                   |
+| AY-18, AY-20               | Optional port and consumer fixtures | Technical evidence is not authenticated academic credit        |
+| AY-22                      | Contract and negative fixtures      | Unknown kinds and corrupt evidence are typed errors            |
 
 The **host-owned** verification aspects of AY-12, AY-13, AY-15, AY-18
 and AY-20 are **not proven** by the package tests. Formal assessment
