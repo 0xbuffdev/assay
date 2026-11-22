@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  type AssessmentDefinition,
   collectObservations,
+  type EvidenceBundle,
   evaluate,
   inspectEvidenceCoverage,
-  parseEvidenceBundle,
-  type AssessmentDefinition,
-  type EvidenceBundle,
   type ObservationPort,
+  parseEvidenceBundle,
 } from "../src/index";
 
 const revisionDigest = `sha256:${"a".repeat(64)}`;
@@ -98,14 +98,16 @@ describe("AY-I05 numeric evidence unit integrity", () => {
       const invalidDefinition = evaluate(
         {
           ...definition(),
-          criteria: [{
-            ...definition().criteria[0],
-            parameters: {
-              expected: { type: "literal", value: 2 },
-              tolerance: { absolute: 0, relative: 0 },
-              unit,
+          criteria: [
+            {
+              ...definition().criteria[0],
+              parameters: {
+                expected: { type: "literal", value: 2 },
+                tolerance: { absolute: 0, relative: 0 },
+                unit,
+              },
             },
-          }],
+          ],
         },
         evidence(),
       );
