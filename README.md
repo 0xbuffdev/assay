@@ -13,6 +13,7 @@ Assay **does not** execute untrusted programs, verify learner identity, award ac
 - Strictly validate versioned definitions, bounded evidence and comparison policy.
 - Compare exact/normalized text, numbers with explicit tolerance and unit agreement, and sets under declared semantics.
 - Create versioned, content-bound definitions and verify SHA-256 content identity before protected/strict evaluation (`createAssessmentDefinition`, `evaluateVerified`); hashes are not publisher signatures.
+- Produce a narrowly scoped learner-safe projection with `projectPublicResult`; restricted findings and aggregates are withheld, while host authorization stays mandatory.
 - Distinguish `pass`, `fail`, `inconclusive`, `invalid_definition`, `invalid_evidence` and `evaluation_error`.
 - Keep required criteria separate from advisory findings. Empty requirements, missing references and provider errors never silently pass.
 - Return reproducible, versioned findings rather than a host-controlled grade.
