@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   ASSAY_DEFINITION_DIGEST_VERSION,
+  ASSAY_SCHEMA_VERSION,
   collectVerifiedObservations,
   computeDefinitionDigest,
   createAssessmentDefinition,
@@ -68,6 +69,40 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     expect(Object.isFrozen(definition.criteria)).toBe(true);
   });
 
+  it("replays a persisted schema-1 v1 definition without guessing its digest profile", () => {
+    expect(ASSAY_SCHEMA_VERSION).toBe(1);
+    expect(ASSAY_DEFINITION_DIGEST_VERSION).toBe("v1");
+    // This independent stored payload has an immutable, known v1 digest.
+    // Its escaping and property order do not depend on the authoring helper.
+    const stored = String.raw`{
+  "schemaVersion": 1,
+  "assessmentId": "vector",
+  "revision": "rev1",
+  "revisionDigest": "sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b",
+  "policyVersion": "policy1",
+  "criteria": [{
+    "id": "output",
+    "mode": "required",
+    "visibility": "public",
+    "kind": "exact_text",
+    "parameters": { "expected": { "type": "literal", "value": "café\n" } }
+  }]
+}`;
+    const persisted = JSON.parse(stored) as unknown;
+    const verified = verifyAssessmentDefinition(persisted);
+    expect(verified.ok).toBe(true);
+    if (!verified.ok) return;
+    expect(verified.value.revisionDigest).toBe(expected);
+    expect(evaluateVerified(verified.value, observed(expected)).outcome).toBe("pass");
+
+    // Even a valid v1 digest must not be checked as if schema 2 used v1.
+    // Future profile updates require a schema bump, not reinterpretation.
+    expect(verifyAssessmentDefinition({ ...verified.value, schemaVersion: 2 })).toEqual({
+      ok: false,
+      domain: "invalid_definition",
+      diagnostics: [{ path: "$.schemaVersion", code: "UNSUPPORTED_VERSION" }],
+    });
+  });
   it("canonicalizes object property insertion order but respects authored array order", () => {
     const shuffled = {
       criteria: [
