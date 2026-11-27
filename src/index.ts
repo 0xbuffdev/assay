@@ -51,7 +51,6 @@ export type {
   ValidationResult,
 } from "./contracts/validation";
 export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluation/evaluate";
-export { evaluateVerified } from "./evaluation/verified";
 export {
   ASSAY_DEFINITION_DIGEST_VERSION,
   computeDefinitionDigest,
@@ -59,7 +58,6 @@ export {
   verifyAssessmentDefinition,
 } from "./integrity/definition";
 export { collectObservations } from "./observation/collect";
-export { collectVerifiedObservations } from "./observation/verified";
 export { projectPublicResult } from "./projection/public";
 export { inspectEvidenceCoverage } from "./validation/coverage";
 export { parseAssessmentDefinition, parseAssessmentDefinitionDraft } from "./validation/definition";

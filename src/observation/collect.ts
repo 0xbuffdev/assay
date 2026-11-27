@@ -10,8 +10,8 @@ import type {
   ObservationPortRequest,
 } from "../contracts/observation";
 import type { DiagnosticCode } from "../contracts/validation";
+import { verifyAssessmentDefinition } from "../integrity/definition";
 import { inspectEvidenceCoverage } from "../validation/coverage";
-import { parseAssessmentDefinition } from "../validation/definition";
 import { parseEvidenceBundle } from "../validation/evidence";
 import { parseObservationPortReport } from "../validation/observation";
 
@@ -62,6 +62,7 @@ function sameDefinition(
  * resolution, or trust-verification authority. Caller-supplied adapter metadata
  * and run IDs are claims; they must be attested by the host before formal use.
  *
+ * Definition integrity is checked before inspecting evidence or invoking the port.
  * Only missing PUBLIC objective/execution criterion IDs are sent to the port.
  * No expected literal/reference value, hidden assertion reference, source
  * snippet or restricted criterion is sent. The port cannot overwrite existing
@@ -72,7 +73,7 @@ export async function collectObservations(
   evidenceInput: unknown,
   port: ObservationPort,
 ): Promise<ObservationCollectionResult> {
-  const checkedDefinition = parseAssessmentDefinition(definitionInput);
+  const checkedDefinition = verifyAssessmentDefinition(definitionInput);
   if (!checkedDefinition.ok) return error("invalid_definition", checkedDefinition.diagnostics);
 
   const checkedEvidence = parseEvidenceBundle(evidenceInput);

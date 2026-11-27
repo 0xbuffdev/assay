@@ -5,7 +5,7 @@ import {
   createAssessmentDefinition,
   type EvaluationResult,
   type EvidenceBundle,
-  evaluateVerified,
+  evaluate,
   projectPublicResult,
 } from "../src/index";
 
@@ -60,7 +60,7 @@ function evidence(definition: AssessmentDefinition, output = "ok"): EvidenceBund
 }
 
 function technical(definition: AssessmentDefinition, output = "ok"): EvaluationResult {
-  const result = evaluateVerified(definition, evidence(definition, output));
+  const result = evaluate(definition, evidence(definition, output));
   if (!("findings" in result)) throw new Error("Expected full technical result");
   return result;
 }
@@ -100,7 +100,7 @@ describe("AY-I07 restricted technical finding projection", () => {
   it("supports inconclusive and evaluation_error without disclosing diagnostics", () => {
     const definition = sealed([visible]);
     const noEvidence = { ...evidence(definition), observations: [] };
-    const pending = evaluateVerified(definition, noEvidence);
+    const pending = evaluate(definition, noEvidence);
     expect(projectPublicResult(definition, pending)).toMatchObject({
       ok: true,
       value: {
@@ -132,7 +132,7 @@ describe("AY-I07 restricted technical finding projection", () => {
         },
       ],
     };
-    const error = evaluateVerified(numerics, measured);
+    const error = evaluate(numerics, measured);
     expect(projectPublicResult(numerics, error)).toMatchObject({
       ok: true,
       value: {
