@@ -14,7 +14,7 @@ predicates, AI service, code runner or institutional grade writer.
 The accepted [versioned data contracts](contracts.md) are validated on every
 call. The definition content digest is recomputed before any evidence inspection
 or comparison; mismatch returns `invalid_definition`. The evaluator also
-verifies the schema-3 evidence digest, origin scope and definition lineage
+verifies the schema-4 evidence digest, origin scope and definition lineage
 before comparison; invalid evidence is never a learner mismatch. Neither a valid content
 digest nor an evidence reference
 authenticates a publisher, runner or learner; consumers that issue formal
@@ -26,7 +26,7 @@ credit must enforce those requirements independently.
 import { createAssessmentDefinition, createEvidenceBundle, evaluate } from "@0xbuff/assay";
 
 const created = createAssessmentDefinition({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "example",
   revision: "rev1",
   policyVersion: "composed-required-v1",
@@ -47,7 +47,7 @@ const created = createAssessmentDefinition({
 if (!created.ok) throw new Error("Invalid authored definition");
 const definition = created.value;
 const prepared = createEvidenceBundle(definition, {
-  schemaVersion: 3,
+  schemaVersion: 4,
   observations: [
     {
       criterionId: "stdout",
@@ -73,12 +73,12 @@ approved release.
 ## Return values
 
 For valid definitions and evidence, `evaluate` returns an immutable,
-schema-3 `EvaluationResult`: `outcome`, definition lineage, evidenceDigest,
+schema-4 `EvaluationResult`: `outcome`, definition lineage, evidenceDigest,
 optional artifactDigest, policy version,
 one finding per criterion in authored order, evaluator version, and bounded,
 value-free warnings. Findings use `pass`, `fail`, `inconclusive` or `error`
 and closed, outcome-specific uppercase reason codes. The sole warning is
-`ADVISORY_UNRESOLVED`. Evaluator semantics version `v0.0.4` identifies this
+`ADVISORY_UNRESOLVED`. Evaluator semantics version `v0.0.5` identifies this
 closed contract; the package remains unreleased at version 0.0.0.
 
 An invalid definition, reference bundle or evidence bundle returns a distinct
@@ -140,6 +140,8 @@ membership; unordered/respect compares multiset counts. Scalar types are
 never coerced; `0` and `-0` compare equal, consistent with JavaScript
 Map/Set. The input validator rejects NaN and infinity.
 
+A `qualitative_review` criterion is always advisory and inconclusive: missing uses EVIDENCE_MISSING, truncated uses EVIDENCE_TRUNCATED and complete uses REVIEW_REQUIRED. No model or human claim can establish a binding outcome. Feedback and citations stay in privileged verified evidence, not findings.
+
 ## Required versus advisory decisions
 
 The only supported binding policy is `composed-required-v1`. Every required criterion belongs exactly once to an explicit nonempty bounded group tree; advisory findings are outside it. All criteria are validated and compared in authored order, even when an alternative is already decisive. Each group combines its direct children (leaves or child groups).
@@ -189,7 +191,7 @@ bundling with compiled-package self-import verification. AY-I04 will add a
 separate packed-tarball consumer test. No release, npm publication or
 credential authority is implied by source success.
 
-## AY-I17 objective comparisons (schema 3)
+## AY-I17 objective comparisons (schema 4)
 
 - `boolean_equality` compares a `boolean` observation with a strict boolean expectation.
 - `number_range` compares a `number` observation against an expected interval
@@ -211,7 +213,7 @@ validation, before any comparison. Restricted literals remain forbidden.
 The current generation admits these kinds alongside the original objective comparators.
 The structural result parser admits only the current evaluator version.
 
-## AY-I18 typed execution facts (schema 3)
+## AY-I18 typed execution facts (schema 4)
 
 An objective criterion may declare an optional top-level `executionFact`.
 The supplied observation must declare the same selector and typed value.
@@ -256,10 +258,10 @@ status alone is not proof of other required output or properties.
 
 Generic criteria
 and observations, and assertion-only `observed_execution`, retain their
-meaning. Assertions remain inconclusive even if confirmed. The schema-3
+meaning. Assertions remain inconclusive even if confirmed. The schema-4
 canonical algorithm hashes every supplied field, including the new
 selector and origin termination, without changing historical bytes.
-Evaluator semantics are now `v0.0.4`.
+Evaluator semantics are now `v0.0.5`.
 
 Selected execution facts are supplied directly through
 `createEvidenceBundle` and evaluated synchronously; the existing collector

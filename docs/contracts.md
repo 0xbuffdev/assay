@@ -17,7 +17,7 @@ import {
 } from "@0xbuff/assay";
 
 const created = createAssessmentDefinition({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "sample",
   revision: "rev1",
   policyVersion: "composed-required-v1",
@@ -39,7 +39,7 @@ if (!created.ok) throw new Error("Invalid authored definition");
 const definition = created.value;
 
 const prepared = createEvidenceBundle(definition, {
-  schemaVersion: 3,
+  schemaVersion: 4,
   observations: [],
 });
 if (!prepared.ok) throw new Error("Invalid evidence");
@@ -67,12 +67,12 @@ the import shown represents the future package entry.
 
 ## Definition rules
 
-- A definition has `schemaVersion: 3`, `assessmentId`, immutable
+- A definition has `schemaVersion: 4`, `assessmentId`, immutable
   `revision` and `revisionDigest`, `policyVersion` an explicit `composition`, and 1–64 criteria.
 - At least one criterion must be `required`. IDs must be distinct; the
   sentinel revision `latest` is not a stable identity.
 - The digest syntax is lowercase `sha256:` followed by 64 hex digits.
-  **Generation 3 uses digest profile v3**; all older runtime schemas are rejected. A new canonicalization profile requires a new schema version. Structural parsing
+  **Generation 4 uses digest profile v4**; all older runtime schemas are rejected. A new canonicalization profile requires a new schema version. Structural parsing
   checks digest **format only**; the integrity-checking APIs check
   content correctness. Neither authenticates a publisher or signs a definition.
 - Each criterion declares `mode`, `visibility`, `kind` and closed
@@ -80,14 +80,13 @@ the import shown represents the future package entry.
   thresholds or default normalization rules.
 - Text comparisons declare a literal or reference expectation; normalized text
   also declares line-ending, Unicode, case, whitespace and trim choices.
-  Schema-2 objective references require both `referenceId` and `referenceDigest`;
-  schema 1 retains its original ID-only format and digest profile.
+  Objective references require both `referenceId` and `referenceDigest`; superseded schemas are rejected.
 - `number_with_tolerance` requires explicit finite, nonnegative absolute **and**
   relative tolerances; `number_range` instead declares finite bounds and explicit
   endpoint inclusion. Neither coerces strings to numbers. For both kinds, numeric
   observations carry the criterion's exact optional `unit` identifier, including
   deliberate absence. A mismatch returns `invalid_evidence` before comparison,
-  without unit conversion. See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-3).
+  without unit conversion. See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-4).
 - Set criteria declare element type, ordering and duplicate policy.
 - Execution criteria declare assertion and reference IDs, **not** an embedded
   command or code runner.
@@ -108,14 +107,14 @@ The composition is bounded to 64 groups, 64 children per group, eight group leve
 
 ## Content-bound reference contracts (AY-I13)
 
-Use `createReferenceRecord` to construct a frozen, privileged schema-3 reference
+Use `createReferenceRecord` to construct a frozen, privileged schema-4 reference
 record and `verifyReferenceBundle` to validate separately supplied records
-against a verified schema-3 definition. The bundle names the exact assessment,
+against a verified schema-4 definition. The bundle names the exact assessment,
 revision and revision digest; each record has an ID, kind, typed value and
 content digest. Number and range records carry the criterion's exact optional
 unit; set records declare a matching item type. Unknown, duplicate, malformed,
 wrong-kind, wrong-unit or tampered references are invalid input, not learner
-failure. Definitions cannot repeat an objective reference ID in schema 3.
+failure. Definitions cannot repeat an objective reference ID in schema 4.
 An empty or partial bundle is permitted, not a completeness claim.
 
 AY-I14 adds optional reference bundles to `evaluate(definition, evidence, references?)`.
@@ -127,7 +126,7 @@ AY-I18 owns their replacement with typed execution facts. See
 
 ## Evidence rules
 
-`parseEvidenceBundle` accepts `schemaVersion: 3`, an assessment identity,
+`parseEvidenceBundle` accepts `schemaVersion: 4`, an assessment identity,
 a required evidenceDigest, an optional artifact digest, and observations tagged `text`, `number`,
 `set`, `boolean`, `json`, `execution` or `manual`. Each observation declares a criterion
 ID, unique evidence reference and completeness (`complete` or `truncated`).
@@ -160,6 +159,14 @@ The library cannot establish that submitted observation values came from
 a trustworthy runner. A caller cannot turn `evidenceRef`, `revisionDigest`
 or `runRef` strings into authenticated proof by naming them.
 
+## Attributed qualitative observations (AY-I08)
+
+A `qualitative_review` criterion is advisory-only, public or restricted, with no execution selector and exactly `reviewPolicyId` and `reviewPolicyVersion` parameters. It is not a binding composition leaf. Review observations have the common criterion ID, evidence reference, completeness and kind plus a matching review policy, artifact-only origin, reviewer, uncertainty, feedback and citations.
+
+The origin contains exactly `kind: "artifact"`, `artifactDigest` and `sourceRef`; the digest must match the explicit evidence bundle scope. A human reviewer has kind, reviewerId and reviewerVersion. A model reviewer has kind, providerId, modelId, modelVersion, promptId and promptVersion. These are bounded opaque claims, not authentication; version identifiers reject case-insensitive latest. Uncertainty is low, medium, high or unknown. Feedback is nonempty inert text limited to 4096 UTF-16 code units and 4096 UTF-8 bytes; no unpaired surrogates or C0/C1 controls except LF/TAB. Citations are 1–8 distinct artifactRef/startByte/endByte triples, nonnegative safe integer start strictly below end (exclusive). No quoted excerpts or external retrieval. Complete and truncated records use the same closed shape.
+
+The host must independently verify attribution and citation location, and authorize any disclosure of feedback. No scores, verdicts, expected values, trusted flags, or review provider callbacks are accepted. Invalid review input rejects the whole evidence bundle. Missing, truncated and complete valid reviews are inconclusive, with advisory warning; required subjective work remains manual review-needed.
+
 ## Findings
 
 A complete `EvaluationResult` is **not** safe to serialize directly for learners.
@@ -169,7 +176,7 @@ reason codes, warnings and aggregate conclusions. Use the explicit
 approval. The projection does not authenticate a purported result.
 
 `parseEvaluationResult` validates the shape of a typed, versioned technical
-schema-3 finding record, with evidenceDigest, optional artifactDigest,
+schema-4 finding record, with evidenceDigest, optional artifactDigest,
 criterion outcomes, reason codes, evidence references,
 evaluator identity and warnings. Only `composed-required-v1` is supported, and
 complete records cannot carry invalid-input outcomes. The built-in
@@ -283,9 +290,9 @@ AY-I17 adds current `boolean_equality`, `number_range`, and
 The shared snapshot bounds apply to the entire definition, reference bundle,
 or evidence bundle, including nested JSON values; prohibited keys, non-finite
 numbers, cycles and accessors are rejected. The separate AY-I21 decoder handles raw JSON text.
-See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-3).
+See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-4).
 
-AY-I18 adds an optional schema-3 criterion `executionFact` and matching
+AY-I18 adds an optional schema-4 criterion `executionFact` and matching
 selected observation with a required scoped run origin and termination.
-See the [closed selector and completeness contract](evaluation.md#ay-i18-typed-execution-facts-schema-3).
+See the [closed selector and completeness contract](evaluation.md#ay-i18-typed-execution-facts-schema-4).
 Assertion-only execution and manual artifacts remain non-authoritative.

@@ -69,7 +69,9 @@ shares the numeric comparator's relative-bound calculation to reject impossible
 numeric decisions without inspecting evidence or reference values.
 The package root is never an internal dependency.
 
-AY-I23 replaces all earlier runtime schema generations with generation 3. Definition validation owns the bounded composition tree; the existing aggregation owner evaluates required leaf findings through the tree for both evaluation and projection. Reference, evidence, result, provider and public projection contracts all use the current generated version. No legacy adapter or duplicate aggregation path is retained. Structural parsers and coverage remain non-evaluating operations. The foundation gate preserves the module allowlist, permitted dependency directions and absence of cycles.
+AY-I23 introduced bounded composition; AY-I08 replaces generation 3 with generation 4. Definition validation owns the bounded composition tree; the existing aggregation owner evaluates required leaf findings through the tree for both evaluation and projection. Reference, evidence, result, provider and public projection contracts all use the current generated version. No legacy adapter or duplicate aggregation path is retained. Structural parsers and coverage remain non-evaluating operations. The foundation gate preserves the module allowlist, permitted dependency directions and absence of cycles.
+
+Qualitative review shape validation belongs to the evidence boundary (`validation/qualitative.ts`); coverage checks exact policy correspondence. The evaluator emits review-needed findings without a provider, while collection excludes review observations and projection enforces the closed review reason matrix.
 
 ## Implementation boundaries
 

@@ -32,8 +32,8 @@ Assay separates pure evaluation from optional evidence acquisition and public-re
 flowchart TD
     subgraph Host["Host application"]
         Definition["Authorized assessment definition"]
-        Evidence["Content-bound schema-3 evidence"]
-        References["Authorized optional schema-3 reference bundle"]
+        Evidence["Content-bound schema-4 evidence"]
+        References["Authorized optional schema-4 reference bundle"]
         Provider["Optional host-supplied observation provider"]
         Record["Authorized technical record"]
         Authorization["Host access and disclosure decision"]
@@ -82,7 +82,7 @@ flowchart TD
     EvidenceCheck -->|Yes| Compare["Evaluate each criterion in authored order"]
     Compare --> Findings["Criterion findings: pass, fail, inconclusive or error"]
     Findings --> Composition["Fold the bounded all/any tree over required findings"]
-    Composition --> Result["Schema-3 result with evidence and artifact lineage"]
+    Composition --> Result["Schema-4 result with evidence and artifact lineage"]
 ```
 
 The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path: the evidence digest and origin scope are verified before comparison. Missing, truncated or explicitly interrupted execution evidence is inconclusive at the criterion level; an explicitly composed group can have a decisive outcome despite unresolved alternatives. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
@@ -138,7 +138,7 @@ flowchart TD
 
 Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence and artifact digests, evidence references, raw reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
 
-See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; schema-3 objective comparators and direct typed execution facts are implemented; selected execution fact acquisition and bounded criterion composition are supported. Only generation 3 and `composed-required-v1` are admitted; earlier unreleased contracts are rejected.
+See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; schema-4 objective comparators and direct typed execution facts are implemented; selected execution fact acquisition, bounded criterion composition and artifact-bound advisory qualitative observations are supported. Qualitative feedback is supplied by the host, never acquired by Assay or treated as correctness. Only generation 4 and `composed-required-v1` are admitted; earlier unreleased contracts are rejected.
 
 ## Develop from source
 

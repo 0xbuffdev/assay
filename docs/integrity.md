@@ -4,7 +4,7 @@ Assay verifies content identity, not authentication. The host must independently
 
 ## Version contract
 
-AY-I23 replaces the unreleased prior schemas, not their historical bytes. Every versioned public record uses schema generation **3**, including definitions, reference records and bundles, evidence, complete results, public projections, and observation port requests/reports. The sole binding policy is `composed-required-v1`. Evaluator semantics are `v0.0.4`; package version remains private `0.0.0` and the supported runtime is Node 24+ ESM. There is no runtime compatibility adapter, alias, automatic upgrade, or legacy policy path. Older records are explicitly rejected, not rehashed. Historical vectors remain in Git history.
+AY-I08 replaces generation 3, not its historical bytes. Every versioned public record uses schema generation **4**, including definitions, reference records and bundles, evidence, complete results, public projections, and observation port requests/reports. The sole binding policy is `composed-required-v1`. Evaluator semantics are `v0.0.5`; package version remains private `0.0.0` and the supported runtime is Node 24+ ESM. There is no runtime compatibility adapter, alias, automatic upgrade, or legacy policy path. Older records are explicitly rejected, not rehashed. Historical vectors remain in Git history.
 
 `ASSAY_SCHEMA_VERSION` identifies the sole current generation. The generated version metadata is derived from the authored identities in the version generator and the manifest; the evaluator identity is separate from the package release. A future contract generation must select distinct canonical domains, update generated metadata and independently verify new vectors. Do not edit generated files or silently reinterpret old records.
 
@@ -15,7 +15,7 @@ All three integrity domains use the same deterministic serialization after bound
 - Use compact JSON with object keys sorted by ECMAScript UTF-16 code-unit order. Arrays retain their authored order (including criteria, groups, children and observations). Keys, strings, finite numbers, booleans and null use ECMAScript JSON serialization; -0 serializes as 0. No locale comparison, string normalization, trimming or implicit conversion.
 - Include every validated authored field; omit only the record's own top-level digest. An absent optional field stays absent. Reject unknown keys, unsafe objects, unsupported schemas, nonfinite values and over-limit inputs before hashing.
 - UTF-8 encode the ASCII domain followed by one LF, then the canonical JSON, with no additional trailing LF. Compute SHA-256 and return lowercase `sha256:` plus 64 hex digits.
-- Definition domain: `assay:definition:v3`; reference domain: `assay:reference:v3`; evidence domain: `assay:evidence:v3`.
+- Definition domain: `assay:definition:v4`; reference domain: `assay:reference:v4`; evidence domain: `assay:evidence:v4`.
 
 ### Definition integrity
 
@@ -24,10 +24,10 @@ The unsigned draft has exactly schemaVersion, assessmentId, revision, policyVers
 Canonical definition golden vector (one line, escaped LF in value):
 
 ```text
-{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}
+{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":4}
 ```
 
-Digest: `sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798`.
+Digest: `sha256:db53afe46dc26651f77a64613a6d059fdeefff1caeb0947c92c567db478f13a2`.
 
 ## Current-generation reference integrity
 
@@ -38,23 +38,23 @@ A ReferenceBundle contains exactly schemaVersion, definition (assessmentId, revi
 Canonical reference vector:
 
 ```text
-{"kind":"text","referenceId":"secret","schemaVersion":3,"value":"café\n"}
+{"kind":"text","referenceId":"secret","schemaVersion":4,"value":"café\n"}
 ```
 
-Digest: `sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f`.
+Digest: `sha256:27702532f918730d005384ff402dd3a5eb3f7d6f442479a03580b4c4da01709c`.
 
 Canonical definition binding that reference:
 
 ```text
-{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}
+{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:27702532f918730d005384ff402dd3a5eb3f7d6f442479a03580b4c4da01709c","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":4}
 ```
 
-Digest: `sha256:b0b4ed130a1ed38d5b306a7c43f10a512fbe8f2905b110ea781c4f3bcc8fd6cf`.
+Digest: `sha256:0bb2de4fa1b1dfaec607807cf533016071643258cd7784f3f0bc14a0f62a910f`.
 
 | Canonical reference JSON                                                                   | Digest                                                                    |
 | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `{"kind":"number","referenceId":"quantity","schemaVersion":3,"unit":"m","value":10}`       | `sha256:1e4890246c0eda1381302e0d56d458fc08d2883e806b411eec5572b24cd78a0b` |
-| `{"itemType":"number","kind":"set","referenceId":"items","schemaVersion":3,"value":[1,2]}` | `sha256:eb8098fafa7f466e471989a3f2106d02b130766c3c27cee4692ba77b8ae587a8` |
+| `{"kind":"number","referenceId":"quantity","schemaVersion":4,"unit":"m","value":10}`       | `sha256:dc3ca7a792de9a5703e72ff6409caa17aa3a16ec8b93e8a7468d25785060386b` |
+| `{"itemType":"number","kind":"set","referenceId":"items","schemaVersion":4,"value":[1,2]}` | `sha256:51de8ae6a5a8cb3171785783da7d4c45725dc3300175f97b427247470f84bf4c` |
 
 ## Current-generation evidence integrity
 
@@ -65,12 +65,14 @@ An artifact-scoped bundle requires explicitly scoped observations. Artifact orig
 Canonical evidence vector using the first definition vector:
 
 ```text
-{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\n"}],"schemaVersion":3}
+{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:db53afe46dc26651f77a64613a6d059fdeefff1caeb0947c92c567db478f13a2"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\n"}],"schemaVersion":4}
 ```
 
-Digest: `sha256:06c8270cffe62153c69c77a9233044a7c97ceb5d8519142711f5f9dbddf9d301`.
+Digest: `sha256:508c376f6f33fc3b9ae6c34d362d26ea208b4d96578a8c7524d0f7d7daedc2f0`.
 
 The independent installed-package vectors also pin selected execution fact and termination bytes. Tests use Node crypto independently of Assay's portable synchronous SHA-256 implementation.
+
+Qualitative review policy, attribution, artifact scope, uncertainty, feedback and all authored citation triples are covered by the same generation-4 canonical definition/evidence domains. Citation order is content identity; neither digest nor claimed reviewer establishes authentication or citation correctness.
 
 ## Failure and disclosure boundaries
 

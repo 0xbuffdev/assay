@@ -12,7 +12,7 @@ A successful call returns:
 {
   ok: true,
   value: {
-    schemaVersion: 3,
+    schemaVersion: 4,
     outcome: "withheld", // any restricted criteria, even advisory
     findings: [{ criterionId: "public-output", outcome: "pass", reason: "match" }]
   }
@@ -39,7 +39,7 @@ A successful call returns:
 
 The mapping is exhaustive over the supported technical taxonomy. It is applied
 only to public findings after validation of the full record, never to hidden
-findings. The current projection uses schema 3 with the mandatory `reason` field and no group structure.
+findings. The current projection uses schema 4 with the mandatory `reason` field and no group structure.
 
 **Example:**
 
@@ -52,7 +52,7 @@ import {
 } from "@0xbuff/assay";
 
 const drafted = createAssessmentDefinition({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "example",
   revision: "rev1",
   policyVersion: "composed-required-v1",
@@ -76,7 +76,7 @@ if (!drafted.ok) throw new Error("Definition invalid");
 const definition = drafted.value;
 
 const prepared = createEvidenceBundle(definition, {
-  schemaVersion: 3,
+  schemaVersion: 4,
   observations: [
     {
       criterionId: "public-output",
@@ -107,3 +107,5 @@ const response = projectPublicResult(definition, technical);
 **This is a data projection, not authorization, attestation or a secure grading protocol.** A malicious caller can independently create and hash their own definition and supply a structurally consistent fake result. The host must authenticate and approve the definition, verify result origin, enforce which learner can see which projection, and keep protected definitions/full findings inside an appropriately isolated environment. SHA-256 content integrity alone does not prove publisher identity.
 
 The projection also cannot prevent **probing through repeated submissions** if a host exposes further hidden feedback elsewhere, exposes timing, or uses the presence of restricted checks as an unintended signal. The returned `withheld` is a stable summary that conveys no secret outcome but indicates that an aggregate is not available; applications requiring secrecy of even the **existence** of restricted checks should use a host-defined fixed response envelope and not expose criterion metadata. Test fixtures check identical public bytes across multiple private pass/fail/error permutations. No formal grade or official credit is conferred.
+
+For a qualitative criterion, projection accepts only inconclusive with EVIDENCE_MISSING and zero evidence references, or EVIDENCE_TRUNCATED/REVIEW_REQUIRED with one unique reference and a valid result artifact digest. All other pairs are rejected opaquely. Review feedback, attribution, uncertainty and citation locations are never projected; a restricted review also withholds the aggregate. The host separately authorizes access to privileged evidence.

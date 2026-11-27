@@ -4,6 +4,8 @@
 
 ### Changed
 
+- AY-I08: replace all versioned records with generation 4 and evaluator semantics `v0.0.5`; add advisory-only artifact-bound qualitative review observations, bounded attribution and citations, non-authoritative findings and restricted disclosure. No model client, legacy schema support or release.
+
 - AY-I23: replace all versioned records with generation 3, evaluator semantics `v0.0.4`, new definition/reference/evidence digest domains and sole `composed-required-v1` policy. Explicit bounded all/any groups, one shared aggregation owner and no legacy runtime paths. Package remains private 0.0.0.
 
 - AY-I20: finite public reason mapping and stricter technical-result coherence checks before projection; restricted aggregates remain withheld and rejection stays opaque. Evaluator semantics and digest profiles unchanged.
