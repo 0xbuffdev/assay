@@ -62,7 +62,9 @@ describe("AY-I24 resource conformance and measurement", () => {
     );
     const input = padTransport(JSON.stringify({ nodes }));
     expect(Buffer.byteLength(input, "utf8")).toBe(transportCap);
-    measure("262144 transport bytes / 4096 nodes / multibyte", () => decodeSerializedRecord(input),
+    measure(
+      "262144 transport bytes / 4096 nodes / multibyte",
+      () => decodeSerializedRecord(input),
       (result) => expect(result.ok).toBe(true),
     );
     expect(decodeSerializedRecord(`${input} `)).toEqual({
