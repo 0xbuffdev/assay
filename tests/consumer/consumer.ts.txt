@@ -26,6 +26,9 @@ import {
   type Criterion,
   type EvidenceBundle,
   type EvaluationResponse,
+  type PolicyVersion,
+  type ReasonCode,
+  type WarningCode,
   type ObservationPort,
   type ObservationPortRequest,
   type ValidationResult,
@@ -36,7 +39,7 @@ const authoredDraft: AssessmentDefinitionDraft = {
   schemaVersion: ASSAY_SCHEMA_VERSION,
   assessmentId: "typed-integrity",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [{
     id: "output",
     kind: "exact_text",
@@ -65,7 +68,7 @@ const constructed = createAssessmentDefinition({
   schemaVersion: ASSAY_SCHEMA_VERSION,
   assessmentId: "typed-consumer",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "output",
@@ -114,9 +117,12 @@ if ("diagnostics" in result) {
   const path: string | undefined = result.diagnostics[0]?.path;
   void path;
 } else {
-  const verdict: "pass" | "fail" | "inconclusive" | "evaluation_error" |
-    "invalid_definition" | "invalid_evidence" = result.outcome;
-  const reason: string | undefined = result.findings[0]?.reasonCode;
+  const verdict: "pass" | "fail" | "inconclusive" | "evaluation_error" = result.outcome;
+  const reason: ReasonCode | undefined = result.findings[0]?.reasonCode;
+  const warning: WarningCode | undefined = result.warnings[0];
+  const policy: PolicyVersion = result.policyVersion;
+  void warning;
+  void policy;
   const evidenceDigest: string = result.evidenceDigest;
   const artifactDigest: string | undefined = result.artifactDigest;
   void evidenceDigest;
@@ -211,7 +217,7 @@ if (referenceCreated.ok) {
     schemaVersion: 2,
     assessmentId: "typed-reference",
     revision: "rev1",
-    policyVersion: "policy1",
+    policyVersion: "all-required-v1",
     criteria: [{
       id: "quantity",
       mode: "required",
@@ -295,3 +301,29 @@ void unsealedEvidence;
 void mixedOrigin;
 void missingOriginDigest;
 void hiddenEvidenceDigest;
+
+// @ts-expect-error invalid input outcomes cannot appear in a complete result
+const invalidComplete: import("@0xbuff/assay").EvaluationResult["outcome"] = "invalid_reference";
+// @ts-expect-error unknown built-in reason
+const invalidReason: ReasonCode = "UNKNOWN_REASON";
+// @ts-expect-error unknown warning
+const invalidWarning: WarningCode = "UNKNOWN_WARNING";
+// @ts-expect-error unsupported binding policy
+const invalidPolicy: PolicyVersion = "policy1";
+void invalidComplete;
+void invalidReason;
+void invalidWarning;
+void invalidPolicy;
+
+if ("findings" in result) {
+  const acceptedPair: import("@0xbuff/assay").CriterionFinding = {
+    ...result.findings[0], outcome: "pass", reasonCode: "MATCH",
+  };
+  // @ts-expect-error a numeric overflow cannot be a passing finding
+  const incompatiblePair: import("@0xbuff/assay").CriterionFinding = { ...acceptedPair, reasonCode: "NUMERIC_OVERFLOW" };
+  if (acceptedPair.outcome === "pass") {
+    const match: "MATCH" = acceptedPair.reasonCode;
+    void match;
+  }
+  void incompatiblePair;
+}

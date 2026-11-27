@@ -217,7 +217,7 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
     identifier(data.assessmentId, "$.assessmentId", issues);
     revision(data.revision, "$.revision", issues);
     digest(data.revisionDigest, "$.revisionDigest", issues);
-    revision(data.policyVersion, "$.policyVersion", issues);
+    choice(data.policyVersion, ["all-required-v1"], "$.policyVersion", issues);
     if (!list(data.criteria, "$.criteria", issues, CONTRACT_LIMITS.maxCriteria)) return;
     if (data.criteria.length === 0) issues.add("$.criteria", "EMPTY_REQUIRED_CRITERIA");
     const ids: unknown[] = [];

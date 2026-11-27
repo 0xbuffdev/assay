@@ -18,7 +18,7 @@ Caller-authorized versioned criteria + typed bounded observations
 
 The pure library must work in a clean environment without OEE, 0xNAND, AI, a runtime executor or private package. An optional host may supply observed execution results, but Assay cannot claim those results were authentically obtained. A technical `pass` never means officially credited.
 
-The target findings distinguish `pass`, `fail`, `inconclusive`, `invalid_definition`, `invalid_evidence` and `evaluation_error`. Required criteria cannot be empty. Missing or incomplete evidence cannot silently pass; comparator failure is not learner deficiency.
+The target findings distinguish `pass`, `fail`, `inconclusive`, `invalid_definition`, `invalid_evidence`, `invalid_reference` and `evaluation_error`. Invalid inputs return a separate diagnostic envelope; complete technical outcomes exclude them. Required criteria cannot be empty. Missing or incomplete evidence cannot silently pass; comparator failure is not learner deficiency.
 
 The source exposes versioned parsing/coverage from [contracts](contracts.md), pure `evaluate` from [evaluation](evaluation.md), and an optional async [observation port](observations.md). It does **not** authenticate evidence or issue academic credit; unresolved references and unverified execution never pass.
 
@@ -95,3 +95,7 @@ checks remain intact.
 - **AY-I04:** implemented offline tarball distribution audit, standalone ESM/TypeScript consumer and security acceptance fixtures. Tagging and publication still require separate explicit authorization.
 
 No compatibility promise, execution engine or private host API is created by this foundation.
+
+AY-I16 closes the result, reason, warning and binding policy contracts. Definition
+validation admits only `all-required-v1`. Evaluation and projection share required
+aggregation and advisory warning semantics; public disclosure remains unchanged.

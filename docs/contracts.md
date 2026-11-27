@@ -20,7 +20,7 @@ const created = createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "sample",
   revision: "rev1",
-  policyVersion: "v1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "output",
@@ -164,7 +164,14 @@ approval. The projection does not authenticate a purported result.
 `parseEvaluationResult` validates the shape of a typed, versioned technical
 schema-2 finding record, with evidenceDigest, optional artifactDigest,
 criterion outcomes, reason codes, evidence references,
-evaluator identity and warnings. It is **structural validation, not attestation**:
+evaluator identity and warnings. Only `all-required-v1` is supported, and
+complete records cannot carry invalid-input outcomes. The built-in
+`ReasonCode` and `WarningCode` unions are closed; finding outcomes must match
+their reasons, and evaluator identity/version must match the supported semantics.
+A single internal outcome-to-reason mapping defines the derived TypeScript
+unions, correlated finding and comparison types, and parser membership checks.
+An empty finding list or duplicate warning is invalid.
+It is **structural validation, not attestation**:
 parsing a caller-supplied `"pass"` is not verification of correctness or
 official credit.
 

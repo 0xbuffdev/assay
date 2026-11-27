@@ -23,7 +23,8 @@ export function compareExactText(
   observation: Observation,
   referenceValue?: string,
 ): Comparison {
-  if (observation.kind !== "text") return finding("error", "COMPARATOR_ERROR");
+  if (observation.kind !== "text")
+    return finding({ outcome: "error", reasonCode: "COMPARATOR_ERROR" });
   const { expected } = criterion.parameters;
   const value = expected.type === "literal" ? expected.value : referenceValue;
   if (value === undefined) return REFERENCE_UNAVAILABLE;
@@ -36,7 +37,8 @@ export function compareNormalizedText(
   observation: Observation,
   referenceValue?: string,
 ): Comparison {
-  if (observation.kind !== "text") return finding("error", "COMPARATOR_ERROR");
+  if (observation.kind !== "text")
+    return finding({ outcome: "error", reasonCode: "COMPARATOR_ERROR" });
   const { expected, normalization } = criterion.parameters;
   const value = expected.type === "literal" ? expected.value : referenceValue;
   if (value === undefined) return REFERENCE_UNAVAILABLE;

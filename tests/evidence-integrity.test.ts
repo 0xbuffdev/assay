@@ -13,9 +13,9 @@ import {
 } from "../src/index";
 import { digestA, digestB, referenceOf, sealEvidenceFixture } from "./fixtures/contracts";
 
-const expectedDigest = "sha256:af87dee83e1f9f559206a33d8251796767f001dd743676ae54ac7efe1b6128e3";
+const expectedDigest = "sha256:cadd06a98401114bb8039949999c922cdc806c3998cc19f00735819f494e58bd";
 const bytes =
-  '{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\\n"}],"schemaVersion":2}';
+  '{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\\n"}],"schemaVersion":2}';
 
 function unwrap<T>(result: ValidationResult<T>): T {
   if (!result.ok) throw new Error("Invalid synthetic fixture");
@@ -36,7 +36,7 @@ function definition(two = false, secondMode: "required" | "advisory" = "required
       schemaVersion: 1,
       assessmentId: "vector",
       revision: "rev1",
-      policyVersion: "policy1",
+      policyVersion: "all-required-v1",
       criteria: two ? [criterion, { ...criterion, id: "second", mode: secondMode }] : [criterion],
     }),
   );

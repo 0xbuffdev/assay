@@ -6,7 +6,8 @@ export function compareExecution(
   criterion: Extract<Criterion, { kind: "observed_execution" }>,
   observation: Observation,
 ): Comparison {
-  if (observation.kind !== "execution") return finding("error", "COMPARATOR_ERROR");
+  if (observation.kind !== "execution")
+    return finding({ outcome: "error", reasonCode: "COMPARATOR_ERROR" });
   // The observation records assertion states, not their authenticity.
   // AY-I03 can collect facts from an injected port, but a port report
   // is still a provenance claim, not independently authenticated proof.
@@ -17,13 +18,17 @@ export function compareExecution(
         (assertion) => assertion.assertionId === id && assertion.state !== "unknown",
       ),
   );
-  return finding("inconclusive", incomplete ? "ASSERTION_INCOMPLETE" : "EXECUTION_UNVERIFIED");
+  return finding({
+    outcome: "inconclusive",
+    reasonCode: incomplete ? "ASSERTION_INCOMPLETE" : "EXECUTION_UNVERIFIED",
+  });
 }
 
 export function compareManual(observation: Observation): Comparison {
-  if (observation.kind !== "manual") return finding("error", "COMPARATOR_ERROR");
-  return finding(
-    "inconclusive",
-    observation.artifactRefs.length === 0 ? "ARTIFACT_MISSING" : "REVIEW_REQUIRED",
-  );
+  if (observation.kind !== "manual")
+    return finding({ outcome: "error", reasonCode: "COMPARATOR_ERROR" });
+  return finding({
+    outcome: "inconclusive",
+    reasonCode: observation.artifactRefs.length === 0 ? "ARTIFACT_MISSING" : "REVIEW_REQUIRED",
+  });
 }

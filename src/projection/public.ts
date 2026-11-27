@@ -1,6 +1,6 @@
 import { ASSAY_SCHEMA_VERSION } from "../contracts/common";
 import type { PublicCriterionFinding, PublicProjectionResponse } from "../contracts/projection";
-import { aggregateRequired } from "../evaluation/aggregate";
+import { advisoryWarnings, aggregateRequired } from "../evaluation/aggregate";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { parseEvaluationResult } from "../validation/result";
 
@@ -60,7 +60,14 @@ export function projectPublicResult(
     result.findings.map((finding) => [finding.criterionId, finding]),
   );
   const expectedOutcome = aggregateRequired(definition, findingsByCriterion);
-  if (result.outcome !== expectedOutcome) return REJECTED;
+  const expectedWarnings = advisoryWarnings(definition, findingsByCriterion);
+  if (
+    result.outcome !== expectedOutcome ||
+    result.warnings.length !== expectedWarnings.length ||
+    result.warnings.some((warning, index) => warning !== expectedWarnings[index])
+  ) {
+    return REJECTED;
+  }
 
   const publicFindings: PublicCriterionFinding[] = [];
   let hasRestricted = false;

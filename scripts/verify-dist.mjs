@@ -37,7 +37,7 @@ const golden = entry.createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "vector",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "output",
@@ -51,7 +51,7 @@ const golden = entry.createAssessmentDefinition({
 assert.equal(golden.ok, true);
 assert.equal(
   golden.value.revisionDigest,
-  "sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b",
+  "sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f",
 );
 assert.equal(entry.verifyAssessmentDefinition(golden.value).ok, true);
 const modified = {
@@ -80,7 +80,7 @@ const sealed = entry.createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "pack-test",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "objective",
@@ -112,7 +112,12 @@ const observed = entry.evaluate(definition, prepared.value);
 assert.equal(observed.evidenceDigest, prepared.value.evidenceDigest);
 assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
 assert.equal(observed.findings[0].reasonCode, "MATCH");
-const tampered = { ...definition, policyVersion: "changed" };
+const unsupportedPolicy = { ...definition, policyVersion: "changed" };
+assert.deepEqual(entry.evaluate(unsupportedPolicy, {}), {
+  outcome: "invalid_definition",
+  diagnostics: [{ path: "$.policyVersion", code: "INVALID_VALUE" }],
+});
+const tampered = { ...definition, revision: "rev2" };
 assert.deepEqual(entry.evaluate(tampered, {}), {
   outcome: "invalid_definition",
   diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],

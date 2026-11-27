@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import { finding } from "../src/evaluation/comparators/finding";
 import {
   ASSAY_SCHEMA_VERSION,
   CONTRACT_LIMITS,
@@ -470,5 +471,79 @@ describe("AY-I01 typed findings", () => {
     const r = parseEvaluationResult(invalid);
     expect(r.ok).toBe(false);
     expect(JSON.stringify(r)).not.toContain("secret expectation");
+  });
+});
+
+describe("AY-I16 closed result and policy contracts", () => {
+  it("correlates outcome and reason at the comparison constructor", () => {
+    type ConstructorInput = Parameters<typeof finding>[0];
+    type Match = { outcome: "pass"; reasonCode: "MATCH" };
+    type InvalidPair = { outcome: "pass"; reasonCode: "NUMERIC_OVERFLOW" };
+    type UncorrelatedPair = {
+      outcome: "pass" | "error";
+      reasonCode: "MATCH" | "NUMERIC_OVERFLOW";
+    };
+    expectTypeOf<Match>().toMatchTypeOf<ConstructorInput>();
+    expectTypeOf<InvalidPair>().not.toMatchTypeOf<ConstructorInput>();
+    expectTypeOf<UncorrelatedPair>().not.toMatchTypeOf<ConstructorInput>();
+    expect(finding({ outcome: "error", reasonCode: "NUMERIC_OVERFLOW" })).toEqual({
+      outcome: "error",
+      reasonCode: "NUMERIC_OVERFLOW",
+    });
+  });
+
+  it("rejects invalid-input envelopes and invalid outcomes on complete records", () => {
+    for (const outcome of ["invalid_definition", "invalid_evidence", "invalid_reference"]) {
+      expect(parseEvaluationResult({ outcome, diagnostics: [] }).ok).toBe(false);
+      expect(parseEvaluationResult({ ...result(), outcome }).ok).toBe(false);
+    }
+    expect(parseEvaluationResult({ ...result(), findings: [] }).ok).toBe(false);
+  });
+
+  it("rejects unsupported policies in both definition and result contracts", () => {
+    for (const policyVersion of ["policy1", "all-required-v2", "UNKNOWN_POLICY_CANARY"]) {
+      expect(parseAssessmentDefinition({ ...definition(), policyVersion }).ok).toBe(false);
+      expect(parseEvaluationResult({ ...result(), policyVersion }).ok).toBe(false);
+    }
+  });
+
+  it("checks every finding outcome and built-in reason combination", () => {
+    const pairs = [
+      ["pass", "MATCH"],
+      ["fail", "VALUE_MISMATCH"],
+      ["inconclusive", "REFERENCE_UNAVAILABLE"],
+      ["inconclusive", "EVIDENCE_MISSING"],
+      ["inconclusive", "EVIDENCE_TRUNCATED"],
+      ["inconclusive", "ASSERTION_INCOMPLETE"],
+      ["inconclusive", "EXECUTION_UNVERIFIED"],
+      ["inconclusive", "ARTIFACT_MISSING"],
+      ["inconclusive", "REVIEW_REQUIRED"],
+      ["error", "COMPARATOR_ERROR"],
+      ["error", "NUMERIC_OVERFLOW"],
+    ] as const;
+    const base = result();
+    for (const [validOutcome, reasonCode] of pairs) {
+      for (const outcome of ["pass", "fail", "inconclusive", "error"]) {
+        const record = {
+          ...base,
+          findings: [{ ...base.findings[0], outcome, reasonCode }],
+        };
+        expect(parseEvaluationResult(record).ok).toBe(outcome === validOutcome);
+      }
+    }
+    for (const reasonCode of ["UNKNOWN_REASON", "SECRET_REASON_CANARY"]) {
+      const parsed = parseEvaluationResult({
+        ...base,
+        findings: [{ ...base.findings[0], reasonCode }],
+      });
+      expect(parsed.ok).toBe(false);
+      expect(JSON.stringify(parsed)).not.toContain(reasonCode);
+    }
+    for (const warnings of [["UNKNOWN_WARNING"], ["ADVISORY_UNRESOLVED", "ADVISORY_UNRESOLVED"]]) {
+      expect(parseEvaluationResult({ ...base, warnings }).ok).toBe(false);
+    }
+    expect(
+      parseEvaluationResult({ ...base, evaluator: { id: "assay", version: "v0.0.0" } }).ok,
+    ).toBe(false);
   });
 });

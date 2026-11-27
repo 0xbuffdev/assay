@@ -33,7 +33,7 @@ function sealed(criteria: readonly Criterion[]): AssessmentDefinition {
     schemaVersion: 1,
     assessmentId: "projection",
     revision: "rev1",
-    policyVersion: "policy1",
+    policyVersion: "all-required-v1",
     criteria,
   });
   if (!result.ok) throw new Error("Invalid test definition");
@@ -146,11 +146,13 @@ describe("AY-I07 restricted technical finding projection", () => {
   it("does not reveal any restricted identifier, evidence reference, reason or aggregate verdict", () => {
     const definition = sealed([visible, restricted]);
     const full = technical(definition);
+    const hiddenFinding = full.findings[1];
+    if (hiddenFinding.outcome !== "inconclusive") throw new Error("Expected unresolved finding");
     const hidden = { ...full, findings: [...full.findings] };
     hidden.findings[1] = {
-      ...hidden.findings[1],
+      ...hiddenFinding,
       evidenceRefs: ["SECRET_EVIDENCE_CANARY"],
-      reasonCode: "SECRET_REASON_CANARY",
+      reasonCode: "REFERENCE_UNAVAILABLE",
     };
     const view = projectPublicResult(definition, hidden);
     expect(view).toEqual({
@@ -186,24 +188,20 @@ describe("AY-I07 restricted technical finding projection", () => {
     const definition = sealed([visible, restricted]);
     const base = technical(definition);
     let first: string | undefined;
-    for (const [hiddenOutcome, total] of [
-      ["pass", "pass"],
-      ["fail", "fail"],
-      ["error", "evaluation_error"],
-      ["inconclusive", "inconclusive"],
+    for (const [decision, total] of [
+      [{ outcome: "pass", reasonCode: "MATCH" }, "pass"],
+      [{ outcome: "fail", reasonCode: "VALUE_MISMATCH" }, "fail"],
+      [{ outcome: "error", reasonCode: "COMPARATOR_ERROR" }, "evaluation_error"],
+      [{ outcome: "inconclusive", reasonCode: "REFERENCE_UNAVAILABLE" }, "inconclusive"],
     ] as const) {
-      const forged = {
+      const forged: EvaluationResult = {
         ...base,
-        findings: [...base.findings],
-        outcome: total as EvaluationResult["outcome"],
+        outcome: total,
+        findings: [
+          base.findings[0],
+          { ...base.findings[1], ...decision, evidenceRefs: ["SECRET_EVIDENCE_CANARY"] },
+        ],
       };
-      forged.findings[1] = {
-        ...forged.findings[1],
-        outcome: hiddenOutcome,
-        reasonCode: "SECRET_REASON_CANARY",
-        evidenceRefs: ["SECRET_EVIDENCE_CANARY"],
-      };
-      forged.outcome = total;
       const response = projectPublicResult(definition, forged);
       expect(response.ok).toBe(true);
       const text = JSON.stringify(response);
@@ -259,6 +257,11 @@ describe("AY-I07 restricted technical finding projection", () => {
       { ...full, definition: { ...full.definition, revisionDigest: `sha256:${"a".repeat(64)}` } },
       { ...full, evaluator: { ...full.evaluator, id: "other" } },
       { ...full, outcome: "pass" },
+      { ...full, warnings: ["ADVISORY_UNRESOLVED"] },
+      {
+        ...full,
+        findings: [{ ...full.findings[0], reasonCode: "SECRET_REASON_CANARY" }, full.findings[1]],
+      },
       { ...full, grade: "SECRET_GRADE_CANARY" },
       { ...full, arbitrary: "SECRET_UNKNOWN_CANARY" },
       { ...full, findings: [{ ...full.findings[0], evidenceRefs: ["BAD REF"] }, full.findings[1]] },

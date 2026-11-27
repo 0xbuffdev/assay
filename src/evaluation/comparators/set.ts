@@ -45,7 +45,8 @@ export function compareSet(
   observation: Observation,
   referenceValue?: readonly SetScalar[],
 ): Comparison {
-  if (observation.kind !== "set") return finding("error", "COMPARATOR_ERROR");
+  if (observation.kind !== "set")
+    return finding({ outcome: "error", reasonCode: "COMPARATOR_ERROR" });
   const { expected, order, duplicates } = criterion.parameters;
   const value = expected.type === "literal" ? expected.value : referenceValue;
   if (value === undefined) return REFERENCE_UNAVAILABLE;

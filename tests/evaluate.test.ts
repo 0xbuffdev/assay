@@ -569,3 +569,43 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     expect(a.evaluator.version).toBe(ASSAY_EVALUATOR_VERSION);
   });
 });
+
+describe("AY-I16 invalid advisory input and policy rejection", () => {
+  it("rejects a malformed advisory observation even when required evidence passes", () => {
+    const rubric = sealDefinition({
+      ...fixtureDefinition(),
+      criteria: [
+        textCriterion("exact_text", "ok"),
+        { ...textCriterion("exact_text", "ok"), id: "advice", mode: "advisory" },
+      ],
+    });
+    const evidence = sealEvidenceFixture({
+      schemaVersion: 2,
+      definition: referenceOf(rubric),
+      observations: [
+        complete("check", "text", "ok"),
+        { ...complete("advice", "text", "ok"), evidenceRef: "advice", value: false },
+      ],
+    });
+    const invalid = evaluate(rubric, evidence);
+    expect(invalid.outcome).toBe("invalid_evidence");
+    expect("findings" in invalid).toBe(false);
+  });
+
+  it("rejects an unsupported policy before touching evidence", () => {
+    const rubric = sealDefinition({
+      ...fixtureDefinition(),
+      criteria: [textCriterion("exact_text", "ok")],
+    });
+    const ownKeys = vi.fn(() => []);
+    const response = evaluate(
+      { ...rubric, policyVersion: "all-required-v2" },
+      new Proxy({}, { ownKeys }),
+    );
+    expect(response).toEqual({
+      outcome: "invalid_definition",
+      diagnostics: [{ path: "$.policyVersion", code: "INVALID_VALUE" }],
+    });
+    expect(ownKeys).not.toHaveBeenCalled();
+  });
+});

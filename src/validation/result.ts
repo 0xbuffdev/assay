@@ -1,18 +1,13 @@
 import { CONTRACT_LIMITS } from "../contracts/common";
-import type { EvaluationResult } from "../contracts/result";
-import type { ValidationResult } from "../contracts/validation";
 import {
-  choice,
-  type Diagnostics,
-  definitionRef,
-  digest,
-  finish,
-  identifier,
-  list,
-  object,
-  revision,
-  unique,
-} from "./shared";
+  ASSAY_EVALUATOR_ID,
+  ASSAY_EVALUATOR_VERSION,
+  type EvaluationResult,
+  FINDING_REASONS,
+  type FindingOutcome,
+} from "../contracts/result";
+import type { ValidationResult } from "../contracts/validation";
+import { choice, definitionRef, digest, finish, identifier, list, object, unique } from "./shared";
 
 /** Validate a technical finding record without granting authority to its claim. */
 export function parseEvaluationResult(input: unknown): ValidationResult<EvaluationResult> {
@@ -47,33 +42,23 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
     )
       return;
     if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
-    choice(
-      data.outcome,
-      [
-        "pass",
-        "fail",
-        "inconclusive",
-        "invalid_definition",
-        "invalid_evidence",
-        "evaluation_error",
-      ],
-      "$.outcome",
-      issues,
-    );
+    choice(data.outcome, ["pass", "fail", "inconclusive", "evaluation_error"], "$.outcome", issues);
     definitionRef(data.definition, "$.definition", issues);
     digest(data.evidenceDigest, "$.evidenceDigest", issues);
     if (Object.hasOwn(data, "artifactDigest"))
       digest(data.artifactDigest, "$.artifactDigest", issues);
-    revision(data.policyVersion, "$.policyVersion", issues);
+    choice(data.policyVersion, ["all-required-v1"], "$.policyVersion", issues);
     if (object(data.evaluator, "$.evaluator", ["id", "version"], ["id", "version"], issues)) {
-      identifier(data.evaluator.id, "$.evaluator.id", issues);
-      revision(data.evaluator.version, "$.evaluator.version", issues);
+      choice(data.evaluator.id, [ASSAY_EVALUATOR_ID], "$.evaluator.id", issues);
+      choice(data.evaluator.version, [ASSAY_EVALUATOR_VERSION], "$.evaluator.version", issues);
     }
     if (list(data.warnings, "$.warnings", issues, CONTRACT_LIMITS.maxEvidenceRefs)) {
       for (const [i, warning] of data.warnings.entries())
-        reason(warning, `$.warnings[${i}]`, issues);
+        choice(warning, ["ADVISORY_UNRESOLVED"], `$.warnings[${i}]`, issues);
+      unique(data.warnings, "$.warnings", issues);
     }
     if (!list(data.findings, "$.findings", issues, CONTRACT_LIMITS.maxCriteria)) return;
+    if (data.findings.length === 0) issues.add("$.findings", "INVALID_VALUE");
     const ids: unknown[] = [];
     for (const [i, finding] of data.findings.entries()) {
       const p = `$.findings[${i}]`;
@@ -102,10 +87,16 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
       )
         continue;
       identifier(finding.criterionId, `${p}.criterionId`, issues);
-      choice(finding.outcome, ["pass", "fail", "inconclusive", "error"], `${p}.outcome`, issues);
-      reason(finding.reasonCode, `${p}.reasonCode`, issues);
-      identifier(finding.evaluatorId, `${p}.evaluatorId`, issues);
-      revision(finding.evaluatorVersion, `${p}.evaluatorVersion`, issues);
+      if (choice(finding.outcome, Object.keys(FINDING_REASONS), `${p}.outcome`, issues)) {
+        choice(
+          finding.reasonCode,
+          FINDING_REASONS[finding.outcome as FindingOutcome],
+          `${p}.reasonCode`,
+          issues,
+        );
+      }
+      choice(finding.evaluatorId, [ASSAY_EVALUATOR_ID], `${p}.evaluatorId`, issues);
+      choice(finding.evaluatorVersion, [ASSAY_EVALUATOR_VERSION], `${p}.evaluatorVersion`, issues);
       if (
         list(finding.evidenceRefs, `${p}.evidenceRefs`, issues, CONTRACT_LIMITS.maxEvidenceRefs)
       ) {
@@ -117,10 +108,4 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
     }
     unique(ids, "$.findings", issues);
   });
-}
-
-function reason(value: unknown, path: string, issues: Diagnostics): void {
-  if (typeof value !== "string" || !/^[A-Z][A-Z0-9_]{0,63}$/.test(value)) {
-    issues.add(path, "INVALID_VALUE");
-  }
 }
