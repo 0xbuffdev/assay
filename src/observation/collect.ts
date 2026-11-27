@@ -1,4 +1,5 @@
 import { CONTRACT_LIMITS, captureTruncated } from "../contracts/common";
+import { SCHEMA_VERSION } from "../contracts/version";
 import type { AssessmentDefinition } from "../contracts/definition";
 import type { EvidenceBundle } from "../contracts/evidence";
 import type {
@@ -169,7 +170,7 @@ export async function collectObservations<S extends ObservationAbortSignal>(
   }
 
   const request: ObservationPortRequest = Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: SCHEMA_VERSION,
     definition: Object.freeze({
       assessmentId: definition.assessmentId,
       revision: definition.revision,
@@ -243,7 +244,7 @@ export async function collectObservations<S extends ObservationAbortSignal>(
 
   if (signal?.aborted) return acquisitionFailure("OBSERVATION_CANCELLED");
   const parsedCombined = createEvidenceBundle(definition, {
-    schemaVersion: 2,
+    schemaVersion: SCHEMA_VERSION,
     ...(report.artifactDigest ? { artifactDigest: report.artifactDigest } : {}),
     observations: [...evidence.observations, ...returned],
   });
