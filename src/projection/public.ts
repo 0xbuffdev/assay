@@ -49,7 +49,20 @@ function numericOverflow(
 
 // Check facts about the record that are knowable without replaying evidence.
 // The current evaluator emits one evidence ref per observed criterion.
-function coherentFinding(criterion: Criterion, finding: CriterionFinding): boolean {
+function coherentFinding(
+  criterion: Criterion,
+  finding: CriterionFinding,
+  artifactDigest: string | undefined,
+): boolean {
+  if (criterion.kind === "qualitative_review") {
+    if (finding.outcome !== "inconclusive") return false;
+    if (finding.reasonCode === "EVIDENCE_MISSING") return finding.evidenceRefs.length === 0;
+    return (
+      artifactDigest !== undefined &&
+      finding.evidenceRefs.length === 1 &&
+      (finding.reasonCode === "EVIDENCE_TRUNCATED" || finding.reasonCode === "REVIEW_REQUIRED")
+    );
+  }
   if (finding.reasonCode === "EVIDENCE_MISSING") return finding.evidenceRefs.length === 0;
   if (finding.evidenceRefs.length !== 1) return false;
 
@@ -128,7 +141,7 @@ export function projectPublicResult(
       finding.criterionId !== criterion.id ||
       finding.evaluatorId !== result.evaluator.id ||
       finding.evaluatorVersion !== result.evaluator.version ||
-      !coherentFinding(criterion, finding)
+      !coherentFinding(criterion, finding, result.artifactDigest)
     ) {
       return REJECTED;
     }

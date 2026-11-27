@@ -196,6 +196,15 @@ function parameters(
     unique(ids, `${p}.assertions`, issues);
     return;
   }
+  if (criterion.kind === "qualitative_review") {
+    if (criterion.mode !== "advisory") issues.add(`${path}.mode`, "INVALID_VALUE");
+    const fields = ["reviewPolicyId", "reviewPolicyVersion"];
+    if (object(value, p, fields, fields, issues)) {
+      identifier(value.reviewPolicyId, `${p}.reviewPolicyId`, issues);
+      revision(value.reviewPolicyVersion, `${p}.reviewPolicyVersion`, issues);
+    }
+    return;
+  }
   if (criterion.kind === "manual_evidence") {
     if (object(value, p, ["review"], ["review"], issues)) {
       choice(value.review, ["required"], `${p}.review`, issues);
@@ -271,6 +280,7 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
             "json_equality",
             "observed_execution",
             "manual_evidence",
+            "qualitative_review",
           ],
           `${path}.kind`,
           issues,

@@ -53,6 +53,7 @@ function requestedCriterion(
         assertionIds: Object.freeze(criterion.parameters.assertions.map((a) => a.id)),
       };
     case "manual_evidence":
+    case "qualitative_review":
       return null;
   }
 }

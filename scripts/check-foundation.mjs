@@ -70,6 +70,7 @@ const sourcePaths = new Set([
   "src/validation/definition.ts",
   "src/validation/evidence.ts",
   "src/validation/observation.ts",
+  "src/validation/qualitative.ts",
   "src/validation/reference.ts",
   "src/validation/result.ts",
   "src/validation/serialized.ts",
