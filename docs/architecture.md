@@ -5,7 +5,7 @@ Assay is a **technical comparison engine**, not an executor, an AI judge or an a
 ```text
 Caller-authorized versioned criteria + typed bounded observations
                               |
-                       strict validation
+                       strict validation and digest verification
                               |
                    deterministic comparators
                               |
@@ -35,7 +35,7 @@ governs this structure.
 | `src/contracts/`   | Versioned definitions, evidence, results, observation ports, projection and validation contracts |
 | `src/validation/`  | Bounded snapshots and shared diagnostics, per-contract validators, evidence coverage             |
 | `src/evaluation/`  | Pure orchestration, focused comparators and one required-outcome aggregation owner               |
-| `src/integrity/`   | Canonical bytes, SHA-256, definition and reference integrity                                     |
+| `src/integrity/`   | Canonical bytes, SHA-256, definition, reference and evidence integrity                                     |
 | `src/observation/` | Optional injected acquisition and its verified entry point                                       |
 | `src/projection/`  | Privileged result checks and public-safe projection                                              |
 
@@ -75,7 +75,12 @@ AY-I13 adds schema-2 objective reference declarations and independently sealed
 reference records and bundles. Definition and reference integrity remain
 separate from comparison; AY-I14 validates supplied bundles at the evaluation
 boundary and passes their typed expected values to the same objective comparators. The
-schema-1 canonical profile and existing evidence/result versions are retained.
+schema-1 definition canonical profile is retained. AY-I15 introduces sealed
+schema-2 evidence, scoped origins and schema-2 technical results and provider
+records. Evaluation and collection verify evidence before comparing or
+invoking providers; collection seals combined evidence without changing
+existing origins. Public projection remains schema 1 and omits evidence and
+artifact digests.
 The foundation gate checks the source module allowlist, permitted dependency
 directions and absence of cycles; existing public export and packed-consumer
 checks remain intact.

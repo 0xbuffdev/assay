@@ -18,7 +18,7 @@ result provenance behind an appropriate privilege boundary.
 ```text
 Caller-authorized definition + existing typed evidence
       |
-      +-- Validate definition, evidence and lineage
+      +-- Verify definition and evidence digests and lineage
       |
       +-- Select only missing PUBLIC objective/execution criteria
       |   (no expected value or reference ID; no restricted criteria)
@@ -33,7 +33,7 @@ Caller-authorized definition + existing typed evidence
       |
       +-- Downgrade captured observations to truncated if output is cut
       |
-      +-- Validate combined evidence and return a claimed provenance receipt
+      +-- Seal combined evidence and return a scoped claimed provenance receipt
       |
       +-- Consumer may call pure evaluate(definition, evidence)
 ```
@@ -44,7 +44,7 @@ source code, invoke a command or call a network endpoint.
 ## Using a mock port
 
 ```ts
-import { collectObservations, createAssessmentDefinition, evaluate } from "@0xbuff/assay";
+import { collectObservations, createAssessmentDefinition, createEvidenceBundle, evaluate } from "@0xbuff/assay";
 
 const created = createAssessmentDefinition({
   schemaVersion: 1,
@@ -64,21 +64,18 @@ const created = createAssessmentDefinition({
 if (!created.ok) throw new Error("Invalid authored definition");
 const definition = created.value;
 
-const startingEvidence = {
-  schemaVersion: 1,
-  definition: {
-    assessmentId: definition.assessmentId,
-    revision: definition.revision,
-    revisionDigest: definition.revisionDigest,
-  },
+const prepared = createEvidenceBundle(definition, {
+  schemaVersion: 2,
   observations: [],
-};
+});
+if (!prepared.ok) throw new Error("Invalid evidence");
+const startingEvidence = prepared.value;
 
 const mockPort = {
   async observe(request) {
     // request lists only public IDs, expected fact kinds and resource limits.
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       definition: request.definition,
       provenance: {
         adapterId: "fixture",
@@ -124,7 +121,7 @@ hash or proof of publisher identity.
 `ObservationPort.observe(request: ObservationPortRequest): Promise<unknown>`
 is supplied **only** by the host. Its request is immutable and includes:
 
-- `schemaVersion: 1`, `definition` ID/revision/digest, optional caller
+- `schemaVersion: 2`, `definition` ID/revision/digest, optional caller
   `artifactDigest`, and `limits.maxCapturedBytes: 65536`.
 - A list of **missing public** criterion IDs and expected observation kinds
   (`text`, `number`, `set`, or `execution`). Public numeric criteria
@@ -153,9 +150,15 @@ numerical counts, unbounded data or `trusted`/grade flags are rejected.
 The collector also rejects unknown or restricted criterion IDs, wrong
 observation kinds, duplicate existing evidence refs, wrong execution run
 references, unlisted assertions, mismatched definition lineage, or
-conflicting artifact digests.
+conflicting artifact digests. A provider cannot add an artifact digest to an
+already populated unscoped bundle. An empty unscoped bundle may acquire the
+explicit artifact scope of the report. A scoped bundle requires exact report
+scope. Reports use one envelope origin; observation-level `origin` fields in
+reports are rejected rather than silently replaced.
 
-If either output truncation flag is true, all returned observations are
+The collector attaches the report scope and complete bounded provenance only
+to newly returned facts. Existing observations keep their own origin and
+completeness. If either output truncation flag is true, all returned observations are
 marked `completeness: "truncated"` before evaluation. An incomplete stdout
 capture cannot satisfy an exact-text required criterion. An empty report
 is legal but cannot satisfy missing required evidence.
@@ -175,7 +178,10 @@ is legal but cannot satisfy missing required evidence.
   "OBSERVATION_PORT_ERROR" }`: provider threw or failed. No exception
   message, stack, stdout/stderr text or private reference is returned.
 
-The receipt is **not** embedded into the pure `EvaluationResult` as a trust
+The receipt includes the new `evidenceDigest` and ordered `evidenceRefs` of
+only the newly returned observations, not previously supplied facts. The
+sealed evidence binds these observations and their provenance claims. The
+receipt is **not** embedded into the pure `EvaluationResult` as a trust
 marker. `evaluate` continues to return `EXECUTION_UNVERIFIED` for
 self-reported execution assertion states, even if the report came through
 an injected port. Hosts can separately verify run provenance and manage

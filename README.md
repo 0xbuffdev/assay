@@ -12,7 +12,7 @@ Assay evaluates evidence; it does **not** execute learner code, authenticate a s
 
 1. **Define the requirements.** Author typed criteria for exact or normalized text, numeric values with explicit tolerances and units, sets, reported execution assertions, or manual evidence. Every assessment needs at least one required criterion.
 2. **Bind the definition to its content.** Use [definition integrity](docs/integrity.md) to create or verify a deterministic, versioned SHA-256 digest. A hash identifies content; it does not authenticate its publisher.
-3. **Supply observations.** Pass bounded, typed evidence directly or use an [optional injected observation port](docs/observations.md). A provider's claimed provenance is not independent proof of execution.
+3. **Supply observations.** Seal bounded, typed evidence with `createEvidenceBundle` or use an [optional injected observation port](docs/observations.md). A provider's claimed provenance is not independent proof of execution.
 4. **Evaluate.** Supply an optional content-bound reference bundle from authorized host storage alongside the definition and evidence. Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). Required findings determine the technical outcome; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
 5. **Present only appropriate findings.** The full technical record is for an authorized host. Use the [learner-safe projection](docs/projection.md) to omit restricted findings, evidence references and hidden aggregate outcomes. The host must still decide who is allowed to see any result.
 
@@ -28,7 +28,7 @@ Assay separates pure evaluation from optional evidence acquisition and public-re
 flowchart TD
     subgraph Host["Host application"]
         Definition["Authorized assessment definition"]
-        Evidence["Bounded typed evidence"]
+        Evidence["Content-bound schema-2 evidence"]
         References["Authorized optional schema-2 reference bundle"]
         Provider["Optional host-supplied observation provider"]
         Record["Authorized technical record"]
@@ -70,7 +70,7 @@ flowchart TD
     Validate -->|Yes| Digest{"Definition digest valid?"}
     Digest -->|No| InvalidDefinition
     Digest -->|Yes| Supplied{"Reference bundle supplied?"}
-    Supplied -->|No| EvidenceCheck{"Evidence valid and consistent?"}
+    Supplied -->|No| EvidenceCheck{"Evidence shape, digest and origin valid?"}
     Supplied -->|Yes| Schema{"Definition schema 2?"}
     Schema -->|"No: schema 1"| InvalidDefinition
     Schema -->|Yes| ReferenceCheck{"Bundle and reference bindings valid?"}
@@ -85,13 +85,13 @@ flowchart TD
     Outcome -->|"Otherwise any error"| Error["evaluation_error"]
     Outcome -->|"Otherwise any unresolved"| Inconclusive["inconclusive"]
     Outcome -->|"All pass"| Pass["pass"]
-    Fail --> Result["Immutable versioned technical result"]
+    Fail --> Result["Schema-2 result with evidence and artifact lineage"]
     Error --> Result
     Inconclusive --> Result
     Pass --> Result
 ```
 
-The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch; supplying a bundle for a schema-1 definition returns `invalid_definition`. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
+The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch; supplying a bundle for a schema-1 definition returns `invalid_definition`. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path: the evidence digest and origin scope are verified before comparison. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
 
 ### Optional observation acquisition
 
@@ -102,7 +102,7 @@ sequenceDiagram
     participant P as Injected observation port
 
     H->>A: collectObservations(definition, evidence, port)
-    A->>A: Verify definition digest and validate evidence
+    A->>A: Verify definition and evidence digests and lineage
     alt Invalid definition or evidence
         A-->>H: Structured failure
     else No eligible missing public criteria
@@ -117,7 +117,7 @@ sequenceDiagram
             alt Invalid report
                 A-->>H: Structured failure
             else Valid report
-                A-->>H: Combined evidence and claimed receipt
+                A-->>H: Newly sealed evidence and scoped receipt
             end
         end
     end
@@ -142,9 +142,9 @@ flowchart TD
     View --> Gate["Host verifies origin and authorizes access"]
 ```
 
-Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence references, reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
+Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence and artifact digests, evidence references, reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
 
-See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory integrity and content-bound protected reference comparison are implemented; expanded evidence contracts remain ticket-gated.
+See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; expanded comparator and execution fact contracts remain ticket-gated.
 
 ## Develop from source
 
