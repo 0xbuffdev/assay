@@ -14,6 +14,7 @@ export type {
   CriterionBase,
   CriterionMode,
   DefinitionReference,
+  DefinitionSchemaVersion,
   Expected,
   ReferenceVisibility,
   TextNormalization,
@@ -35,6 +36,7 @@ export type {
   PublicTechnicalOutcome,
   PublicTechnicalResult,
 } from "./contracts/projection";
+export type { ReferenceBundle, ReferenceRecord, ReferenceRecordDraft } from "./contracts/reference";
 export type {
   CriterionFinding,
   EvaluationFailure,
@@ -57,6 +59,7 @@ export {
   createAssessmentDefinition,
   verifyAssessmentDefinition,
 } from "./integrity/definition";
+export { createReferenceRecord, verifyReferenceBundle } from "./integrity/reference";
 export { collectObservations } from "./observation/collect";
 export { projectPublicResult } from "./projection/public";
 export { inspectEvidenceCoverage } from "./validation/coverage";

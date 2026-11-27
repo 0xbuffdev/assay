@@ -99,7 +99,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     expect(verifyAssessmentDefinition({ ...verified.value, schemaVersion: 2 })).toEqual({
       ok: false,
       domain: "invalid_definition",
-      diagnostics: [{ path: "$.schemaVersion", code: "UNSUPPORTED_VERSION" }],
+      diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
     });
   });
   it("canonicalizes object property insertion order but respects authored array order", () => {

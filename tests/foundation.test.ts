@@ -10,6 +10,8 @@ describe("Assay independent contract package", () => {
         "ASSAY_EVALUATOR_VERSION",
         "computeDefinitionDigest",
         "createAssessmentDefinition",
+        "createReferenceRecord",
+        "verifyReferenceBundle",
         "verifyAssessmentDefinition",
         "parseAssessmentDefinitionDraft",
         "ASSAY_SCHEMA_VERSION",

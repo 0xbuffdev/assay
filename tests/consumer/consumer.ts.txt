@@ -6,6 +6,11 @@ import {
   ASSAY_DEFINITION_DIGEST_VERSION,
   ASSAY_SCHEMA_VERSION,
   createAssessmentDefinition,
+  createReferenceRecord,
+  verifyReferenceBundle,
+  type ReferenceRecordDraft,
+  type ReferenceRecord,
+  type ReferenceBundle,
   projectPublicResult,
   type PublicProjectionResponse,
   type PublicTechnicalResult,
@@ -192,3 +197,79 @@ void collectVerifiedObservations;
 
 const validated: ValidationResult<AssessmentDefinition> | null = null;
 void validated;
+
+
+// The installed package exposes typed, separately supplied reference records.
+const referenceDraft: ReferenceRecordDraft = {
+  schemaVersion: 2,
+  referenceId: "quantity",
+  kind: "number",
+  value: 10,
+  unit: "m",
+};
+const referenceCreated = createReferenceRecord(referenceDraft);
+if (referenceCreated.ok) {
+  const reference: ReferenceRecord = referenceCreated.value;
+  const boundDraft: AssessmentDefinitionDraft<2> = {
+    schemaVersion: 2,
+    assessmentId: "typed-reference",
+    revision: "rev1",
+    policyVersion: "policy1",
+    criteria: [{
+      id: "quantity",
+      mode: "required",
+      visibility: "restricted",
+      kind: "number_with_tolerance",
+      parameters: {
+        expected: {
+          type: "reference",
+          referenceId: reference.referenceId,
+          referenceDigest: reference.referenceDigest,
+        },
+        unit: "m",
+        tolerance: { absolute: 0, relative: 0 },
+      },
+    }],
+  };
+  const sealed = createAssessmentDefinition(boundDraft);
+  if (sealed.ok && sealed.value.schemaVersion === 2) {
+    const bundle: ReferenceBundle = {
+      schemaVersion: 2,
+      definition: {
+        assessmentId: sealed.value.assessmentId,
+        revision: sealed.value.revision,
+        revisionDigest: sealed.value.revisionDigest,
+      },
+      references: [reference],
+    };
+    const verified: ValidationResult<ReferenceBundle> = verifyReferenceBundle(sealed.value, bundle);
+    void verified;
+  }
+}
+// @ts-expect-error schema-2 references require a digest
+const unbound: import("@0xbuff/assay").Expected<string, 2> = { type: "reference", referenceId: "x" };
+// @ts-expect-error numeric references do not accept strings
+const badReference: ReferenceRecordDraft = { schemaVersion: 2, referenceId: "x", kind: "number", value: "1" };
+// @ts-expect-error set reference values must match the declared item type
+const mixedReference: ReferenceRecordDraft = { schemaVersion: 2, referenceId: "x", kind: "set", itemType: "boolean", value: [1] };
+void unbound;
+void badReference;
+void mixedReference;
+
+// Schema-2 references must not be structurally assignable to schema 1,
+// even when the source is already typed (not a fresh object literal).
+const typedV2Reference: import("@0xbuff/assay").Expected<string, 2> = {
+  type: "reference",
+  referenceId: "secret",
+  referenceDigest: "sha256:" + "a".repeat(64),
+};
+// @ts-expect-error schema 1 cannot contain a schema-2 reference digest
+const rejectedV1Reference: import("@0xbuff/assay").Expected<string, 1> = typedV2Reference;
+const typedV1Reference: import("@0xbuff/assay").Expected<string, 1> = {
+  type: "reference",
+  referenceId: "secret",
+};
+// @ts-expect-error schema 2 requires a digest even for a previously typed reference
+const rejectedV2Reference: import("@0xbuff/assay").Expected<string, 2> = typedV1Reference;
+void rejectedV1Reference;
+void rejectedV2Reference;

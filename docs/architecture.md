@@ -35,7 +35,7 @@ governs this structure.
 | `src/contracts/`   | Versioned definitions, evidence, results, observation ports, projection and validation contracts |
 | `src/validation/`  | Bounded snapshots and shared diagnostics, per-contract validators, evidence coverage             |
 | `src/evaluation/`  | Pure orchestration, focused comparators and one required-outcome aggregation owner               |
-| `src/integrity/`   | Canonical bytes, SHA-256 and definition integrity                                                |
+| `src/integrity/`   | Canonical bytes, SHA-256, definition and reference integrity                                     |
 | `src/observation/` | Optional injected acquisition and its verified entry point                                       |
 | `src/projection/`  | Privileged result checks and public-safe projection                                              |
 
@@ -71,6 +71,10 @@ AY-I12 makes definition integrity mandatory for `evaluate` and
 `collectObservations`, removes the redundant verified aliases and retains the
 schema-1 digest profile. Projection already verifies the definition. Structural
 parsers and coverage inspection remain non-evaluating operations.
+AY-I13 adds schema-2 objective reference declarations and independently sealed
+reference records and bundles. Definition and reference integrity remain
+separate from comparison; AY-I14 owns protected reference comparisons. The
+schema-1 canonical profile and existing evidence/result versions are retained.
 The foundation gate checks the source module allowlist, permitted dependency
 directions and absence of cycles; existing public export and packed-consumer
 checks remain intact.

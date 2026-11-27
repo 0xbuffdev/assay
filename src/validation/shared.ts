@@ -28,6 +28,8 @@ const DIAGNOSTIC_PATH_FIELDS = new Set([
   "type",
   "value",
   "referenceId",
+  "referenceDigest",
+  "references",
   "normalization",
   "lineEndings",
   "unicode",

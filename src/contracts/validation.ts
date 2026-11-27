@@ -1,4 +1,8 @@
-export type ValidationDomain = "invalid_definition" | "invalid_evidence" | "invalid_result";
+export type ValidationDomain =
+  | "invalid_definition"
+  | "invalid_evidence"
+  | "invalid_reference"
+  | "invalid_result";
 export type DiagnosticCode =
   | "UNSUPPORTED_INPUT"
   | "INPUT_TOO_DEEP"
@@ -17,6 +21,9 @@ export type DiagnosticCode =
   | "RESTRICTED_LITERAL"
   | "MISMATCHED_DEFINITION"
   | "DEFINITION_DIGEST_MISMATCH"
+  | "REFERENCE_DIGEST_MISMATCH"
+  | "UNKNOWN_REFERENCE"
+  | "MISMATCHED_REFERENCE"
   | "UNKNOWN_CRITERION"
   | "MISMATCHED_OBSERVATION"
   | "TOO_MANY_DIAGNOSTICS";

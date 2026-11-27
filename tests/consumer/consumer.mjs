@@ -68,6 +68,8 @@ assert.deepEqual(
     "ASSAY_EVALUATOR_VERSION",
     "computeDefinitionDigest",
     "createAssessmentDefinition",
+    "createReferenceRecord",
+    "verifyReferenceBundle",
     "verifyAssessmentDefinition",
     "parseAssessmentDefinitionDraft",
     "ASSAY_SCHEMA_VERSION",
@@ -427,3 +429,77 @@ assert.equal(portRejected.outcome, "invalid_evidence");
 assert.ok(!JSON.stringify(portRejected).includes("trusted"));
 
 console.log("Independent packed ESM consumer: acceptance and hostile-input cases passed");
+
+// AY-I13: independently pinned schema-2 content and definition lineage.
+const reference = assay.createReferenceRecord({
+  schemaVersion: 2,
+  referenceId: "secret",
+  kind: "text",
+  value: "café\n",
+});
+assert.equal(reference.ok, true);
+assert.equal(
+  reference.value.referenceDigest,
+  "sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5",
+);
+const bound = assay.createAssessmentDefinition({
+  schemaVersion: 2,
+  assessmentId: "vector",
+  revision: "rev1",
+  policyVersion: "policy1",
+  criteria: [
+    {
+      id: "output",
+      kind: "exact_text",
+      mode: "required",
+      visibility: "restricted",
+      parameters: {
+        expected: {
+          type: "reference",
+          referenceId: reference.value.referenceId,
+          referenceDigest: reference.value.referenceDigest,
+        },
+      },
+    },
+  ],
+});
+assert.equal(bound.ok, true);
+assert.equal(
+  bound.value.revisionDigest,
+  "sha256:a5105a469d8dec865417760e3516f52f5d0566f35bdeaa16803de7cf4c8e80a0",
+);
+const bundle = {
+  schemaVersion: 2,
+  definition: {
+    assessmentId: bound.value.assessmentId,
+    revision: bound.value.revision,
+    revisionDigest: bound.value.revisionDigest,
+  },
+  references: [reference.value],
+};
+assert.equal(assay.verifyReferenceBundle(bound.value, bundle).ok, true);
+assert.equal(assay.verifyReferenceBundle(bound.value, { ...bundle, references: [] }).ok, true);
+const changedReference = assay.verifyReferenceBundle(bound.value, {
+  ...bundle,
+  references: [{ ...reference.value, value: "PRIVATE_REFERENCE_CONTENT_CANARY" }],
+});
+assert.equal(changedReference.ok, false);
+assert.equal(changedReference.domain, "invalid_reference");
+assert.ok(!JSON.stringify(changedReference).includes("PRIVATE_REFERENCE_CONTENT_CANARY"));
+assert.equal(
+  assay.evaluate(bound.value, {
+    schemaVersion: 1,
+    definition: bundle.definition,
+    observations: [
+      {
+        criterionId: "output",
+        evidenceRef: "reference-observation",
+        kind: "text",
+        completeness: "complete",
+        value: "café\n",
+      },
+    ],
+  }).outcome,
+  "inconclusive",
+  "AY-I13 validates references but does not compare them",
+);

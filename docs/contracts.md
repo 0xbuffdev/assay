@@ -65,7 +65,7 @@ the import shown represents the future package entry.
 
 ## Definition rules
 
-- A definition has `schemaVersion: 1`, `assessmentId`, immutable
+- A definition has `schemaVersion: 1` or `2`, `assessmentId`, immutable
   `revision` and `revisionDigest`, `policyVersion` and 1–64 criteria.
 - At least one criterion must be `required`. IDs must be distinct; the
   sentinel revision `latest` is not a stable identity.
@@ -79,6 +79,8 @@ the import shown represents the future package entry.
   thresholds or default normalization rules.
 - Text comparisons declare a literal or reference expectation; normalized text
   also declares line-ending, Unicode, case, whitespace and trim choices.
+  Schema-2 objective references require both `referenceId` and `referenceDigest`;
+  schema 1 retains its original ID-only format and digest profile.
 - Numeric criteria require explicit finite, nonnegative absolute **and**
   relative tolerances; no implicit string-to-number coercion. Numeric observations
   have an optional `unit` identifier. If the criterion declares `unit`, its
@@ -96,6 +98,24 @@ These are **validated shapes** consumed by the AY-I02
 [deterministic comparator](evaluation.md). AY-I03 additionally provides the [optional observation port](observations.md)
 with bounded claimed provenance and protected-reference redaction. Verified
 execution trust and protected answer resolution remain host responsibilities.
+
+## Content-bound reference contracts (AY-I13)
+
+Use `createReferenceRecord` to construct a frozen, privileged schema-2 reference
+record and `verifyReferenceBundle` to validate separately supplied records
+against a verified schema-2 definition. The bundle names the exact assessment,
+revision and revision digest; each record has an ID, kind, typed value and
+content digest. Numeric records carry the criterion's exact optional unit;
+set records declare a matching item type. Unknown, duplicate, malformed,
+wrong-kind, wrong-unit or tampered references are invalid input, not learner
+failure. Definitions cannot repeat an objective reference ID in schema 2.
+An empty or partial bundle is permitted, not a completeness claim.
+
+The comparison engine does not accept reference bundles in AY-I13; objective
+reference comparisons remain unavailable until AY-I14. Execution assertions
+retain their schema-1-style ID-only metadata and remain non-authoritative;
+AY-I18 owns their replacement with typed execution facts. See
+[the canonical profiles](integrity.md#canonical-digest-algorithm-v2-ay-i13).
 
 ## Evidence rules
 
@@ -164,7 +184,7 @@ symbols and prototype-pollution keys. Dense arrays are rejected by
 length before their indexed properties are inspected; objects with too many
 enumerable fields are rejected before property-descriptor inspection.
 Failed validation returns bounded, ordered `{ path, code }` diagnostics and
-a domain (`invalid_definition`, `invalid_evidence` or `invalid_result`).
+a domain (`invalid_definition`, `invalid_evidence`, `invalid_reference` or `invalid_result`).
 Diagnostics include safe, published schema field paths (for example,
 `$.criteria[0].parameters.expected.value`) but never submitted values or
 unknown field names.

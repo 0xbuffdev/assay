@@ -25,12 +25,24 @@ function expected(
   path: string,
   kind: "text" | "number" | "set",
   itemType: unknown,
+  schemaVersion: unknown,
+  referenceIds: Set<string>,
   issues: Diagnostics,
 ): void {
-  if (!object(value, path, ["type", "value", "referenceId"], ["type"], issues)) return;
+  const allowed = ["type", "value", "referenceId", "referenceDigest"];
+  if (!object(value, path, allowed, ["type"], issues)) return;
   if (value.type === "reference") {
-    object(value, path, ["type", "referenceId"], ["type", "referenceId"], issues);
+    const keys =
+      schemaVersion === 2 ? ["type", "referenceId", "referenceDigest"] : ["type", "referenceId"];
+    object(value, path, keys, keys, issues);
     identifier(value.referenceId, `${path}.referenceId`, issues);
+    if (schemaVersion === 2) {
+      digest(value.referenceDigest, `${path}.referenceDigest`, issues);
+      if (typeof value.referenceId === "string") {
+        if (referenceIds.has(value.referenceId)) issues.add(`${path}.referenceId`, "DUPLICATE_ID");
+        referenceIds.add(value.referenceId);
+      }
+    }
     return;
   }
   if (value.type === "literal") {
@@ -44,7 +56,13 @@ function expected(
   issues.add(`${path}.type`, "INVALID_VALUE");
 }
 
-function parameters(criterion: DataObject, path: string, issues: Diagnostics): void {
+function parameters(
+  criterion: DataObject,
+  path: string,
+  schemaVersion: unknown,
+  referenceIds: Set<string>,
+  issues: Diagnostics,
+): void {
   const value = criterion.parameters;
   const p = `${path}.parameters`;
   if (criterion.kind === "exact_text" || criterion.kind === "normalized_text") {
@@ -59,7 +77,16 @@ function parameters(criterion: DataObject, path: string, issues: Diagnostics): v
       )
     )
       return;
-    expected(value.expected, criterion.visibility, `${p}.expected`, "text", undefined, issues);
+    expected(
+      value.expected,
+      criterion.visibility,
+      `${p}.expected`,
+      "text",
+      undefined,
+      schemaVersion,
+      referenceIds,
+      issues,
+    );
     if (normalized) {
       const n = value.normalization;
       const np = `${p}.normalization`;
@@ -84,7 +111,16 @@ function parameters(criterion: DataObject, path: string, issues: Diagnostics): v
   if (criterion.kind === "number_with_tolerance") {
     if (!object(value, p, ["expected", "tolerance", "unit"], ["expected", "tolerance"], issues))
       return;
-    expected(value.expected, criterion.visibility, `${p}.expected`, "number", undefined, issues);
+    expected(
+      value.expected,
+      criterion.visibility,
+      `${p}.expected`,
+      "number",
+      undefined,
+      schemaVersion,
+      referenceIds,
+      issues,
+    );
     const tolerance = value.tolerance;
     if (
       object(
@@ -115,7 +151,16 @@ function parameters(criterion: DataObject, path: string, issues: Diagnostics): v
     choice(value.itemType, ["string", "number", "boolean"], `${p}.itemType`, issues);
     choice(value.order, ["ignore", "preserve"], `${p}.order`, issues);
     choice(value.duplicates, ["ignore", "respect"], `${p}.duplicates`, issues);
-    expected(value.expected, criterion.visibility, `${p}.expected`, "set", value.itemType, issues);
+    expected(
+      value.expected,
+      criterion.visibility,
+      `${p}.expected`,
+      "set",
+      value.itemType,
+      schemaVersion,
+      referenceIds,
+      issues,
+    );
     return;
   }
   if (criterion.kind === "observed_execution") {
@@ -167,7 +212,7 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
       )
     )
       return;
-    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION)
+    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION && data.schemaVersion !== 2)
       issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     identifier(data.assessmentId, "$.assessmentId", issues);
     revision(data.revision, "$.revision", issues);
@@ -176,6 +221,7 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
     if (!list(data.criteria, "$.criteria", issues, CONTRACT_LIMITS.maxCriteria)) return;
     if (data.criteria.length === 0) issues.add("$.criteria", "EMPTY_REQUIRED_CRITERIA");
     const ids: unknown[] = [];
+    const referenceIds = new Set<string>();
     let required = 0;
     for (const [i, criterion] of data.criteria.entries()) {
       const path = `$.criteria[${i}]`;
@@ -207,7 +253,7 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
           issues,
         )
       ) {
-        parameters(criterion, path, issues);
+        parameters(criterion, path, data.schemaVersion, referenceIds, issues);
       }
       ids.push(criterion.id);
       if (criterion.mode === "required") required++;
@@ -252,15 +298,6 @@ export function parseAssessmentDefinitionDraft(
     revisionDigest: `sha256:${"0".repeat(64)}`,
   });
   if (!checked.ok) return checked;
-  const value = checked.value;
-  return Object.freeze({
-    ok: true,
-    value: Object.freeze({
-      schemaVersion: value.schemaVersion,
-      assessmentId: value.assessmentId,
-      revision: value.revision,
-      policyVersion: value.policyVersion,
-      criteria: value.criteria,
-    }),
-  });
+  const { revisionDigest: _digest, ...draft } = checked.value;
+  return Object.freeze({ ok: true, value: Object.freeze(draft) });
 }
