@@ -1,8 +1,8 @@
-import { SCHEMA_VERSION } from "../contracts/version";
 import type { ObservationPortReport } from "../contracts/observation";
 import type { ValidationResult } from "../contracts/validation";
 import { validateObservations, validateProvenance } from "./evidence";
 import { choice, definitionRef, digest, finish, object } from "./shared";
+import { SCHEMA_VERSION } from "../contracts/version";
 
 /** Validate the scoped provider report; origin is derived only for its returned facts. */
 export function parseObservationPortReport(
