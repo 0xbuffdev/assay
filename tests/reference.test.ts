@@ -285,11 +285,7 @@ describe("AY-I13 content-bound reference contracts", () => {
       expect(checked.ok).toBe(valid);
       if (!valid) {
         expect(
-          evaluate(
-            definition,
-            observed(definition, []),
-            bundle(definition, [record]),
-          ),
+          evaluate(definition, observed(definition, []), bundle(definition, [record])),
         ).toMatchObject({ outcome: "invalid_reference" });
       }
       if (!valid) {

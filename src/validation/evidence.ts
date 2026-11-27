@@ -174,7 +174,6 @@ export function validateObservations(
   }
   unique(ids, "$.observations", issues);
   unique(refs, "$.observations", issues);
-
 }
 
 function validateOrigin(
@@ -190,15 +189,7 @@ function validateOrigin(
   }
   const origin = observation.origin;
   const required = ["kind", "sourceRef"];
-  if (
-    !object(
-      origin,
-      p,
-      [...required, "artifactDigest", "runRef", "provenance"],
-      required,
-      issues,
-    )
-  )
+  if (!object(origin, p, [...required, "artifactDigest", "runRef", "provenance"], required, issues))
     return;
   identifier(origin.sourceRef, `${p}.sourceRef`, issues);
   choice(origin.kind, ["artifact", "independent"], `${p}.kind`, issues);

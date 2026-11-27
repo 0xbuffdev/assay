@@ -124,36 +124,32 @@ assert.equal(
 );
 const empty = entry.createEvidenceBundle(definition, { schemaVersion: 2, observations: [] });
 assert.equal(empty.ok, true);
-const pending = entry.collectObservations(
-  definition,
-  empty.value,
-  {
-    observe: async () => ({
-      schemaVersion: 2,
-      definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
-      provenance: {
-        adapterId: "fixture",
-        adapterVersion: "v1",
-        runRef: "local-run",
-        toolchainId: "node",
-        toolchainVersion: "v24",
-        capturedStdoutBytes: 2,
-        capturedStderrBytes: 0,
-        stdoutTruncated: false,
-        stderrTruncated: false,
+const pending = entry.collectObservations(definition, empty.value, {
+  observe: async () => ({
+    schemaVersion: 2,
+    definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
+    provenance: {
+      adapterId: "fixture",
+      adapterVersion: "v1",
+      runRef: "local-run",
+      toolchainId: "node",
+      toolchainVersion: "v24",
+      capturedStdoutBytes: 2,
+      capturedStderrBytes: 0,
+      stdoutTruncated: false,
+      stderrTruncated: false,
+    },
+    observations: [
+      {
+        criterionId: "objective",
+        evidenceRef: "from-port",
+        completeness: "complete",
+        kind: "text",
+        value: "ok",
       },
-      observations: [
-        {
-          criterionId: "objective",
-          evidenceRef: "from-port",
-          completeness: "complete",
-          kind: "text",
-          value: "ok",
-        },
-      ],
-    }),
-  },
-);
+    ],
+  }),
+});
 const collected = await pending;
 assert.equal(collected.ok, true, "Emitted ESM must accept the optional port");
 assert.equal(

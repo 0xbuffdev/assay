@@ -43,7 +43,11 @@ function evidence(observations, definition) {
   const content = { schemaVersion: 2, definition: lineage(definition), observations };
   const bytes = JSON.stringify(content, (_key, value) => {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
-    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]]));
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, value[key]]),
+    );
   });
   return {
     ...content,
@@ -121,7 +125,10 @@ const sealedInput = assay.createEvidenceBundle(sealed, {
 });
 assert.equal(sealedInput.ok, true);
 const sealedEvidence = sealedInput.value;
-assert.equal(sealedEvidence.evidenceDigest, evidence([text("output", "ok")], sealed).evidenceDigest);
+assert.equal(
+  sealedEvidence.evidenceDigest,
+  evidence([text("output", "ok")], sealed).evidenceDigest,
+);
 assert.equal(assay.verifyEvidenceBundle(sealed, sealedEvidence).ok, true);
 assert.equal(assay.evaluate(sealed, sealedEvidence).outcome, "pass");
 
@@ -530,10 +537,14 @@ assert.equal(
 assert.equal(protectedPass.evidenceDigest, boundEvidence.evidenceDigest);
 assert.notEqual(protectedPass.evidenceDigest, protectedFail.evidenceDigest);
 assert.ok(!JSON.stringify(projectedPass).includes(boundEvidence.evidenceDigest));
-const rejectedEvidence = assay.evaluate(bound.value, {
-  ...boundEvidence,
-  observations: [{ ...boundEvidence.observations[0], value: "PRIVATE_EVIDENCE_CANARY" }],
-}, bundle);
+const rejectedEvidence = assay.evaluate(
+  bound.value,
+  {
+    ...boundEvidence,
+    observations: [{ ...boundEvidence.observations[0], value: "PRIVATE_EVIDENCE_CANARY" }],
+  },
+  bundle,
+);
 assert.equal(rejectedEvidence.outcome, "invalid_evidence");
 assert.ok(!JSON.stringify(rejectedEvidence).includes("PRIVATE_EVIDENCE_CANARY"));
 const scoped = assay.createEvidenceBundle(sealed, {
@@ -542,7 +553,12 @@ const scoped = assay.createEvidenceBundle(sealed, {
   observations: [
     {
       ...text("output", "ok"),
-      origin: { kind: "artifact", sourceRef: "fixture", runRef: "run1", artifactDigest: digest("a") },
+      origin: {
+        kind: "artifact",
+        sourceRef: "fixture",
+        runRef: "run1",
+        artifactDigest: digest("a"),
+      },
     },
   ],
 });

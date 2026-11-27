@@ -496,7 +496,9 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     };
     const [def, ev] = caseOf(required, complete("check", "text", "ok"));
     const configured = sealDefinition({ ...def, criteria: [required, advisory] });
-    const r = resolved(evaluate(configured, sealEvidenceFixture({ ...ev, definition: referenceOf(configured) })));
+    const r = resolved(
+      evaluate(configured, sealEvidenceFixture({ ...ev, definition: referenceOf(configured) })),
+    );
     expect(r.outcome).toBe("pass");
     expect(r.warnings).toEqual(["ADVISORY_UNRESOLVED"]);
     expect(r.findings[1].outcome).toBe("inconclusive");
@@ -558,7 +560,10 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     expect(Object.isFrozen(a.findings[0].evidenceRefs)).toBe(true);
     expect(Object.isFrozen(a.warnings)).toBe(true);
     const revised = sealDefinition({ ...def, revision: "rev2" });
-    const changed = evaluate(revised, sealEvidenceFixture({ ...ev, definition: referenceOf(revised) }));
+    const changed = evaluate(
+      revised,
+      sealEvidenceFixture({ ...ev, definition: referenceOf(revised) }),
+    );
     expect(resolved(changed).definition.revisionDigest).not.toBe(a.definition.revisionDigest);
     expect(a.definition.revisionDigest).toBe(def.revisionDigest);
     expect(a.evaluator.version).toBe(ASSAY_EVALUATOR_VERSION);

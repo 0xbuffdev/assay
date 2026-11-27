@@ -178,7 +178,11 @@ export function sealEvidenceFixture(
   const bytes = JSON.stringify(content, (_key, value: unknown) => {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
     const object = value as Record<string, unknown>;
-    return Object.fromEntries(Object.keys(object).sort().map((key) => [key, object[key]]));
+    return Object.fromEntries(
+      Object.keys(object)
+        .sort()
+        .map((key) => [key, object[key]]),
+    );
   });
   const evidenceDigest = `sha256:${createHash("sha256")
     .update(`assay:evidence:v2\n${bytes}`, "utf8")

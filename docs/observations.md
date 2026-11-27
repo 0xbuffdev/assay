@@ -44,7 +44,12 @@ source code, invoke a command or call a network endpoint.
 ## Using a mock port
 
 ```ts
-import { collectObservations, createAssessmentDefinition, createEvidenceBundle, evaluate } from "@0xbuff/assay";
+import {
+  collectObservations,
+  createAssessmentDefinition,
+  createEvidenceBundle,
+  evaluate,
+} from "@0xbuff/assay";
 
 const created = createAssessmentDefinition({
   schemaVersion: 1,

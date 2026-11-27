@@ -28,7 +28,12 @@ A successful call returns:
 **Example:**
 
 ```ts
-import { createAssessmentDefinition, createEvidenceBundle, evaluate, projectPublicResult } from "@0xbuff/assay";
+import {
+  createAssessmentDefinition,
+  createEvidenceBundle,
+  evaluate,
+  projectPublicResult,
+} from "@0xbuff/assay";
 
 const drafted = createAssessmentDefinition({
   schemaVersion: 1,
