@@ -10,7 +10,7 @@ import {
 } from "../src/index";
 import { referenceOf, sealDefinition } from "./fixtures/contracts";
 
-function definition(unit?: string): AssessmentDefinition {
+function definition(unit?: string): AssessmentDefinition<1> {
   return sealDefinition({
     schemaVersion: 1,
     assessmentId: "unit-integrity",

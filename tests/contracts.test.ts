@@ -70,7 +70,7 @@ describe("AY-I01 versioned definition contracts", () => {
 
   it("rejects unknown schema versions and ambiguous revisions", () => {
     const wrong = mutated(definition());
-    wrong.schemaVersion = 2;
+    wrong.schemaVersion = 3;
     wrong.revision = "latest";
     expect(errorCodes(parseAssessmentDefinition(wrong))).toEqual(
       expect.arrayContaining(["UNSUPPORTED_VERSION", "INVALID_VALUE"]),

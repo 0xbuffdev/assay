@@ -7,7 +7,7 @@ import {
   type EvidenceBundle,
 } from "../../src/index";
 
-export function sealDefinition(draft: AssessmentDefinitionDraft): AssessmentDefinition {
+export function sealDefinition(draft: AssessmentDefinitionDraft<1>): AssessmentDefinition<1> {
   const checked = createAssessmentDefinition({
     schemaVersion: draft.schemaVersion,
     assessmentId: draft.assessmentId,
@@ -15,7 +15,9 @@ export function sealDefinition(draft: AssessmentDefinitionDraft): AssessmentDefi
     policyVersion: draft.policyVersion,
     criteria: draft.criteria,
   });
-  if (!checked.ok) throw new Error("Invalid authored test fixture");
+  if (!checked.ok || checked.value.schemaVersion !== 1) {
+    throw new Error("Invalid authored test fixture");
+  }
   return checked.value;
 }
 
@@ -30,7 +32,7 @@ export function referenceOf(definition: AssessmentDefinition): DefinitionReferen
 export const digestA = `sha256:${"a".repeat(64)}`;
 export const digestB = `sha256:${"b".repeat(64)}`;
 
-export function definition(): AssessmentDefinition {
+export function definition(): AssessmentDefinition<1> {
   return {
     schemaVersion: 1,
     assessmentId: "assay-demo",

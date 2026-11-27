@@ -27,7 +27,7 @@ const outputCriterion = {
   parameters: { expected: { type: "literal", value: "ok" } },
 } as const;
 
-function definition(): AssessmentDefinition {
+function definition(): AssessmentDefinition<1> {
   const original = exampleDefinition();
   return sealDefinition({ ...original, criteria: [outputCriterion] });
 }

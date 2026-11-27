@@ -1,0 +1,96 @@
+import type { Criterion } from "../contracts/definition";
+import type { ReferenceBundle, ReferenceRecord, ReferenceRecordDraft } from "../contracts/reference";
+import type { ValidationResult } from "../contracts/validation";
+import {
+  parseReferenceBundle,
+  parseReferenceDraft,
+  parseReferenceRecord,
+} from "../validation/reference";
+import { Diagnostics } from "../validation/shared";
+import { canonical } from "./canonical";
+import { verifyAssessmentDefinition } from "./definition";
+import { sha256 } from "./sha256";
+
+const encoder = new TextEncoder();
+
+function hashDraft(draft: ReferenceRecordDraft): string {
+  return sha256(encoder.encode(`assay:reference:v2\n${canonical(draft)}`));
+}
+
+/** Seal bounded typed expected content; the returned record is privileged. */
+export function createReferenceRecord(input: unknown): ValidationResult<ReferenceRecord> {
+  const checked = parseReferenceDraft(input);
+  if (!checked.ok) return checked;
+  return parseReferenceRecord({ ...checked.value, referenceDigest: hashDraft(checked.value) });
+}
+
+type ObjectiveCriterion = Extract<
+  Criterion<2>,
+  { kind: "exact_text" | "normalized_text" | "number_with_tolerance" | "set_equivalence" }
+>;
+
+function matchesKind(criterion: ObjectiveCriterion, record: ReferenceRecord): boolean {
+  switch (criterion.kind) {
+    case "exact_text":
+    case "normalized_text":
+      return record.kind === "text";
+    case "number_with_tolerance":
+      return record.kind === "number" && criterion.parameters.unit === record.unit;
+    case "set_equivalence":
+      return record.kind === "set" && criterion.parameters.itemType === record.itemType;
+  }
+}
+
+/**
+ * Verify supplied material against an exact schema-2 definition. An incomplete
+ * bundle is allowed; validation does not resolve references or compare evidence.
+ */
+export function verifyReferenceBundle(
+  definitionInput: unknown,
+  bundleInput: unknown,
+): ValidationResult<ReferenceBundle> {
+  const checkedDefinition = verifyAssessmentDefinition(definitionInput);
+  if (!checkedDefinition.ok) return checkedDefinition;
+  const definition = checkedDefinition.value;
+  const issues = new Diagnostics();
+  if (definition.schemaVersion !== 2) {
+    issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    return issues.result("invalid_definition", undefined as unknown as ReferenceBundle);
+  }
+  const checked = parseReferenceBundle(bundleInput);
+  if (!checked.ok) return checked;
+  const bundle = checked.value;
+  if (
+    bundle.definition.assessmentId !== definition.assessmentId ||
+    bundle.definition.revision !== definition.revision ||
+    bundle.definition.revisionDigest !== definition.revisionDigest
+  ) {
+    issues.add("$.definition", "MISMATCHED_DEFINITION");
+    return issues.result("invalid_reference", bundle);
+  }
+
+  const declared = new Map<string, ObjectiveCriterion>();
+  for (const criterion of definition.criteria) {
+    if (criterion.kind === "observed_execution" || criterion.kind === "manual_evidence") continue;
+    if (criterion.parameters.expected.type === "reference") {
+      declared.set(criterion.parameters.expected.referenceId, criterion);
+    }
+  }
+  for (const [i, record] of bundle.references.entries()) {
+    const path = `$.references[${i}]`;
+    const { referenceDigest, ...draft } = record;
+    const criterion = declared.get(record.referenceId);
+    if (referenceDigest !== hashDraft(draft)) {
+      issues.add(`${path}.referenceDigest`, "REFERENCE_DIGEST_MISMATCH");
+    }
+    if (!criterion || criterion.parameters.expected.type !== "reference") {
+      issues.add(`${path}.referenceId`, "UNKNOWN_REFERENCE");
+      continue;
+    }
+    if (criterion.parameters.expected.referenceDigest !== referenceDigest) {
+      issues.add(`${path}.referenceDigest`, "REFERENCE_DIGEST_MISMATCH");
+    }
+    if (!matchesKind(criterion, record)) issues.add(path, "MISMATCHED_REFERENCE");
+  }
+  return issues.result("invalid_reference", bundle);
+}

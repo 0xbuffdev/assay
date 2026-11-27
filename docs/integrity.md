@@ -1,4 +1,4 @@
-# Versioned definition content integrity (AY-I06)
+# Versioned definition and reference content integrity
 
 Assay has two explicit trust boundaries:
 
@@ -137,3 +137,126 @@ This vector is independently verified against the Node crypto implementation in 
 - **No result signature:** A valid JSON result or verified digest does not make evidence, an AI verdict, or official credit authentic.
 - **No legacy adapter:** The package is unreleased, so callers using new authored definitions should create them from drafts rather than populating the digest with arbitrary placeholder hex. The unchecked evaluation and collection paths have been removed; there is no compatibility alias.
 - **Collision resistance is not source authenticity:** SHA-256 provides content integrity under its usual cryptographic assumptions; an independently established authorized digest or authenticated publisher is needed to prevent substitution of both the definition and its digest.
+
+## Canonical digest algorithm v2 (AY-I13)
+
+Schema-1 definition bytes remain exactly as documented above.
+`ASSAY_SCHEMA_VERSION` and `ASSAY_DEFINITION_DIGEST_VERSION` retain their
+original values for schema-1 records and profile v1. Definitions now also
+admit schema 2; evidence, results, and acquisition records retain schema 1.
+
+For schema-2 definitions use the domain `assay:definition:v2` followed by LF,
+then the same canonical JSON rules as v1. Exclude only the definition's
+top-level `revisionDigest`. An objective reference expectation has exactly
+`{ type: "reference", referenceId, referenceDigest }`; its value kind is
+inferred from the criterion, including the numeric unit and set item type.
+Duplicate objective reference IDs are rejected even when identical.
+Schema-1 declarations do not accept the new digest field.
+
+For reference records use the domain `assay:reference:v2` followed by LF,
+then canonical JSON of the validated unsigned record. Exclude only the
+record's own `referenceDigest`. Record fields are:
+`schemaVersion: 2`, `referenceId`, `kind`, `value`, and, for numbers, an
+optional `unit` (omission is deliberate unitlessness); for sets, a required
+`itemType` of string, number or boolean. Text, finite numbers and homogeneous
+arrays of the declared scalar type are admitted. No extra fields, unknown
+versions, URLs, executable expectations, or implicit conversion. The same
+object/key/node/string limits apply to the record and the complete bundle;
+a bundle may contain at most 64 records, the maximum number of criteria.
+
+The full `ReferenceBundle` has exactly `schemaVersion: 2`, `definition`
+(the assessment ID, revision and revision digest), and `references`. It
+has no independent digest in this ticket: each record is independently
+content-bound by the definition. `verifyReferenceBundle` checks definition
+integrity before reading the bundle; validates the bounded bundle snapshot;
+then checks lineage, record digest, declared digest, inferred kind, exact
+unit presence/value and set item type. Missing records are permitted; unknown
+or duplicate records are not. The success value is privileged and frozen.
+Failures return value-free diagnostics with `invalid_reference` (or
+`invalid_definition` if the definition is invalid).
+
+```ts
+import {
+  createAssessmentDefinition,
+  createReferenceRecord,
+  verifyReferenceBundle,
+} from "@0xbuff/assay";
+
+const reference = createReferenceRecord({
+  schemaVersion: 2,
+  referenceId: "secret",
+  kind: "text",
+  value: "café\n",
+});
+if (!reference.ok) throw new Error("Invalid reference");
+const definition = createAssessmentDefinition({
+  schemaVersion: 2,
+  assessmentId: "vector",
+  revision: "rev1",
+  policyVersion: "policy1",
+  criteria: [{
+    id: "output",
+    kind: "exact_text",
+    mode: "required",
+    visibility: "restricted",
+    parameters: {
+      expected: {
+        type: "reference",
+        referenceId: reference.value.referenceId,
+        referenceDigest: reference.value.referenceDigest,
+      },
+    },
+  }],
+});
+if (!definition.ok) throw new Error("Invalid definition");
+const verified = verifyReferenceBundle(definition.value, {
+  schemaVersion: 2,
+  definition: {
+    assessmentId: definition.value.assessmentId,
+    revision: definition.value.revision,
+    revisionDigest: definition.value.revisionDigest,
+  },
+  references: [reference.value],
+});
+// verified is a privileged validation result, not a comparison or grade.
+```
+
+### Schema-2 golden vectors
+
+Canonical reference JSON (no trailing LF; the value contains an escaped LF):
+
+```text
+{"kind":"text","referenceId":"secret","schemaVersion":2,"value":"café\n"}
+```
+
+SHA-256 with the reference domain:
+
+```text
+sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5
+```
+
+Canonical definition JSON:
+
+```text
+{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":2}
+```
+
+SHA-256 with the definition v2 domain:
+
+```text
+sha256:a5105a469d8dec865417760e3516f52f5d0566f35bdeaa16803de7cf4c8e80a0
+```
+
+Both hashes are independently pinned with Node crypto in the source tests.
+Neither digest authenticates a publisher or hides low-entropy expected values.
+Do not publish protected definitions, reference records or their digests.
+Reference lookup and comparison are explicitly deferred to AY-I14; evaluation
+continues to report reference expectations as unavailable. No new evidence
+or execution fact schema is introduced here.
+
+Additional reference vectors (same domain and LF; no trailing LF):
+
+| Canonical JSON | SHA-256 digest |
+| --- | --- |
+| `{"kind":"number","referenceId":"quantity","schemaVersion":2,"unit":"m","value":10}` | `sha256:9d9dd9e71c2daf11f25122ef06f982ca2fc3f30a5b02e83f7a3460996e133076` |
+| `{"itemType":"number","kind":"set","referenceId":"items","schemaVersion":2,"value":[1,2]}` | `sha256:1ea024bc6ce68a3e7e55a0b29f1a95dbb7f56228b3d736634fdde1a23165373a` |

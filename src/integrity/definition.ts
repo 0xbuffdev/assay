@@ -1,4 +1,3 @@
-import type { ASSAY_SCHEMA_VERSION } from "../contracts/common";
 import type { AssessmentDefinition, AssessmentDefinitionDraft } from "../contracts/definition";
 import type { ValidationResult } from "../contracts/validation";
 import {
@@ -15,16 +14,16 @@ import { sha256 } from "./sha256";
  * This content identity does not authenticate a publisher or evidence origin.
  * See docs/integrity.md for the normative byte-level profile.
  */
+/** Historical schema-1 profile; schema-2 definitions use v2. */
 export const ASSAY_DEFINITION_DIGEST_VERSION = "v1" as const;
-const DIGEST_V1_SCHEMA_VERSION: typeof ASSAY_SCHEMA_VERSION = 1;
-const DOMAIN = "assay:definition:v1\n";
+const DOMAINS = {
+  1: "assay:definition:v1\n",
+  2: "assay:definition:v2\n",
+} as const;
 const encoder = new TextEncoder();
 
 function hashDraft(draft: AssessmentDefinitionDraft): string {
-  if (draft.schemaVersion !== DIGEST_V1_SCHEMA_VERSION) {
-    throw new TypeError("Unsupported definition digest profile");
-  }
-  return sha256(encoder.encode(DOMAIN + canonical(draft)));
+  return sha256(encoder.encode(DOMAINS[draft.schemaVersion] + canonical(draft)));
 }
 
 /** Calculate a versioned content hash from a validated unsigned definition. */
@@ -52,15 +51,8 @@ export function verifyAssessmentDefinition(
 ): ValidationResult<AssessmentDefinition> {
   const checked = parseAssessmentDefinition(definitionInput);
   if (!checked.ok) return checked;
-  const value = checked.value;
-  const draft: AssessmentDefinitionDraft = {
-    schemaVersion: value.schemaVersion,
-    assessmentId: value.assessmentId,
-    revision: value.revision,
-    policyVersion: value.policyVersion,
-    criteria: value.criteria,
-  };
-  if (value.revisionDigest !== hashDraft(draft)) {
+  const { revisionDigest, ...draft } = checked.value;
+  if (revisionDigest !== hashDraft(draft)) {
     return Object.freeze({
       ok: false,
       domain: "invalid_definition",
