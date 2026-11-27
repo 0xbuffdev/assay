@@ -8,6 +8,7 @@ import {
   type ObservationCollectionResult,
   type ObservationPort,
   type ObservationPortReport,
+  type ObservationPortRequest,
   parseObservationPortReport,
 } from "../src/index";
 import {
@@ -562,7 +563,7 @@ describe("AY-I19 cooperative cancellation", () => {
     const pending = new Promise<unknown>((done) => {
       resolve = done;
     });
-    const observe = vi.fn((_request, signal) => {
+    const observe = vi.fn((_request: ObservationPortRequest, signal?: AbortSignal) => {
       expect(signal).toBe(controller.signal);
       return pending;
     });
@@ -618,5 +619,47 @@ describe("AY-I19 cooperative cancellation", () => {
     expect(remove).toHaveBeenCalledTimes(2);
     controller.abort();
     expect(success.ok).toBe(true);
+  });
+});
+
+describe("AY-I19 closed report metadata", () => {
+  it("rejects a set with the wrong item type and duplicate reports", async () => {
+    const rubric = sealDefinition({
+      ...definition(),
+      criteria: [
+        {
+          id: "members",
+          mode: "required",
+          visibility: "public",
+          kind: "set_equivalence",
+          parameters: {
+            expected: { type: "literal", value: ["a"] },
+            itemType: "string",
+            order: "ignore",
+            duplicates: "ignore",
+          },
+        },
+      ],
+    });
+    const wrong = {
+      criterionId: "members",
+      evidenceRef: "set",
+      kind: "set",
+      itemType: "number",
+      items: [1],
+      completeness: "complete",
+    } as const;
+    const valid = { ...wrong, itemType: "string", items: ["a"] } as const;
+    for (const observations of [[wrong], [valid, valid]]) {
+      const collected = await collectObservations(rubric, evidence(rubric), {
+        async observe(request) {
+          expect(request.criteria).toEqual([
+            { criterionId: "members", kind: "set", itemType: "string" },
+          ]);
+          return report({ definition: request.definition, observations });
+        },
+      });
+      expect(failed(collected).outcome).toBe("invalid_evidence");
+    }
   });
 });

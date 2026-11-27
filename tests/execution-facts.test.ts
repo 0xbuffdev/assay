@@ -6,6 +6,7 @@ import {
   createReferenceRecord,
   evaluate,
   inspectEvidenceCoverage,
+  parseObservationPortReport,
   projectPublicResult,
 } from "../src/index";
 
@@ -426,5 +427,83 @@ describe("typed execution facts", () => {
     if (!collected.ok) throw new Error("Invalid collection");
     expect(collected.receipt?.termination).toBe("exited");
     expect(evaluate(rubric, collected.evidence).outcome).toBe("pass");
+  });
+});
+
+describe("AY-I19 scoped selected reports", () => {
+  it("acquires every selected kind and applies relevant completeness", async () => {
+    const cases = [
+      [stdout, out, "inconclusive"],
+      [stderr, err, "pass"],
+      [exit, status, "pass"],
+      [property, prop, "inconclusive"],
+      [json, structured, "inconclusive"],
+    ] as const;
+    for (const [check, observation, expected] of cases) {
+      const rubric = definition([check]);
+      const empty = createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] });
+      if (!empty.ok) throw new Error("Invalid evidence fixture");
+      const { origin: _origin, ...returned } = observation;
+      const report = {
+        schemaVersion: 2,
+        definition: empty.value.definition,
+        termination: "exited",
+        provenance,
+        observations: [returned],
+      };
+      const collected = await collectObservations(rubric, empty.value, {
+        async observe(request) {
+          expect(request.criteria).toEqual([
+            { criterionId: check.id, kind: observation.kind, executionFact: check.executionFact },
+          ]);
+          return report;
+        },
+      });
+      if (!collected.ok) throw new Error("Invalid collection");
+      expect(evaluate(rubric, collected.evidence).outcome).toBe(expected);
+      const interrupted = await collectObservations(rubric, empty.value, {
+        observe: async () => ({
+          ...report,
+          termination: "timeout",
+          provenance: { ...provenance, stdoutTruncated: false },
+        }),
+      });
+      if (!interrupted.ok) throw new Error("Invalid collection");
+      expect(evaluate(rubric, interrupted.evidence).outcome).toBe("inconclusive");
+    }
+  });
+
+  it("rejects missing termination, wrong selectors and report-level origin spoofing", async () => {
+    const rubric = definition([stdout]);
+    const empty = createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] });
+    if (!empty.ok) throw new Error("Invalid evidence fixture");
+    const { origin: _origin, ...returned } = out;
+    const report = {
+      schemaVersion: 2,
+      definition: empty.value.definition,
+      provenance,
+      observations: [returned],
+    };
+    expect(parseObservationPortReport(report).ok).toBe(false);
+    for (const response of [
+      report,
+      { ...report, termination: "unknown" },
+      { ...report, termination: "exited", observations: [out] },
+      {
+        ...report,
+        termination: "exited",
+        observations: [{ ...returned, executionFact: "stderr" }],
+      },
+      {
+        ...report,
+        termination: "exited",
+        observations: [{ ...returned, executionFact: "exit_status" }],
+      },
+    ]) {
+      const collected = await collectObservations(rubric, empty.value, {
+        observe: async () => response,
+      });
+      expect(collected).toMatchObject({ ok: false, outcome: "invalid_evidence" });
+    }
   });
 });

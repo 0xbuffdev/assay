@@ -1,4 +1,4 @@
-import { captureTruncated, CONTRACT_LIMITS } from "../contracts/common";
+import { CONTRACT_LIMITS, captureTruncated } from "../contracts/common";
 import type { AssessmentDefinition } from "../contracts/definition";
 import type { EvidenceBundle } from "../contracts/evidence";
 import type {
@@ -203,12 +203,11 @@ export async function collectObservations(
     provenance: report.provenance,
     ...(report.termination === undefined ? {} : { termination: report.termination }),
   });
-  const allowed = new Map(criteria.map((criterion) => [criterion.criterionId, criterion]));
+  const allowed = new Set(criteria.map((criterion) => criterion.criterionId));
   const returned = [];
   for (const [index, observation] of report.observations.entries()) {
-    const criterion = allowed.get(observation.criterionId);
     const path = `$.observations[${index}]`;
-    if (!criterion) return invalidEvidence(`${path}.criterionId`, "UNKNOWN_CRITERION");
+    if (!allowed.has(observation.criterionId)) return invalidEvidence(`${path}.criterionId`, "UNKNOWN_CRITERION");
     if (observation.kind === "execution" && report.provenance.runRef !== observation.runRef) {
       return invalidEvidence(`${path}.runRef`, "MISMATCHED_OBSERVATION");
     }

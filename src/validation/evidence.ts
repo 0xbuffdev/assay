@@ -1,4 +1,9 @@
-import { captureTruncated, CONTRACT_LIMITS, EXECUTION_FACT_KINDS, equalJsonValue } from "../contracts/common";
+import {
+  CONTRACT_LIMITS,
+  EXECUTION_FACT_KINDS,
+  captureTruncated,
+  equalJsonValue,
+} from "../contracts/common";
 import type { EvidenceBundle, EvidenceBundleDraft } from "../contracts/evidence";
 import type { ValidationResult } from "../contracts/validation";
 import {
