@@ -33,7 +33,7 @@ function sealed(criteria: readonly Criterion[]): AssessmentDefinition {
     schemaVersion: 1,
     assessmentId: "projection",
     revision: "rev1",
-    policyVersion: "policy1",
+    policyVersion: "all-required-v1",
     criteria,
   });
   if (!result.ok) throw new Error("Invalid test definition");
@@ -150,7 +150,7 @@ describe("AY-I07 restricted technical finding projection", () => {
     hidden.findings[1] = {
       ...hidden.findings[1],
       evidenceRefs: ["SECRET_EVIDENCE_CANARY"],
-      reasonCode: "SECRET_REASON_CANARY",
+      reasonCode: "REFERENCE_UNAVAILABLE",
     };
     const view = projectPublicResult(definition, hidden);
     expect(view).toEqual({
@@ -186,11 +186,11 @@ describe("AY-I07 restricted technical finding projection", () => {
     const definition = sealed([visible, restricted]);
     const base = technical(definition);
     let first: string | undefined;
-    for (const [hiddenOutcome, total] of [
-      ["pass", "pass"],
-      ["fail", "fail"],
-      ["error", "evaluation_error"],
-      ["inconclusive", "inconclusive"],
+    for (const [hiddenOutcome, total, reasonCode] of [
+      ["pass", "pass", "MATCH"],
+      ["fail", "fail", "VALUE_MISMATCH"],
+      ["error", "evaluation_error", "COMPARATOR_ERROR"],
+      ["inconclusive", "inconclusive", "REFERENCE_UNAVAILABLE"],
     ] as const) {
       const forged = {
         ...base,
@@ -200,7 +200,7 @@ describe("AY-I07 restricted technical finding projection", () => {
       forged.findings[1] = {
         ...forged.findings[1],
         outcome: hiddenOutcome,
-        reasonCode: "SECRET_REASON_CANARY",
+        reasonCode,
         evidenceRefs: ["SECRET_EVIDENCE_CANARY"],
       };
       forged.outcome = total;
@@ -259,6 +259,14 @@ describe("AY-I07 restricted technical finding projection", () => {
       { ...full, definition: { ...full.definition, revisionDigest: `sha256:${"a".repeat(64)}` } },
       { ...full, evaluator: { ...full.evaluator, id: "other" } },
       { ...full, outcome: "pass" },
+      { ...full, warnings: ["ADVISORY_UNRESOLVED"] },
+      {
+        ...full,
+        findings: [
+          { ...full.findings[0], reasonCode: "SECRET_REASON_CANARY" },
+          full.findings[1],
+        ],
+      },
       { ...full, grade: "SECRET_GRADE_CANARY" },
       { ...full, arbitrary: "SECRET_UNKNOWN_CANARY" },
       { ...full, findings: [{ ...full.findings[0], evidenceRefs: ["BAD REF"] }, full.findings[1]] },

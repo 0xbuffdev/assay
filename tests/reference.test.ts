@@ -18,10 +18,10 @@ import {
 import { sealEvidenceFixture } from "./fixtures/contracts";
 
 const referenceDigest = "sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5";
-const definitionDigest = "sha256:a5105a469d8dec865417760e3516f52f5d0566f35bdeaa16803de7cf4c8e80a0";
+const definitionDigest = "sha256:eb3dcfbc24c13e625e95f0d86b75da3f652805aed29c34c2bcc7cc42b0f5a321";
 const referenceBytes = '{"kind":"text","referenceId":"secret","schemaVersion":2,"value":"café\\n"}';
 const definitionBytes =
-  '{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":2}';
+  '{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":2}';
 
 function independent(domain: string, canonical: string): string {
   return `sha256:${createHash("sha256").update(`${domain}\n${canonical}`, "utf8").digest("hex")}`;
@@ -62,7 +62,7 @@ function draft(criteria: readonly unknown[]) {
     schemaVersion: 2,
     assessmentId: "vector",
     revision: "rev1",
-    policyVersion: "policy1",
+    policyVersion: "all-required-v1",
     criteria,
   };
 }

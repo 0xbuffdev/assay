@@ -15,7 +15,7 @@ function definition(unit?: string): AssessmentDefinition<1> {
     schemaVersion: 1,
     assessmentId: "unit-integrity",
     revision: "rev1",
-    policyVersion: "policy1",
+    policyVersion: "all-required-v1",
     criteria: [
       {
         id: "distance",

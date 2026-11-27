@@ -29,7 +29,7 @@ const created = createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "example",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "stdout",
@@ -73,7 +73,9 @@ schema-2 `EvaluationResult`: `outcome`, definition lineage, evidenceDigest,
 optional artifactDigest, policy version,
 one finding per criterion in authored order, evaluator version, and bounded,
 value-free warnings. Findings use `pass`, `fail`, `inconclusive` or `error`
-and stable uppercase reason codes.
+and closed, outcome-specific uppercase reason codes. The sole warning is
+`ADVISORY_UNRESOLVED`. Evaluator semantics version `v0.0.1` identifies this
+closed contract; the package remains unreleased at version 0.0.0.
 
 An invalid definition, reference bundle or evidence bundle returns a distinct
 `EvaluationFailure` envelope with `outcome: "invalid_definition"` or
@@ -136,9 +138,9 @@ Map/Set. The input validator rejects NaN and infinity.
 
 ## Required versus advisory decisions
 
-The only implemented aggregation policy is **all required criteria must
-pass**. The caller's `policyVersion` is an immutable lineage label, not
-permission to replace this logic with arbitrary thresholds or weights.
+The only supported binding policy is `all-required-v1`: all required criteria
+must pass. Unknown policy identities are rejected before comparison, including
+in advisory-only evidence paths. No arbitrary thresholds or weights are accepted.
 
 - Any _decisive required failure_ yields overall `fail`, even alongside
   unresolved requirements; all finding-level reasons remain visible.

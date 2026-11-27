@@ -39,7 +39,7 @@ export function definition(): AssessmentDefinition<1> {
     assessmentId: "assay-demo",
     revision: "rev1",
     revisionDigest: digestA,
-    policyVersion: "policy1",
+    policyVersion: "all-required-v1",
     criteria: [
       {
         id: "output",
@@ -151,19 +151,19 @@ export function result(): EvaluationResult {
       revision: "rev1",
       revisionDigest: digestA,
     },
-    policyVersion: "policy1",
+    policyVersion: "all-required-v1",
     findings: [
       {
         criterionId: "output",
         outcome: "inconclusive",
-        reasonCode: "REFERENCE_PENDING",
+        reasonCode: "REFERENCE_UNAVAILABLE",
         evidenceRefs: ["ev-output"],
         evaluatorId: "assay",
-        evaluatorVersion: "v1",
+        evaluatorVersion: "v0.0.1",
       },
     ],
-    evaluator: { id: "assay", version: "v1" },
-    warnings: ["REFERENCE_PENDING"],
+    evaluator: { id: "assay", version: "v0.0.1" },
+    warnings: [],
   };
 }
 

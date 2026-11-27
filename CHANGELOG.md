@@ -4,6 +4,8 @@
 
 ### Changed
 
+- AY-I16: disjoint complete results and invalid-input failures, closed finding reason and warning codes, explicit `all-required-v1` policy admission, shared required aggregation and advisory warning checks. Evaluator semantics `v0.0.1`; canonical digest profiles and package version unchanged.
+
 - AY-I12: evaluation and observation collection always verify definition content integrity before inspecting evidence or invoking a provider. Removed the redundant verified aliases; schema-1 canonical bytes, comparators and package version are unchanged.
 - AY-I11: focused internal contracts, validation, comparison, aggregation, integrity, acquisition and projection modules with one aggregation owner and dependency checks.
 

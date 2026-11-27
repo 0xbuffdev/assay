@@ -1,24 +1,37 @@
-import type { DefinitionReference } from "./definition";
+import type { DefinitionReference, PolicyVersion } from "./definition";
 import type { ValidationDiagnostic } from "./validation";
 
-export type TechnicalOutcome =
-  | "pass"
-  | "fail"
-  | "inconclusive"
-  | "invalid_definition"
-  | "invalid_evidence"
-  | "evaluation_error";
+/** Evaluator semantics identifier, independent of the unpublished package version. */
+export const ASSAY_EVALUATOR_VERSION = "v0.0.1" as const;
+export const ASSAY_EVALUATOR_ID = "assay" as const;
+
+export type TechnicalOutcome = "pass" | "fail" | "inconclusive" | "evaluation_error";
 
 export type FindingOutcome = "pass" | "fail" | "inconclusive" | "error";
+
+export type ReasonCode =
+  | "MATCH"
+  | "VALUE_MISMATCH"
+  | "REFERENCE_UNAVAILABLE"
+  | "EVIDENCE_MISSING"
+  | "EVIDENCE_TRUNCATED"
+  | "ASSERTION_INCOMPLETE"
+  | "EXECUTION_UNVERIFIED"
+  | "ARTIFACT_MISSING"
+  | "REVIEW_REQUIRED"
+  | "COMPARATOR_ERROR"
+  | "NUMERIC_OVERFLOW";
+
+export type WarningCode = "ADVISORY_UNRESOLVED";
 
 /** Technical diagnostics and findings never echo submitted values or secret references. */
 export interface CriterionFinding {
   readonly criterionId: string;
   readonly outcome: FindingOutcome;
-  readonly reasonCode: string;
+  readonly reasonCode: ReasonCode;
   readonly evidenceRefs: readonly string[];
-  readonly evaluatorId: string;
-  readonly evaluatorVersion: string;
+  readonly evaluatorId: typeof ASSAY_EVALUATOR_ID;
+  readonly evaluatorVersion: typeof ASSAY_EVALUATOR_VERSION;
 }
 
 export interface EvaluationResult {
@@ -27,10 +40,13 @@ export interface EvaluationResult {
   readonly artifactDigest?: string;
   readonly outcome: TechnicalOutcome;
   readonly definition: DefinitionReference;
-  readonly policyVersion: string;
+  readonly policyVersion: PolicyVersion;
   readonly findings: readonly CriterionFinding[];
-  readonly evaluator: Readonly<{ id: string; version: string }>;
-  readonly warnings: readonly string[];
+  readonly evaluator: Readonly<{
+    id: typeof ASSAY_EVALUATOR_ID;
+    version: typeof ASSAY_EVALUATOR_VERSION;
+  }>;
+  readonly warnings: readonly WarningCode[];
 }
 
 /**

@@ -30,7 +30,7 @@ const draft = (criteria, revision = "rev1") => ({
   schemaVersion: 1,
   assessmentId: "external-consumer",
   revision,
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria,
 });
 function define(criteria, revision) {
@@ -105,7 +105,7 @@ const unsigned = {
   schemaVersion: 1,
   assessmentId: "packed-integrity",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     required("output", "exact_text", {
       expected: { type: "literal", value: "ok" },
@@ -456,7 +456,7 @@ const bound = assay.createAssessmentDefinition({
   schemaVersion: 2,
   assessmentId: "vector",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "output",
@@ -476,7 +476,7 @@ const bound = assay.createAssessmentDefinition({
 assert.equal(bound.ok, true);
 assert.equal(
   bound.value.revisionDigest,
-  "sha256:a5105a469d8dec865417760e3516f52f5d0566f35bdeaa16803de7cf4c8e80a0",
+  "sha256:eb3dcfbc24c13e625e95f0d86b75da3f652805aed29c34c2bcc7cc42b0f5a321",
 );
 const bundle = {
   schemaVersion: 2,
@@ -585,3 +585,11 @@ assert.equal(
 assert.equal(collected.receipt.evidenceDigest, collected.evidence.evidenceDigest);
 assert.deepEqual(collected.receipt.evidenceRefs, ["stdout"]);
 assert.equal(collected.evidence.observations[0].origin.provenance.runRef, "mock-run");
+
+// AY-I16: the independent installed consumer rejects unsupported policies and results.
+assert.equal(assay.createAssessmentDefinition({ ...draft([exact]), policyVersion: "policy1" }).ok, false);
+for (const outcome of ["invalid_definition", "invalid_evidence", "invalid_reference"]) {
+  assert.equal(assay.parseEvaluationResult({ ...perfect, outcome }).ok, false);
+}
+assert.equal(assay.parseEvaluationResult({ ...perfect, warnings: ["UNKNOWN_WARNING"] }).ok, false);
+assert.equal(assay.parseEvaluationResult({ ...perfect, findings: [{ ...perfect.findings[0], reasonCode: "VALUE_MISMATCH" }] }).ok, false);

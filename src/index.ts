@@ -16,6 +16,7 @@ export type {
   DefinitionReference,
   DefinitionSchemaVersion,
   Expected,
+  PolicyVersion,
   ReferenceVisibility,
   TextNormalization,
 } from "./contracts/definition";
@@ -50,7 +51,9 @@ export type {
   EvaluationResponse,
   EvaluationResult,
   FindingOutcome,
+  ReasonCode,
   TechnicalOutcome,
+  WarningCode,
 } from "./contracts/result";
 export type {
   DiagnosticCode,
@@ -59,7 +62,8 @@ export type {
   ValidationDomain,
   ValidationResult,
 } from "./contracts/validation";
-export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluation/evaluate";
+export { ASSAY_EVALUATOR_VERSION } from "./contracts/result";
+export { evaluate } from "./evaluation/evaluate";
 export {
   ASSAY_DEFINITION_DIGEST_VERSION,
   computeDefinitionDigest,

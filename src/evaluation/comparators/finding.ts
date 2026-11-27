@@ -1,11 +1,11 @@
-import type { FindingOutcome } from "../../contracts/result";
+import type { FindingOutcome, ReasonCode } from "../../contracts/result";
 
 export type Comparison = Readonly<{
   outcome: FindingOutcome;
-  reasonCode: string;
+  reasonCode: ReasonCode;
 }>;
 
-export function finding(outcome: FindingOutcome, reasonCode: string): Comparison {
+export function finding(outcome: FindingOutcome, reasonCode: ReasonCode): Comparison {
   return { outcome, reasonCode };
 }
 

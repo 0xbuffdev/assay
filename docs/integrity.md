@@ -24,7 +24,7 @@ const draft = {
   schemaVersion: 1,
   assessmentId: "smoke",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "output",
@@ -99,7 +99,7 @@ Unsigned draft:
   "schemaVersion": 1,
   "assessmentId": "vector",
   "revision": "rev1",
-  "policyVersion": "policy1",
+  "policyVersion": "all-required-v1",
   "criteria": [
     {
       "id": "output",
@@ -117,13 +117,13 @@ Unsigned draft:
 Canonical JSON (single line; the newline in the value is escaped):
 
 ```text
-{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":1}
+{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":1}
 ```
 
 SHA-256 over UTF-8 bytes of the domain separator plus canonical JSON:
 
 ```text
-sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b
+sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f
 ```
 
 This vector is independently verified against the Node crypto implementation in tests and a reloaded, persisted schema-1 record. Any future change to hashing, canonicalization or included authored fields requires a separately reviewed **new schema version and digest profile** with new golden vectors; never silently reinterpret a v1 digest.
@@ -191,7 +191,7 @@ const definition = createAssessmentDefinition({
   schemaVersion: 2,
   assessmentId: "vector",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "output",
@@ -240,13 +240,13 @@ sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5
 Canonical definition JSON:
 
 ```text
-{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":2}
+{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":2}
 ```
 
 SHA-256 with the definition v2 domain:
 
 ```text
-sha256:a5105a469d8dec865417760e3516f52f5d0566f35bdeaa16803de7cf4c8e80a0
+sha256:eb3dcfbc24c13e625e95f0d86b75da3f652805aed29c34c2bcc7cc42b0f5a321
 ```
 
 Both hashes are independently pinned with Node crypto in the source tests.
@@ -289,13 +289,13 @@ Canonical JSON for the schema-1 definition golden vector above and a
 schema-2 artifact-scoped evidence bundle (the value contains an escaped LF):
 
 ```text
-{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\n"}],"schemaVersion":2}
+{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\n"}],"schemaVersion":2}
 ```
 
 Digest:
 
 ```text
-sha256:af87dee83e1f9f559206a33d8251796767f001dd743676ae54ac7efe1b6128e3
+sha256:cadd06a98401114bb8039949999c922cdc806c3998cc19f00735819f494e58bd
 ```
 
 The pinned digest is independently checked with Node crypto in source tests.
@@ -304,3 +304,11 @@ changes the content identity. A content digest is not a signature, a claim
 of actual artifact bytes, or authorization to expose protected evidence.
 Keep full evidence and its digests in privileged storage. A corrected
 observation requires constructing a new bundle, never mutating the old one.
+
+### AY-I16 policy migration
+
+The policy identity is now `all-required-v1`. Historical drafts with arbitrary
+labels such as `policy1` are rejected rather than interpreted as the supported
+policy. Re-author and reseal explicitly to migrate; this produces different
+content identities. The canonical byte profiles and hash domains are unchanged.
+The vectors above use the newly authored policy, not rewritten historical bytes.

@@ -55,7 +55,7 @@ const created = createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "public-demo",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "stdout",

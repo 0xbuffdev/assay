@@ -2,6 +2,9 @@ import type { SetItemType, SetScalar } from "./common";
 
 export type DefinitionSchemaVersion = 1 | 2;
 
+/** The only supported binding aggregation policy. */
+export type PolicyVersion = "all-required-v1";
+
 export type CriterionMode = "required" | "advisory";
 export type ReferenceVisibility = "public" | "restricted";
 
@@ -81,7 +84,7 @@ interface DefinitionFields<V extends DefinitionSchemaVersion> {
   readonly revision: string;
   /** A SHA-256 claim. A host must authenticate and verify it independently. */
   readonly revisionDigest: string;
-  readonly policyVersion: string;
+  readonly policyVersion: PolicyVersion;
   readonly criteria: readonly Criterion<V>[];
 }
 

@@ -1,9 +1,15 @@
 import type { ReferenceRecord } from "../contracts/reference";
-import type { CriterionFinding, EvaluationFailure, EvaluationResponse } from "../contracts/result";
+import {
+  ASSAY_EVALUATOR_ID,
+  ASSAY_EVALUATOR_VERSION,
+  type CriterionFinding,
+  type EvaluationFailure,
+  type EvaluationResponse,
+} from "../contracts/result";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { verifyEvidenceForDefinition } from "../integrity/evidence";
 import { verifyReferencesForDefinition } from "../integrity/reference";
-import { aggregateRequired } from "./aggregate";
+import { aggregateRequired, advisoryWarnings } from "./aggregate";
 import {
   type Comparison,
   finding,
@@ -11,10 +17,6 @@ import {
   TRUNCATED_EVIDENCE,
 } from "./comparators/finding";
 import { compare } from "./compare";
-
-/** A source revision identifier, not a credential or attestation. */
-export const ASSAY_EVALUATOR_VERSION = "v0.0.0" as const;
-const EVALUATOR_ID = "assay";
 
 function invalid(
   outcome: EvaluationFailure["outcome"],
@@ -87,22 +89,10 @@ export function evaluate(
         outcome: comparison.outcome,
         reasonCode: comparison.reasonCode,
         evidenceRefs: Object.freeze(observation ? [observation.evidenceRef] : []),
-        evaluatorId: EVALUATOR_ID,
+        evaluatorId: ASSAY_EVALUATOR_ID,
         evaluatorVersion: ASSAY_EVALUATOR_VERSION,
       }),
     );
-  }
-
-  const warnings: string[] = [];
-  if (
-    definition.criteria.some(
-      (criterion) =>
-        criterion.mode === "advisory" &&
-        (comparisons.get(criterion.id)?.outcome === "inconclusive" ||
-          comparisons.get(criterion.id)?.outcome === "error"),
-    )
-  ) {
-    warnings.push("ADVISORY_UNRESOLVED");
   }
 
   return Object.freeze({
@@ -117,7 +107,7 @@ export function evaluate(
     }),
     policyVersion: definition.policyVersion,
     findings: Object.freeze(findings),
-    evaluator: Object.freeze({ id: EVALUATOR_ID, version: ASSAY_EVALUATOR_VERSION }),
-    warnings: Object.freeze(warnings),
+    evaluator: Object.freeze({ id: ASSAY_EVALUATOR_ID, version: ASSAY_EVALUATOR_VERSION }),
+    warnings: advisoryWarnings(definition, comparisons),
   });
 }

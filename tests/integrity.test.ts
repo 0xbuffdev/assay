@@ -16,7 +16,7 @@ const vector = {
   schemaVersion: 1,
   assessmentId: "vector",
   revision: "rev1",
-  policyVersion: "policy1",
+  policyVersion: "all-required-v1",
   criteria: [
     {
       id: "output",
@@ -28,9 +28,9 @@ const vector = {
   ],
 };
 
-const expected = "sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b";
+const expected = "sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f";
 const canonical =
-  '{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"policy1","revision":"rev1","schemaVersion":1}';
+  '{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":1}';
 
 function seal(input: unknown) {
   const result = createAssessmentDefinition(input);
@@ -78,8 +78,8 @@ describe("AY-I06 versioned canonical definition integrity", () => {
   "schemaVersion": 1,
   "assessmentId": "vector",
   "revision": "rev1",
-  "revisionDigest": "sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b",
-  "policyVersion": "policy1",
+  "revisionDigest": "sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f",
+  "policyVersion": "all-required-v1",
   "criteria": [{
     "id": "output",
     "mode": "required",
@@ -114,7 +114,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
           id: "output",
         },
       ],
-      policyVersion: "policy1",
+      policyVersion: "all-required-v1",
       revision: "rev1",
       assessmentId: "vector",
       schemaVersion: 1,
@@ -141,7 +141,6 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     const variants = [
       { ...vector, assessmentId: "vector2" },
       { ...vector, revision: "rev2" },
-      { ...vector, policyVersion: "policy2" },
       {
         ...vector,
         criteria: [
@@ -252,6 +251,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     expect(computeDefinitionDigest({ ...vector, revisionDigest: expected }).ok).toBe(false);
     expect(createAssessmentDefinition({ ...vector, criteria: [] }).ok).toBe(false);
     expect(computeDefinitionDigest({ ...vector, policyVersion: "latest" }).ok).toBe(false);
+    expect(computeDefinitionDigest({ ...vector, policyVersion: "policy2" }).ok).toBe(false);
     const poisoned = JSON.parse('{"schemaVersion":1,"__proto__":{"spoof":true}}');
     expect(createAssessmentDefinition(poisoned).ok).toBe(false);
     let access = 0;
@@ -281,7 +281,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
 
   it("rejects invalid digest before invoking an optional observation port", async () => {
     const good = seal(vector);
-    const poisoned = { ...good, policyVersion: "newPolicy" };
+    const poisoned = { ...good, revision: "rev2" };
     const port = { observe: vi.fn(async () => ({ ignored: true })) };
     const result = await collectObservations(
       poisoned,
@@ -390,7 +390,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
             visibility: "public",
           },
         ],
-        policyVersion: "policy1",
+        policyVersion: "all-required-v1",
         revision: "rev1",
         schemaVersion: 1,
       });
