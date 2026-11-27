@@ -1,3 +1,4 @@
+import { SCHEMA_VERSION } from "../contracts/version";
 import {
   CONTRACT_LIMITS,
   captureTruncated,
@@ -28,7 +29,7 @@ export function parseEvidenceBundle(input: unknown): ValidationResult<EvidenceBu
   return finish(input, "invalid_evidence", (data, issues) => {
     const required = ["schemaVersion", "definition", "evidenceDigest", "observations"];
     if (!object(data, "$", [...required, "artifactDigest"], required, issues)) return;
-    if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (data.schemaVersion !== SCHEMA_VERSION) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     definitionRef(data.definition, "$.definition", issues);
     digest(data.evidenceDigest, "$.evidenceDigest", issues);
     if (Object.hasOwn(data, "artifactDigest"))
@@ -42,7 +43,7 @@ export function parseEvidenceBundleDraft(input: unknown): ValidationResult<Evide
   return finish(input, "invalid_evidence", (data, issues) => {
     const required = ["schemaVersion", "observations"];
     if (!object(data, "$", [...required, "artifactDigest"], required, issues)) return;
-    if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (data.schemaVersion !== SCHEMA_VERSION) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     if (Object.hasOwn(data, "artifactDigest"))
       digest(data.artifactDigest, "$.artifactDigest", issues);
     validateObservations(data.observations, data.artifactDigest, issues);
