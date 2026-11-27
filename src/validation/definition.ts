@@ -259,7 +259,7 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
         !object(
           criterion,
           path,
-          ["id", "mode", "kind", "visibility", "parameters"],
+          ["id", "mode", "kind", "visibility", "parameters", "executionFact"],
           ["id", "mode", "kind", "visibility", "parameters"],
           issues,
         )
@@ -287,6 +287,31 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
         )
       ) {
         parameters(criterion, path, data.schemaVersion, referenceIds, issues);
+        if (Object.hasOwn(criterion, "executionFact")) {
+          if (data.schemaVersion !== 2) {
+            issues.add(`${path}.executionFact`, "UNSUPPORTED_VERSION");
+          }
+          const kind = criterion.kind;
+          const selectors =
+            kind === "exact_text" || kind === "normalized_text"
+              ? ["stdout", "stderr"]
+              : kind === "number_with_tolerance" || kind === "number_range"
+                ? ["exit_status"]
+                : kind === "boolean_equality"
+                  ? ["boolean_property"]
+                  : kind === "json_equality"
+                    ? ["structured_stdout", "structured_stderr"]
+                    : [];
+          choice(criterion.executionFact, selectors, `${path}.executionFact`, issues);
+          if (
+            criterion.executionFact === "exit_status" &&
+            criterion.parameters &&
+            typeof criterion.parameters === "object" &&
+            Object.hasOwn(criterion.parameters, "unit")
+          ) {
+            issues.add(`${path}.parameters.unit`, "UNEXPECTED_FIELD");
+          }
+        }
       }
       ids.push(criterion.id);
       if (criterion.mode === "required") required++;

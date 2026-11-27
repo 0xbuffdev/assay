@@ -1,4 +1,11 @@
-import type { Completeness, JsonValue, SetItemType, SetScalar } from "./common";
+import type {
+  Completeness,
+  ExecutionFactFor,
+  ExecutionTermination,
+  JsonValue,
+  SetItemType,
+  SetScalar,
+} from "./common";
 import type { DefinitionReference } from "./definition";
 
 export type ObservationBase = Readonly<{
@@ -55,6 +62,7 @@ export interface ObservationPortProvenance {
 type OriginSource = Readonly<{
   sourceRef: string;
   runRef?: string;
+  termination?: ExecutionTermination;
   provenance?: ObservationPortProvenance;
 }>;
 
@@ -65,7 +73,19 @@ export type ObservationOrigin = OriginSource &
     | Readonly<{ kind: "artifact"; artifactDigest: string }>
   );
 
-export type Observation = ObservationFact & Readonly<{ origin?: ObservationOrigin }>;
+type ExecutionValueKind = "text" | "number" | "boolean" | "json";
+
+type ExecutionObservation = {
+  [K in ExecutionValueKind]: Extract<ObservationFact, { kind: K }> &
+    Readonly<{
+      executionFact: ExecutionFactFor<K>;
+      origin: ObservationOrigin & Readonly<{ runRef: string; termination: ExecutionTermination }>;
+    }>;
+}[ExecutionValueKind];
+
+export type Observation =
+  | (ObservationFact & Readonly<{ executionFact?: never; origin?: ObservationOrigin }>)
+  | ExecutionObservation;
 
 export interface EvidenceBundleDraft {
   readonly schemaVersion: 2;

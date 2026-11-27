@@ -516,6 +516,7 @@ describe("AY-I16 closed result and policy contracts", () => {
       ["inconclusive", "EVIDENCE_TRUNCATED"],
       ["inconclusive", "ASSERTION_INCOMPLETE"],
       ["inconclusive", "EXECUTION_UNVERIFIED"],
+      ["inconclusive", "EXECUTION_INCOMPLETE"],
       ["inconclusive", "ARTIFACT_MISSING"],
       ["inconclusive", "REVIEW_REQUIRED"],
       ["error", "COMPARATOR_ERROR"],

@@ -43,3 +43,20 @@ export type NumericRange = Readonly<{
   minInclusive: boolean;
   maxInclusive: boolean;
 }>;
+
+/** The selected fact identifies the captured stream or typed run property. */
+export const EXECUTION_FACT_KINDS = Object.freeze({
+  stdout: "text",
+  stderr: "text",
+  exit_status: "number",
+  boolean_property: "boolean",
+  structured_stdout: "json",
+  structured_stderr: "json",
+} as const);
+
+export type ExecutionFact = keyof typeof EXECUTION_FACT_KINDS;
+export type ExecutionFactFor<K extends (typeof EXECUTION_FACT_KINDS)[ExecutionFact]> = {
+  [F in ExecutionFact]: (typeof EXECUTION_FACT_KINDS)[F] extends K ? F : never;
+}[ExecutionFact];
+
+export type ExecutionTermination = "exited" | "timeout" | "crash";
