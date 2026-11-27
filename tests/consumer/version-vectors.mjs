@@ -63,7 +63,12 @@ const evidence = unwrap(
   assay.createEvidenceBundle(v2, { schemaVersion: 2, observations: content.observations }),
 );
 assert.equal(evidence.evidenceDigest, evidenceDigest);
-assert.deepEqual(unwrap(assay.verifyEvidenceBundle(v2, evidence)), evidence);
+// Compare the complete JSON data contract, not the prototype of the sealed wrapper.
+const expectedEvidence = { ...content, evidenceDigest };
+assert.deepEqual(JSON.parse(JSON.stringify(evidence)), expectedEvidence);
+const verified = unwrap(assay.verifyEvidenceBundle(v2, evidence));
+assert.deepEqual(JSON.parse(JSON.stringify(verified)), expectedEvidence);
+assert.equal(Object.getPrototypeOf(verified), null);
 const result = assay.evaluate(v2, evidence);
 assert.equal(result.outcome, "pass");
 assert.equal(result.schemaVersion, 2);
