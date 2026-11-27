@@ -440,9 +440,7 @@ describe("AY-I14 protected reference evaluation", () => {
   });
 
   it("reuses normalization, numeric tolerance and set multiplicity for references", () => {
-    const text = unwrap(
-      createReferenceRecord({ ...referenceDraft, value: " CAFÉ\r\n" }),
-    );
+    const text = unwrap(createReferenceRecord({ ...referenceDraft, value: " CAFÉ\r\n" }));
     const number = unwrap(
       createReferenceRecord({
         schemaVersion: 2,

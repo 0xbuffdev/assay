@@ -18,7 +18,8 @@ export function compare(
   references: ReadonlyMap<string, ReferenceRecord>,
 ): Comparison {
   const expected = "expected" in criterion.parameters ? criterion.parameters.expected : undefined;
-  const reference = expected?.type === "reference" ? references.get(expected.referenceId) : undefined;
+  const reference =
+    expected?.type === "reference" ? references.get(expected.referenceId) : undefined;
   switch (criterion.kind) {
     case "exact_text":
       return compareExactText(
