@@ -262,10 +262,7 @@ describe("AY-I07 restricted technical finding projection", () => {
       { ...full, warnings: ["ADVISORY_UNRESOLVED"] },
       {
         ...full,
-        findings: [
-          { ...full.findings[0], reasonCode: "SECRET_REASON_CANARY" },
-          full.findings[1],
-        ],
+        findings: [{ ...full.findings[0], reasonCode: "SECRET_REASON_CANARY" }, full.findings[1]],
       },
       { ...full, grade: "SECRET_GRADE_CANARY" },
       { ...full, arbitrary: "SECRET_UNKNOWN_CANARY" },

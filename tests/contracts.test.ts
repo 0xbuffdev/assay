@@ -524,7 +524,8 @@ describe("AY-I16 closed result and policy contracts", () => {
     for (const warnings of [["UNKNOWN_WARNING"], ["ADVISORY_UNRESOLVED", "ADVISORY_UNRESOLVED"]]) {
       expect(parseEvaluationResult({ ...base, warnings }).ok).toBe(false);
     }
-    expect(parseEvaluationResult({ ...base, evaluator: { id: "assay", version: "v0.0.0" } }).ok)
-      .toBe(false);
+    expect(
+      parseEvaluationResult({ ...base, evaluator: { id: "assay", version: "v0.0.0" } }).ok,
+    ).toBe(false);
   });
 });

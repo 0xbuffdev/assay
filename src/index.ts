@@ -55,6 +55,7 @@ export type {
   TechnicalOutcome,
   WarningCode,
 } from "./contracts/result";
+export { ASSAY_EVALUATOR_VERSION } from "./contracts/result";
 export type {
   DiagnosticCode,
   EvidenceCoverage,
@@ -62,7 +63,6 @@ export type {
   ValidationDomain,
   ValidationResult,
 } from "./contracts/validation";
-export { ASSAY_EVALUATOR_VERSION } from "./contracts/result";
 export { evaluate } from "./evaluation/evaluate";
 export {
   ASSAY_DEFINITION_DIGEST_VERSION,

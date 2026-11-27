@@ -587,9 +587,18 @@ assert.deepEqual(collected.receipt.evidenceRefs, ["stdout"]);
 assert.equal(collected.evidence.observations[0].origin.provenance.runRef, "mock-run");
 
 // AY-I16: the independent installed consumer rejects unsupported policies and results.
-assert.equal(assay.createAssessmentDefinition({ ...draft([exact]), policyVersion: "policy1" }).ok, false);
+assert.equal(
+  assay.createAssessmentDefinition({ ...draft([exact]), policyVersion: "policy1" }).ok,
+  false,
+);
 for (const outcome of ["invalid_definition", "invalid_evidence", "invalid_reference"]) {
   assert.equal(assay.parseEvaluationResult({ ...perfect, outcome }).ok, false);
 }
 assert.equal(assay.parseEvaluationResult({ ...perfect, warnings: ["UNKNOWN_WARNING"] }).ok, false);
-assert.equal(assay.parseEvaluationResult({ ...perfect, findings: [{ ...perfect.findings[0], reasonCode: "VALUE_MISMATCH" }] }).ok, false);
+assert.equal(
+  assay.parseEvaluationResult({
+    ...perfect,
+    findings: [{ ...perfect.findings[0], reasonCode: "VALUE_MISMATCH" }],
+  }).ok,
+  false,
+);

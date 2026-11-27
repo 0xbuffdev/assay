@@ -1,6 +1,6 @@
 import { ASSAY_SCHEMA_VERSION } from "../contracts/common";
 import type { PublicCriterionFinding, PublicProjectionResponse } from "../contracts/projection";
-import { aggregateRequired, advisoryWarnings } from "../evaluation/aggregate";
+import { advisoryWarnings, aggregateRequired } from "../evaluation/aggregate";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { parseEvaluationResult } from "../validation/result";
 

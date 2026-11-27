@@ -9,7 +9,7 @@ import {
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { verifyEvidenceForDefinition } from "../integrity/evidence";
 import { verifyReferencesForDefinition } from "../integrity/reference";
-import { aggregateRequired, advisoryWarnings } from "./aggregate";
+import { advisoryWarnings, aggregateRequired } from "./aggregate";
 import {
   type Comparison,
   finding,

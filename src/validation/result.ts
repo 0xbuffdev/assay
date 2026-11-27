@@ -42,12 +42,7 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
     )
       return;
     if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
-    choice(
-      data.outcome,
-      ["pass", "fail", "inconclusive", "evaluation_error"],
-      "$.outcome",
-      issues,
-    );
+    choice(data.outcome, ["pass", "fail", "inconclusive", "evaluation_error"], "$.outcome", issues);
     definitionRef(data.definition, "$.definition", issues);
     digest(data.evidenceDigest, "$.evidenceDigest", issues);
     if (Object.hasOwn(data, "artifactDigest"))
@@ -92,8 +87,15 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
       )
         continue;
       identifier(finding.criterionId, `${p}.criterionId`, issues);
-      if (choice(finding.outcome, ["pass", "fail", "inconclusive", "error"], `${p}.outcome`, issues)) {
-        choice(finding.reasonCode, reasons[finding.outcome as FindingOutcome], `${p}.reasonCode`, issues);
+      if (
+        choice(finding.outcome, ["pass", "fail", "inconclusive", "error"], `${p}.outcome`, issues)
+      ) {
+        choice(
+          finding.reasonCode,
+          reasons[finding.outcome as FindingOutcome],
+          `${p}.reasonCode`,
+          issues,
+        );
       }
       choice(finding.evaluatorId, [ASSAY_EVALUATOR_ID], `${p}.evaluatorId`, issues);
       choice(finding.evaluatorVersion, [ASSAY_EVALUATOR_VERSION], `${p}.evaluatorVersion`, issues);
