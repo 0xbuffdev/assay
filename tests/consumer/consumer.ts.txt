@@ -3,7 +3,6 @@
  * from the installed tarball, never from Assay's repository or source tree.
  */
 import {
-  ASSAY_DEFINITION_DIGEST_VERSION,
   ASSAY_EVALUATOR_VERSION,
   ASSAY_SCHEMA_VERSION,
   decodeSerializedRecord,
@@ -39,14 +38,14 @@ import {
   type ValidationResult,
 } from "@0xbuff/assay";
 
-const version: "v1" = ASSAY_DEFINITION_DIGEST_VERSION;
-const semantics: "v0.0.3" = ASSAY_EVALUATOR_VERSION;
+const semantics: "v0.0.4" = ASSAY_EVALUATOR_VERSION;
 void semantics;
 const authoredDraft: AssessmentDefinitionDraft = {
   schemaVersion: ASSAY_SCHEMA_VERSION,
   assessmentId: "typed-integrity",
+  composition: { rootGroupId: "root", groups: [{ id: "root", operator: "all", children: [{ kind: "criterion", id: "output" }] }] },
   revision: "rev1",
-  policyVersion: "all-required-v1",
+  policyVersion: "composed-required-v1",
   criteria: [{
     id: "output",
     kind: "exact_text",
@@ -58,14 +57,13 @@ const authoredDraft: AssessmentDefinitionDraft = {
 const boundedDefinition = createAssessmentDefinition(authoredDraft);
 if (boundedDefinition.ok) {
   const verified = verifyAssessmentDefinition(boundedDefinition.value);
-  const prepared = createEvidenceBundle(boundedDefinition.value, { schemaVersion: 2, observations: [] });
+  const prepared = createEvidenceBundle(boundedDefinition.value, { schemaVersion: 3, observations: [] });
   if (prepared.ok) {
     const pure: EvaluationResponse = evaluate(boundedDefinition.value, prepared.value);
     void pure;
   }
   void verified;
 }
-void version;
 
 
 
@@ -74,8 +72,9 @@ void version;
 const constructed = createAssessmentDefinition({
   schemaVersion: ASSAY_SCHEMA_VERSION,
   assessmentId: "typed-consumer",
+  composition: { rootGroupId: "root", groups: [{ id: "root", operator: "all", children: [{ kind: "criterion", id: "output" }] }] },
   revision: "rev1",
-  policyVersion: "all-required-v1",
+  policyVersion: "composed-required-v1",
   criteria: [
     {
       id: "output",
@@ -90,7 +89,7 @@ if (!constructed.ok) throw new Error("Invalid typed fixture");
 const definition: AssessmentDefinition = constructed.value;
 
 const evidenceDraft: EvidenceBundleDraft = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   observations: [
     { criterionId: "output", evidenceRef: "output-1", completeness: "complete", kind: "text", value: "ok" },
   ],
@@ -151,7 +150,7 @@ const port: ObservationPort = {
     void ids;
     void max;
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       definition: request.definition,
       observations: [],
       provenance: {
@@ -223,7 +222,7 @@ void validated;
 
 // The installed package exposes typed, separately supplied reference records.
 const referenceDraft: ReferenceRecordDraft = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   referenceId: "quantity",
   kind: "number",
   value: 10,
@@ -232,11 +231,12 @@ const referenceDraft: ReferenceRecordDraft = {
 const referenceCreated = createReferenceRecord(referenceDraft);
 if (referenceCreated.ok) {
   const reference: ReferenceRecord = referenceCreated.value;
-  const boundDraft: AssessmentDefinitionDraft<2> = {
-    schemaVersion: 2,
+  const boundDraft: AssessmentDefinitionDraft = {
+    schemaVersion: 3,
     assessmentId: "typed-reference",
+    composition: { rootGroupId: "root", groups: [{ id: "root", operator: "all", children: [{ kind: "criterion", id: "quantity" }] }] },
     revision: "rev1",
-    policyVersion: "all-required-v1",
+    policyVersion: "composed-required-v1",
     criteria: [{
       id: "quantity",
       mode: "required",
@@ -254,9 +254,9 @@ if (referenceCreated.ok) {
     }],
   };
   const sealed = createAssessmentDefinition(boundDraft);
-  if (sealed.ok && sealed.value.schemaVersion === 2) {
+  if (sealed.ok && sealed.value.schemaVersion === 3) {
     const bundle: ReferenceBundle = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       definition: {
         assessmentId: sealed.value.assessmentId,
         revision: sealed.value.revision,
@@ -265,7 +265,7 @@ if (referenceCreated.ok) {
       references: [reference],
     };
     const verified: ValidationResult<ReferenceBundle> = verifyReferenceBundle(sealed.value, bundle);
-    const boundEvidence = createEvidenceBundle(sealed.value, { schemaVersion: 2, observations: [] });
+    const boundEvidence = createEvidenceBundle(sealed.value, { schemaVersion: 3, observations: [] });
     if (!boundEvidence.ok) throw new Error("Invalid bound fixture");
     const evaluated: EvaluationResponse = evaluate(sealed.value, boundEvidence.value, bundle);
     if ("diagnostics" in evaluated) {
@@ -278,37 +278,30 @@ if (referenceCreated.ok) {
   }
 }
 // @ts-expect-error schema-2 references require a digest
-const unbound: import("@0xbuff/assay").Expected<string, 2> = { type: "reference", referenceId: "x" };
+const unbound: import("@0xbuff/assay").Expected<string> = { type: "reference", referenceId: "x" };
 // @ts-expect-error numeric references do not accept strings
-const badReference: ReferenceRecordDraft = { schemaVersion: 2, referenceId: "x", kind: "number", value: "1" };
+const badReference: ReferenceRecordDraft = { schemaVersion: 3, referenceId: "x", kind: "number", value: "1" };
 // @ts-expect-error set reference values must match the declared item type
-const mixedReference: ReferenceRecordDraft = { schemaVersion: 2, referenceId: "x", kind: "set", itemType: "boolean", value: [1] };
+const mixedReference: ReferenceRecordDraft = { schemaVersion: 3, referenceId: "x", kind: "set", itemType: "boolean", value: [1] };
 void unbound;
 void badReference;
 void mixedReference;
 
-// Schema-2 references must not be structurally assignable to schema 1,
-// even when the source is already typed (not a fresh object literal).
-const typedV2Reference: import("@0xbuff/assay").Expected<string, 2> = {
+// @ts-expect-error the retired version-specific generic is absent
+type RemovedLegacyReference = import("@0xbuff/assay").Expected<string, 1>;
+// @ts-expect-error old digest-profile export is absent
+import { ASSAY_DEFINITION_DIGEST_VERSION } from "@0xbuff/assay";
+void ASSAY_DEFINITION_DIGEST_VERSION;
+const currentReference: import("@0xbuff/assay").Expected<string> = {
   type: "reference",
   referenceId: "secret",
   referenceDigest: "sha256:" + "a".repeat(64),
 };
-// @ts-expect-error schema 1 cannot contain a schema-2 reference digest
-const rejectedV1Reference: import("@0xbuff/assay").Expected<string, 1> = typedV2Reference;
-const typedV1Reference: import("@0xbuff/assay").Expected<string, 1> = {
-  type: "reference",
-  referenceId: "secret",
-};
-// @ts-expect-error schema 2 requires a digest even for a previously typed reference
-const rejectedV2Reference: import("@0xbuff/assay").Expected<string, 2> = typedV1Reference;
-void rejectedV1Reference;
-void rejectedV2Reference;
-
+void currentReference;
  // @ts-expect-error schema 1 is not a sealed evidence bundle
 const legacyEvidence: EvidenceBundle = { schemaVersion: 1, definition: evidence.definition, observations: [] };
 // @ts-expect-error evidence digest is mandatory
-const unsealedEvidence: EvidenceBundle = { schemaVersion: 2, definition: evidence.definition, observations: [] };
+const unsealedEvidence: EvidenceBundle = { schemaVersion: 3, definition: evidence.definition, observations: [] };
 // @ts-expect-error independent origins cannot claim an artifact digest
 const mixedOrigin: ObservationOrigin = { kind: "independent", sourceRef: "fixture", artifactDigest: "sha256:" + "a".repeat(64) };
 // @ts-expect-error artifact-derived origins require an artifact digest
@@ -347,7 +340,7 @@ if ("findings" in result) {
   void incompatiblePair;
 }
 
-const newCriteria: readonly Criterion<2>[] = [
+const newCriteria: readonly Criterion[] = [
   { id: "bool", mode: "required", visibility: "public", kind: "boolean_equality", parameters: { expected: { type: "literal", value: false } } },
   { id: "range", mode: "required", visibility: "public", kind: "number_range", parameters: { expected: { type: "literal", value: { min: 0, max: 1, minInclusive: true, maxInclusive: false } } } },
   { id: "json", mode: "required", visibility: "public", kind: "json_equality", parameters: { expected: { type: "literal", value: { nested: [null, false] } } } },
@@ -359,7 +352,7 @@ void newCriteria;
 void jsonValue;
 void legacyComparator;
 
-const selected: Criterion<2> = {
+const selected: Criterion = {
   id: "out", mode: "required", visibility: "public", kind: "exact_text",
   executionFact: "stdout", parameters: { expected: { type: "literal", value: "ok" } },
 };
@@ -379,15 +372,15 @@ void selectedFact;
 void missingRun;
 void wrongSelector;
 
-const selectedExit: Criterion<2> = {
+const selectedExit: Criterion = {
   id: "exit", mode: "required", visibility: "public", kind: "number_with_tolerance",
   executionFact: "exit_status", parameters: { expected: { type: "literal", value: 0 }, tolerance: { absolute: 0, relative: 0 } },
 };
-const selectedRange: Criterion<2> = {
+const selectedRange: Criterion = {
   id: "range-exit", mode: "required", visibility: "public", kind: "number_range",
   executionFact: "exit_status", parameters: { expected: { type: "literal", value: { min: 0, max: 1, minInclusive: true, maxInclusive: true } } },
 };
-const ordinaryQuantity: Criterion<2> = {
+const ordinaryQuantity: Criterion = {
   id: "quantity", mode: "required", visibility: "public", kind: "number_with_tolerance",
   parameters: { expected: { type: "literal", value: 0 }, tolerance: { absolute: 0, relative: 0 }, unit: "ms" },
 };
@@ -399,9 +392,9 @@ const selectedExitFact: import("@0xbuff/assay").Observation = {
   origin: { kind: "independent", sourceRef: "fixture", runRef: "run1", termination: "exited" },
 };
 // @ts-expect-error exit status cannot carry a unit
-const unitExit: Criterion<2> = { ...selectedExit, parameters: { ...selectedExit.parameters, unit: "ms" } };
+const unitExit: Criterion = { ...selectedExit, parameters: { ...selectedExit.parameters, unit: "ms" } };
 // @ts-expect-error an exit status range cannot carry a unit either
-const unitRange: Criterion<2> = { ...selectedRange, parameters: { ...selectedRange.parameters, unit: "ms" } };
+const unitRange: Criterion = { ...selectedRange, parameters: { ...selectedRange.parameters, unit: "ms" } };
 // @ts-expect-error selected exit observations cannot carry a unit
 const unitExitFact: import("@0xbuff/assay").Observation = { ...selectedExitFact, unit: "ms" };
 // @ts-expect-error termination requires a run reference
@@ -443,7 +436,7 @@ const invalidSignal: ObservationAbortSignal = { aborted: false };
 void invalidSignal;
 
 const reportEnvelope = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   definition: evidence.definition,
   provenance: {
     adapterId: "fixture", adapterVersion: "v1", runRef: "run1",

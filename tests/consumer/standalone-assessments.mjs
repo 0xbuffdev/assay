@@ -21,14 +21,31 @@ function unwrap(result) {
   return result.value;
 }
 
+function allComposition(criteria) {
+  return {
+    rootGroupId: "fixture-root",
+    groups: [
+      {
+        id: "fixture-root",
+        operator: "all",
+        children: criteria.filter((criterion) => criterion.mode === "required").map((criterion) => ({
+          kind: "criterion",
+          id: criterion.id,
+        })),
+      },
+    ],
+  };
+}
+
 function seal(assessmentId, criteria) {
   return unwrap(
     createAssessmentDefinition({
-      schemaVersion: 2,
+      schemaVersion: 3,
       assessmentId,
       revision: "rev1",
-      policyVersion: "all-required-v1",
+      policyVersion: "composed-required-v1",
       criteria,
+      composition: allComposition(criteria),
     }),
   );
 }
@@ -55,7 +72,7 @@ function fact(criterionId, kind, value, extra = {}) {
 function evidence(definition, observations, artifactDigest) {
   return unwrap(
     createEvidenceBundle(definition, {
-      schemaVersion: 2,
+      schemaVersion: 3,
       observations,
       ...(artifactDigest === undefined ? {} : { artifactDigest }),
     }),
@@ -69,7 +86,7 @@ function decoded(record) {
 function complete(definition, observed, references, outcome, findings) {
   const result = evaluate(definition, observed, references);
   assert.equal(result.outcome, outcome);
-  assert.equal(result.schemaVersion, 2);
+  assert.equal(result.schemaVersion, 3);
   assert.equal(result.evaluator.version, ASSAY_EVALUATOR_VERSION);
   assert.equal(result.evidenceDigest, observed.evidenceDigest);
   assert.deepEqual(result.definition, { ...observed.definition });
@@ -98,7 +115,7 @@ function publicView(definition, result, outcome, findings) {
   const projection = projectPublicResult(definition, result);
   assert.deepEqual(projection, {
     ok: true,
-    value: { schemaVersion: 1, outcome, findings },
+    value: { schemaVersion: 3, outcome, findings },
   });
   return JSON.stringify(projection);
 }
@@ -156,7 +173,7 @@ publicView(calibration, missingSensor, "inconclusive", [
   publicFinding("status", "inconclusive", "missing_evidence"),
 ]);
 const wrongUnit = createEvidenceBundle(calibration, {
-  schemaVersion: 2,
+  schemaVersion: 3,
   observations: [{ ...sensorFacts[0], unit: "V" }, sensorFacts[1]],
 });
 assert.equal(wrongUnit.ok, false);
@@ -180,7 +197,7 @@ const protectedExpected = {
 };
 const reference = unwrap(
   createReferenceRecord({
-    schemaVersion: 2,
+    schemaVersion: 3,
     referenceId: hiddenRef,
     kind: "json",
     value: protectedExpected,
@@ -235,7 +252,7 @@ function initial(value = protectedExpected) {
 
 const starting = initial();
 const references = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   definition: starting.definition,
   references: [reference],
 };
@@ -280,7 +297,7 @@ function mockReport(
   assert.ok(!requestBytes.includes("expected"));
   assert.ok(!requestBytes.includes(JSON.stringify(publicOutput)));
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     definition: request.definition,
     artifactDigest: request.artifactDigest,
     termination: "exited",
