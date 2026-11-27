@@ -289,8 +289,15 @@ describe("AY-I06 versioned canonical definition integrity", () => {
       { ...observed(good.revisionDigest), observations: [] },
       port,
     );
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.outcome).toBe("invalid_definition");
+    expect(result).toEqual({
+      ok: false,
+      outcome: "invalid_definition",
+      diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
+    });
+    const ownKeys = vi.fn(() => []);
+    const hostileEvidence = new Proxy({}, { ownKeys });
+    expect(await collectObservations(poisoned, hostileEvidence, port)).toEqual(result);
+    expect(ownKeys).not.toHaveBeenCalled();
     expect(port.observe).not.toHaveBeenCalled();
   });
 

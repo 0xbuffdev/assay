@@ -11,10 +11,8 @@ assert.deepEqual(
   [
     "ASSAY_DEFINITION_DIGEST_VERSION",
     "ASSAY_EVALUATOR_VERSION",
-    "collectVerifiedObservations",
     "computeDefinitionDigest",
     "createAssessmentDefinition",
-    "evaluateVerified",
     "verifyAssessmentDefinition",
     "parseAssessmentDefinitionDraft",
     "ASSAY_SCHEMA_VERSION",
@@ -74,12 +72,10 @@ assert.equal(
   "AY-I03 must validate port reports",
 );
 
-const digest = `sha256:${"a".repeat(64)}`;
-const inspected = entry.parseAssessmentDefinition({
+const sealed = entry.createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "pack-test",
   revision: "rev1",
-  revisionDigest: digest,
   policyVersion: "policy1",
   criteria: [
     {
@@ -91,24 +87,12 @@ const inspected = entry.parseAssessmentDefinition({
     },
   ],
 });
-assert.equal(inspected.ok, true, "The emitted ESM entry must validate a real definition");
+assert.equal(sealed.ok, true, "The emitted ESM entry must seal a real definition");
+const definition = sealed.value;
+const digest = definition.revisionDigest;
+assert.equal(entry.parseAssessmentDefinition(definition).ok, true);
 const observed = entry.evaluate(
-  {
-    schemaVersion: 1,
-    assessmentId: "pack-test",
-    revision: "rev1",
-    revisionDigest: digest,
-    policyVersion: "policy1",
-    criteria: [
-      {
-        id: "objective",
-        mode: "required",
-        visibility: "public",
-        kind: "exact_text",
-        parameters: { expected: { type: "literal", value: "ok" } },
-      },
-    ],
-  },
+  definition,
   {
     schemaVersion: 1,
     definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
@@ -125,28 +109,18 @@ const observed = entry.evaluate(
 );
 assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
 assert.equal(observed.findings[0].reasonCode, "MATCH");
+const tampered = { ...definition, policyVersion: "changed" };
+assert.deepEqual(entry.evaluate(tampered, {}), {
+  outcome: "invalid_definition",
+  diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
+});
 assert.equal(
   entry.parseEvaluationResult(observed).ok,
   true,
   "Output must match its public contract",
 );
 const pending = entry.collectObservations(
-  {
-    schemaVersion: 1,
-    assessmentId: "pack-test",
-    revision: "rev1",
-    revisionDigest: digest,
-    policyVersion: "policy1",
-    criteria: [
-      {
-        id: "objective",
-        mode: "required",
-        visibility: "public",
-        kind: "exact_text",
-        parameters: { expected: { type: "literal", value: "ok" } },
-      },
-    ],
-  },
+  definition,
   {
     schemaVersion: 1,
     definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
@@ -183,22 +157,7 @@ const collected = await pending;
 assert.equal(collected.ok, true, "Emitted ESM must accept the optional port");
 assert.equal(
   entry.evaluate(
-    {
-      schemaVersion: 1,
-      assessmentId: "pack-test",
-      revision: "rev1",
-      revisionDigest: digest,
-      policyVersion: "policy1",
-      criteria: [
-        {
-          id: "objective",
-          mode: "required",
-          visibility: "public",
-          kind: "exact_text",
-          parameters: { expected: { type: "literal", value: "ok" } },
-        },
-      ],
-    },
+    definition,
     collected.evidence,
   ).outcome,
   "pass",

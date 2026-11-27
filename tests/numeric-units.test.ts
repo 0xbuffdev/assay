@@ -8,7 +8,6 @@ import {
   type ObservationPort,
   parseEvidenceBundle,
 } from "../src/index";
-
 import { referenceOf, sealDefinition } from "./fixtures/contracts";
 
 function definition(unit?: string): AssessmentDefinition {
@@ -154,7 +153,11 @@ describe("AY-I05 numeric evidence unit integrity", () => {
   });
 
   it("does not normalize or automatically convert units", () => {
-    expect(evaluate(definition("cm"), evidence("m", definition("cm"))).outcome).toBe("invalid_evidence");
-    expect(evaluate(definition("m"), evidence("M", definition("m"))).outcome).toBe("invalid_evidence");
+    expect(evaluate(definition("cm"), evidence("m", definition("cm"))).outcome).toBe(
+      "invalid_evidence",
+    );
+    expect(evaluate(definition("m"), evidence("M", definition("m"))).outcome).toBe(
+      "invalid_evidence",
+    );
   });
 });

@@ -183,7 +183,9 @@ describe("AY-I03 optional injected observation port", () => {
       });
     });
     const collected = successful(
-      await collectObservations(requestedDefinition, evidence(requestedDefinition), { observe: seen }),
+      await collectObservations(requestedDefinition, evidence(requestedDefinition), {
+        observe: seen,
+      }),
     );
     const outcome = evaluate(requestedDefinition, collected.evidence);
     expect(outcome.outcome).toBe("inconclusive");
@@ -203,7 +205,9 @@ describe("AY-I03 optional injected observation port", () => {
     const observe = vi.fn(async () => {
       throw new Error("SHOULD_NOT_RUN");
     });
-    const response = successful(await collectObservations(configured, evidence(configured), { observe }));
+    const response = successful(
+      await collectObservations(configured, evidence(configured), { observe }),
+    );
     expect(observe).not.toHaveBeenCalled();
     expect(response.receipt).toBeNull();
     expect(response.evidence.observations).toEqual([]);
