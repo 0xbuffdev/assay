@@ -1,6 +1,6 @@
-import type { SCHEMA_VERSION } from "./version";
 import type { JsonValue, NumericRange } from "./common";
 import type { DefinitionReference } from "./definition";
+import type { SCHEMA_VERSION } from "./version";
 
 type ReferenceValue =
   | Readonly<{ kind: "text"; value: string }>

@@ -49,10 +49,7 @@ function numericOverflow(
 
 // Check facts about the record that are knowable without replaying evidence.
 // The current evaluator emits one evidence ref per observed criterion.
-function coherentFinding(
-  criterion: Criterion,
-  finding: CriterionFinding,
-): boolean {
+function coherentFinding(criterion: Criterion, finding: CriterionFinding): boolean {
   if (finding.reasonCode === "EVIDENCE_MISSING") return finding.evidenceRefs.length === 0;
   if (finding.evidenceRefs.length !== 1) return false;
 

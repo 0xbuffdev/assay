@@ -1,4 +1,3 @@
-import type { SCHEMA_VERSION } from "./version";
 import type {
   Completeness,
   ExecutionFactFor,
@@ -8,6 +7,7 @@ import type {
   SetScalar,
 } from "./common";
 import type { DefinitionReference } from "./definition";
+import type { SCHEMA_VERSION } from "./version";
 
 export type ObservationBase = Readonly<{
   criterionId: string;

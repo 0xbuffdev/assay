@@ -1,5 +1,4 @@
 import type { ReferenceRecord } from "../contracts/reference";
-import { SCHEMA_VERSION } from "../contracts/version";
 import {
   ASSAY_EVALUATOR_ID,
   ASSAY_EVALUATOR_VERSION,
@@ -7,6 +6,7 @@ import {
   type EvaluationFailure,
   type EvaluationResponse,
 } from "../contracts/result";
+import { SCHEMA_VERSION } from "../contracts/version";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { verifyEvidenceForDefinition } from "../integrity/evidence";
 import { verifyReferencesForDefinition } from "../integrity/reference";

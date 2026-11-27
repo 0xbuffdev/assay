@@ -44,7 +44,12 @@ assert.deepEqual(entry.decodeSerializedRecord('{"x":1,"x":2}'), {
 const golden = entry.createAssessmentDefinition({
   schemaVersion: 3,
   assessmentId: "vector",
-  composition: { rootGroupId: "fixture-root", groups: [{ id: "fixture-root", operator: "all", children: [{ kind: "criterion", id: "output" }] }] },
+  composition: {
+    rootGroupId: "fixture-root",
+    groups: [
+      { id: "fixture-root", operator: "all", children: [{ kind: "criterion", id: "output" }] },
+    ],
+  },
   revision: "rev1",
   policyVersion: "composed-required-v1",
   criteria: [
@@ -88,7 +93,12 @@ assert.equal(
 const sealed = entry.createAssessmentDefinition({
   schemaVersion: 3,
   assessmentId: "pack-test",
-  composition: { rootGroupId: "fixture-root", groups: [{ id: "fixture-root", operator: "all", children: [{ kind: "criterion", id: "objective" }] }] },
+  composition: {
+    rootGroupId: "fixture-root",
+    groups: [
+      { id: "fixture-root", operator: "all", children: [{ kind: "criterion", id: "objective" }] },
+    ],
+  },
   revision: "rev1",
   policyVersion: "composed-required-v1",
   criteria: [

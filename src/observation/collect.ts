@@ -1,5 +1,4 @@
 import { CONTRACT_LIMITS, captureTruncated } from "../contracts/common";
-import { SCHEMA_VERSION } from "../contracts/version";
 import type { AssessmentDefinition } from "../contracts/definition";
 import type { EvidenceBundle } from "../contracts/evidence";
 import type {
@@ -12,6 +11,7 @@ import type {
   ObservationPortRequest,
 } from "../contracts/observation";
 import type { DiagnosticCode } from "../contracts/validation";
+import { SCHEMA_VERSION } from "../contracts/version";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { createEvidenceBundle, verifyEvidenceForDefinition } from "../integrity/evidence";
 import { validateEmptyReportOrigin } from "../validation/evidence";

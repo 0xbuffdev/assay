@@ -1,8 +1,8 @@
-import type { SCHEMA_VERSION } from "./version";
 import type { ExecutionFactFor, ExecutionTermination, SetItemType } from "./common";
 import type { DefinitionReference } from "./definition";
 import type { EvidenceBundle, ObservationFact, ObservationPortProvenance } from "./evidence";
 import type { ValidationDiagnostic } from "./validation";
+import type { SCHEMA_VERSION } from "./version";
 
 /**
  * The requested facts contain no reference answers, hidden test definitions,
