@@ -572,12 +572,13 @@ describe("AY-I19 cooperative cancellation", () => {
       expect(signal).toBe(controller.signal);
       return pending;
     });
+    const nativePort: ObservationPort<AbortSignal> = { observe };
     const before = evidence();
     const remove = vi.spyOn(controller.signal, "removeEventListener");
     const collection = collectObservations(
       definition(),
       before,
-      { observe },
+      nativePort,
       {
         signal: controller.signal,
       },

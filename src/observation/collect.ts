@@ -2,6 +2,7 @@ import { CONTRACT_LIMITS, captureTruncated } from "../contracts/common";
 import type { AssessmentDefinition } from "../contracts/definition";
 import type { EvidenceBundle } from "../contracts/evidence";
 import type {
+  ObservationAbortSignal,
   ObservationCollectionOptions,
   ObservationCollectionResult,
   ObservationPort,
@@ -62,10 +63,10 @@ function acquisitionFailure(reasonCode: PortFailure["reasonCode"]): PortFailure 
 
 type Acquisition = Readonly<{ ok: true; report: unknown }> | PortFailure;
 
-function acquire(
-  port: ObservationPort,
+function acquire<S extends ObservationAbortSignal>(
+  port: ObservationPort<S>,
   request: ObservationPortRequest,
-  signal: AbortSignal | undefined,
+  signal: S | undefined,
 ): Promise<Acquisition> {
   return new Promise((resolve) => {
     let settled = false;
@@ -129,11 +130,11 @@ function sameDefinition(
  * snippet or restricted criterion is sent. The port cannot overwrite existing
  * observations or supply unsolicited observations.
  */
-export async function collectObservations(
+export async function collectObservations<S extends ObservationAbortSignal>(
   definitionInput: unknown,
   evidenceInput: unknown,
-  port: ObservationPort,
-  options: ObservationCollectionOptions = {},
+  port: ObservationPort<S>,
+  options: ObservationCollectionOptions<S> = {},
 ): Promise<ObservationCollectionResult> {
   const checkedDefinition = verifyAssessmentDefinition(definitionInput);
   if (!checkedDefinition.ok) return error("invalid_definition", checkedDefinition.diagnostics);

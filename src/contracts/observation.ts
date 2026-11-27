@@ -38,8 +38,19 @@ type ReportFact =
       Readonly<{ executionFact?: never; origin?: never }>)
   | SelectedReportFact;
 
-export interface ObservationCollectionOptions {
-  readonly signal?: AbortSignal;
+/** Structural cancellation surface, compatible with native AbortSignal.
+ * No ambient DOM or Node declarations are required by the installed package.
+ */
+export interface ObservationAbortSignal {
+  readonly aborted: boolean;
+  addEventListener(type: "abort", listener: () => void, options?: { once?: boolean }): void;
+  removeEventListener(type: "abort", listener: () => void): void;
+}
+
+export interface ObservationCollectionOptions<
+  S extends ObservationAbortSignal = ObservationAbortSignal,
+> {
+  readonly signal?: S;
 }
 
 export interface ObservationPortRequest {
@@ -55,8 +66,8 @@ export interface ObservationPortRequest {
  * runner, test fixture or no execution at all. Calling this port does NOT
  * establish its authenticity or confer credential/grade authority.
  */
-export interface ObservationPort {
-  observe(request: ObservationPortRequest, signal?: AbortSignal): Promise<unknown>;
+export interface ObservationPort<S extends ObservationAbortSignal = ObservationAbortSignal> {
+  observe(request: ObservationPortRequest, signal?: S): Promise<unknown>;
 }
 
 export interface ObservationPortReport {

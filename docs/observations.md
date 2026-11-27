@@ -123,7 +123,7 @@ hash or proof of publisher identity.
 
 ## Contracts and limits
 
-`ObservationPort.observe(request: ObservationPortRequest, signal?: AbortSignal): Promise<unknown>`
+`ObservationPort<S>.observe(request: ObservationPortRequest, signal?: S): Promise<unknown>`
 is supplied **only** by the host. Its request is immutable and includes:
 
 - `schemaVersion: 2`, `definition` ID/revision/digest, optional caller
@@ -238,7 +238,12 @@ supplied. Unselected reports may omit termination.
 
 Supply a host-owned signal as the fourth argument:
 `collectObservations(definition, startingEvidence, port, { signal })`.
-The same signal is passed as the second argument to the provider. Verified
+The same native signal is passed as the second argument to the provider, without wrapping.
+The exported structural `ObservationAbortSignal` type requires only the abort flag
+and listener methods, so the installed declarations remain usable without Node
+or DOM ambient types. Hosts needing the full native signal API can declare
+`ObservationPort<AbortSignal>`; the collector preserves that signal type.
+Verified
 inputs are checked before cancellation; a valid pre-aborted operation never
 invokes the port. Pending abort settles the collector, removes its listener,
 ignores late resolution and consumes late rejection. No retries or default
