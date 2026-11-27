@@ -3,8 +3,8 @@ import {
   ASSAY_EVALUATOR_ID,
   ASSAY_EVALUATOR_VERSION,
   type EvaluationResult,
+  FINDING_REASONS,
   type FindingOutcome,
-  type ReasonCode,
 } from "../contracts/result";
 import type { ValidationResult } from "../contracts/validation";
 import { choice, definitionRef, digest, finish, identifier, list, object, unique } from "./shared";
@@ -87,12 +87,10 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
       )
         continue;
       identifier(finding.criterionId, `${p}.criterionId`, issues);
-      if (
-        choice(finding.outcome, ["pass", "fail", "inconclusive", "error"], `${p}.outcome`, issues)
-      ) {
+      if (choice(finding.outcome, Object.keys(FINDING_REASONS), `${p}.outcome`, issues)) {
         choice(
           finding.reasonCode,
-          reasons[finding.outcome as FindingOutcome],
+          FINDING_REASONS[finding.outcome as FindingOutcome],
           `${p}.reasonCode`,
           issues,
         );
@@ -111,18 +109,3 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
     unique(ids, "$.findings", issues);
   });
 }
-
-const reasons: Readonly<Record<FindingOutcome, readonly ReasonCode[]>> = {
-  pass: ["MATCH"],
-  fail: ["VALUE_MISMATCH"],
-  inconclusive: [
-    "REFERENCE_UNAVAILABLE",
-    "EVIDENCE_MISSING",
-    "EVIDENCE_TRUNCATED",
-    "ASSERTION_INCOMPLETE",
-    "EXECUTION_UNVERIFIED",
-    "ARTIFACT_MISSING",
-    "REVIEW_REQUIRED",
-  ],
-  error: ["COMPARATOR_ERROR", "NUMERIC_OVERFLOW"],
-};

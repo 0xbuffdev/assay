@@ -168,6 +168,8 @@ evaluator identity and warnings. Only `all-required-v1` is supported, and
 complete records cannot carry invalid-input outcomes. The built-in
 `ReasonCode` and `WarningCode` unions are closed; finding outcomes must match
 their reasons, and evaluator identity/version must match the supported semantics.
+A single internal outcome-to-reason mapping defines the derived TypeScript
+unions, correlated finding and comparison types, and parser membership checks.
 An empty finding list or duplicate warning is invalid.
 It is **structural validation, not attestation**:
 parsing a caller-supplied `"pass"` is not verification of correctness or

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import { finding } from "../src/evaluation/comparators/finding";
 import {
   ASSAY_SCHEMA_VERSION,
   CONTRACT_LIMITS,
@@ -474,6 +475,23 @@ describe("AY-I01 typed findings", () => {
 });
 
 describe("AY-I16 closed result and policy contracts", () => {
+  it("correlates outcome and reason at the comparison constructor", () => {
+    type ConstructorInput = Parameters<typeof finding>[0];
+    type Match = { outcome: "pass"; reasonCode: "MATCH" };
+    type InvalidPair = { outcome: "pass"; reasonCode: "NUMERIC_OVERFLOW" };
+    type UncorrelatedPair = {
+      outcome: "pass" | "error";
+      reasonCode: "MATCH" | "NUMERIC_OVERFLOW";
+    };
+    expectTypeOf<Match>().toMatchTypeOf<ConstructorInput>();
+    expectTypeOf<InvalidPair>().not.toMatchTypeOf<ConstructorInput>();
+    expectTypeOf<UncorrelatedPair>().not.toMatchTypeOf<ConstructorInput>();
+    expect(finding({ outcome: "error", reasonCode: "NUMERIC_OVERFLOW" })).toEqual({
+      outcome: "error",
+      reasonCode: "NUMERIC_OVERFLOW",
+    });
+  });
+
   it("rejects invalid-input envelopes and invalid outcomes on complete records", () => {
     for (const outcome of ["invalid_definition", "invalid_evidence", "invalid_reference"]) {
       expect(parseEvaluationResult({ outcome, diagnostics: [] }).ok).toBe(false);

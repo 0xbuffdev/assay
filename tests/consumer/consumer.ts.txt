@@ -314,3 +314,16 @@ void invalidComplete;
 void invalidReason;
 void invalidWarning;
 void invalidPolicy;
+
+if ("findings" in result) {
+  const acceptedPair: import("@0xbuff/assay").CriterionFinding = {
+    ...result.findings[0], outcome: "pass", reasonCode: "MATCH",
+  };
+  // @ts-expect-error a numeric overflow cannot be a passing finding
+  const incompatiblePair: import("@0xbuff/assay").CriterionFinding = { ...acceptedPair, reasonCode: "NUMERIC_OVERFLOW" };
+  if (acceptedPair.outcome === "pass") {
+    const match: "MATCH" = acceptedPair.reasonCode;
+    void match;
+  }
+  void incompatiblePair;
+}

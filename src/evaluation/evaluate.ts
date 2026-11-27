@@ -79,15 +79,14 @@ export function evaluate(
         comparison = compare(criterion, observation, references);
       } catch {
         // Never leak runtime exception text, submitted evidence or references.
-        comparison = finding("error", "COMPARATOR_ERROR");
+        comparison = finding({ outcome: "error", reasonCode: "COMPARATOR_ERROR" });
       }
     }
     comparisons.set(criterion.id, comparison);
     findings.push(
       Object.freeze({
         criterionId: criterion.id,
-        outcome: comparison.outcome,
-        reasonCode: comparison.reasonCode,
+        ...comparison,
         evidenceRefs: Object.freeze(observation ? [observation.evidenceRef] : []),
         evaluatorId: ASSAY_EVALUATOR_ID,
         evaluatorVersion: ASSAY_EVALUATOR_VERSION,
