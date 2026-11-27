@@ -1,6 +1,7 @@
 import type { AssessmentDefinition } from "../contracts/definition";
 import type { EvidenceBundle } from "../contracts/evidence";
 import type { ValidationResult } from "../contracts/validation";
+import { EVIDENCE_DOMAIN } from "../contracts/version";
 import { inspectValidatedCoverage } from "../validation/coverage";
 import { parseEvidenceBundle, parseEvidenceBundleDraft } from "../validation/evidence";
 import { Diagnostics } from "../validation/shared";
@@ -11,7 +12,7 @@ import { sha256 } from "./sha256";
 const encoder = new TextEncoder();
 
 function hashContent(content: Omit<EvidenceBundle, "evidenceDigest">): string {
-  return sha256(encoder.encode(`assay:evidence:v2\n${canonical(content)}`));
+  return sha256(encoder.encode(EVIDENCE_DOMAIN + canonical(content)));
 }
 
 /** Seal a bounded unsigned draft with lineage derived from a verified definition. */

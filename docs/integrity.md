@@ -338,3 +338,35 @@ Evidence (`assay:evidence:v2`):
 ```
 
 Digest: `sha256:c23760b6496a44fc6d185165ab7f8015f60b47a15b7a6c78bc8358ddb1bb9d27`.
+
+## Version compatibility (AY-I22)
+
+| Identity | Supported values | Purpose |
+| --- | --- | --- |
+| Package release | `0.0.0` (private) | Distribution, not comparison semantics |
+| Definition schema / domain | 1 / `assay:definition:v1`, 2 / `assay:definition:v2` | Authored contract and digest bytes |
+| Reference record / domain | 2 / `assay:reference:v2` | Expected content identity |
+| Evidence schema / domain | 2 / `assay:evidence:v2` | Observed content identity |
+| Reference bundle, observation report and technical result schema | 2 | Record shape |
+| Public projection schema | 1 | Public disclosure shape |
+| Evaluator semantics | `v0.0.3` | Comparison and technical result identity |
+| Decision policy | `all-required-v1` | Required aggregation |
+| Definition revision | Author-selected identifier plus digest | Exact authored criteria |
+
+All digest domains include one LF before canonical JSON. The existing
+`ASSAY_SCHEMA_VERSION` and `ASSAY_DEFINITION_DIGEST_VERSION` constants identify
+the historical schema-1 definition profile, not every record schema.
+The evaluator supports schema-1 literal definitions and schema-2 definitions;
+legacy unsigned evidence, unsupported schemas, policies and evaluator result
+versions are rejected, not silently upgraded. A new result-affecting change
+requires semantics-version review; changing hashed fields or bytes requires a
+new canonical profile. Re-author and reseal explicitly rather than relabeling
+historical bytes.
+
+The supported runtime is Node.js 24+ ESM. The quality matrix exercises Node 24
+on Ubuntu and Windows, including independent offline installed ESM and type
+consumers. No browser, edge, CommonJS or additional runtime compatibility is
+promised by the neutral bundle target. Runtime support requires actual
+independent packed-consumer evidence. The version vectors in
+`tests/consumer/version-vectors.mjs` pin canonical JSON, SHA-256 hashes and
+technical outcomes for evaluator `v0.0.3`, policy `all-required-v1`.

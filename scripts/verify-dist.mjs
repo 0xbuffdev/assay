@@ -5,6 +5,9 @@ for (const output of ["dist/index.js", "dist/index.d.ts"]) {
   assert.ok((await stat(new URL(`../${output}`, import.meta.url))).isFile(), `Missing ${output}`);
 }
 
+await import("./version-metadata.mjs");
+await import("../tests/consumer/version-vectors.mjs");
+
 const entry = await import("@0xbuff/assay");
 assert.deepEqual(
   Object.keys(entry).sort(),

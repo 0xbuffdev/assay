@@ -201,6 +201,9 @@ try {
     await readFile(path.join(installed, "package.json"), "utf8"),
   );
   assert.equal(installedManifest.name, "@0xbuff/assay");
+  assert.equal(installedManifest.version, manifest.version);
+  assert.equal(installedManifest.type, manifest.type);
+  assert.deepEqual(installedManifest.engines, manifest.engines);
   assert.equal(installedManifest.private, true);
   assert.equal(installedManifest.license, "Apache-2.0");
   assert.deepEqual(installedManifest.exports, manifest.exports);
@@ -234,6 +237,11 @@ try {
     await readFile(path.join(fixtureDir, "consumer.mjs"), "utf8"),
   );
   command(process.execPath, ["consumer.mjs"], consumerDir);
+  await writeFile(
+    path.join(consumerDir, "version-vectors.mjs"),
+    await readFile(path.join(fixtureDir, "version-vectors.mjs"), "utf8"),
+  );
+  command(process.execPath, ["version-vectors.mjs"], consumerDir);
 
   await writeFile(
     path.join(consumerDir, "consumer.ts"),

@@ -1,5 +1,6 @@
 import type { AssessmentDefinition, AssessmentDefinitionDraft } from "../contracts/definition";
 import type { ValidationResult } from "../contracts/validation";
+import { DEFINITION_DOMAINS } from "../contracts/version";
 import {
   parseAssessmentDefinition,
   parseAssessmentDefinitionDraft,
@@ -16,14 +17,10 @@ import { sha256 } from "./sha256";
  */
 /** Historical schema-1 profile; schema-2 definitions use v2. */
 export const ASSAY_DEFINITION_DIGEST_VERSION = "v1" as const;
-const DOMAINS = {
-  1: "assay:definition:v1\n",
-  2: "assay:definition:v2\n",
-} as const;
 const encoder = new TextEncoder();
 
 function hashDraft(draft: AssessmentDefinitionDraft): string {
-  return sha256(encoder.encode(DOMAINS[draft.schemaVersion] + canonical(draft)));
+  return sha256(encoder.encode(DEFINITION_DOMAINS[draft.schemaVersion] + canonical(draft)));
 }
 
 /** Calculate a versioned content hash from a validated unsigned definition. */
