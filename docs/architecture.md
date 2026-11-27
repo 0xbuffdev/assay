@@ -99,3 +99,10 @@ No compatibility promise, execution engine or private host API is created by thi
 AY-I16 closes the result, reason, warning and binding policy contracts. Definition
 validation admits only `all-required-v1`. Evaluation and projection share required
 aggregation and advisory warning semantics; public disclosure remains unchanged.
+
+AY-I17 extends the schema-2 objective kinds with boolean equality, finite
+numeric ranges and bounded structured JSON equality. The existing validated
+reference, evidence and coverage boundaries govern all new facts. Pure
+comparators reuse the existing reason taxonomy, aggregation and disclosure.
+The collector requests only public fact kinds and optional numeric units;
+expected range endpoints and structured values are never sent to the port.

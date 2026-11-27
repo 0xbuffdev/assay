@@ -48,10 +48,12 @@ export function inspectValidatedCoverage(
     const matchingKind =
       ((criterion.kind === "exact_text" || criterion.kind === "normalized_text") &&
         observation.kind === "text") ||
-      (criterion.kind === "number_with_tolerance" &&
+      ((criterion.kind === "number_with_tolerance" || criterion.kind === "number_range") &&
         observation.kind === "number" &&
         // Absent units are valid only when both sides deliberately omit them.
         criterion.parameters.unit === observation.unit) ||
+      (criterion.kind === "boolean_equality" && observation.kind === "boolean") ||
+      (criterion.kind === "json_equality" && observation.kind === "json") ||
       (criterion.kind === "set_equivalence" &&
         observation.kind === "set" &&
         criterion.parameters.itemType === observation.itemType) ||
@@ -59,7 +61,7 @@ export function inspectValidatedCoverage(
       (criterion.kind === "manual_evidence" && observation.kind === "manual");
     if (!matchingKind) {
       if (
-        criterion.kind === "number_with_tolerance" &&
+        (criterion.kind === "number_with_tolerance" || criterion.kind === "number_range") &&
         observation.kind === "number" &&
         criterion.parameters.unit !== observation.unit
       ) {

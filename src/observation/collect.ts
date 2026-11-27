@@ -21,6 +21,11 @@ function requestedKind(
     case "exact_text":
     case "normalized_text":
       return "text";
+    case "boolean_equality":
+      return "boolean";
+    case "json_equality":
+      return "json";
+    case "number_range":
     case "number_with_tolerance":
       return "number";
     case "set_equivalence":
@@ -90,7 +95,8 @@ export async function collectObservations(
     const requested: ObservationPortCriterion = Object.freeze({
       criterionId: criterion.id,
       kind,
-      ...(criterion.kind === "number_with_tolerance" && criterion.parameters.unit !== undefined
+      ...((criterion.kind === "number_with_tolerance" || criterion.kind === "number_range") &&
+      criterion.parameters.unit !== undefined
         ? { unit: criterion.parameters.unit }
         : {}),
       ...(criterion.kind === "observed_execution"

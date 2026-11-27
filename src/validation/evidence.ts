@@ -2,6 +2,7 @@ import { CONTRACT_LIMITS } from "../contracts/common";
 import type { EvidenceBundle, EvidenceBundleDraft } from "../contracts/evidence";
 import type { ValidationResult } from "../contracts/validation";
 import {
+  booleanValue,
   choice,
   type Diagnostics,
   definitionRef,
@@ -131,6 +132,15 @@ export function validateObservations(
         issues,
       );
       textValue(obs.value, `${p}.value`, issues);
+    } else if (obs.kind === "boolean" || obs.kind === "json") {
+      object(
+        obs,
+        p,
+        ["criterionId", "evidenceRef", "completeness", "kind", "value", "origin"],
+        ["criterionId", "evidenceRef", "completeness", "kind", "value"],
+        issues,
+      );
+      if (obs.kind === "boolean") booleanValue(obs.value, `${p}.value`, issues);
     } else if (obs.kind === "number") {
       object(
         obs,

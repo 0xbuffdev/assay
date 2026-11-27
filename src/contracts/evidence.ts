@@ -1,4 +1,4 @@
-import type { Completeness, SetItemType, SetScalar } from "./common";
+import type { Completeness, JsonValue, SetItemType, SetScalar } from "./common";
 import type { DefinitionReference } from "./definition";
 
 export type ObservationBase = Readonly<{
@@ -9,6 +9,8 @@ export type ObservationBase = Readonly<{
 
 export type ObservationFact =
   | (ObservationBase & Readonly<{ kind: "text"; value: string }>)
+  | (ObservationBase & Readonly<{ kind: "boolean"; value: boolean }>)
+  | (ObservationBase & Readonly<{ kind: "json"; value: JsonValue }>)
   | (ObservationBase &
       Readonly<{
         kind: "number";

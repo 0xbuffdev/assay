@@ -1,4 +1,4 @@
-import type { SetItemType, SetScalar } from "./common";
+import type { JsonValue, NumericRange, SetItemType, SetScalar } from "./common";
 
 export type DefinitionSchemaVersion = 1 | 2;
 
@@ -58,6 +58,7 @@ export type Criterion<V extends DefinitionSchemaVersion = DefinitionSchemaVersio
           duplicates: "ignore" | "respect";
         }>;
       }>)
+  | (V extends 2 ? AdditionalObjectiveCriterion : never)
   | (CriterionBase &
       Readonly<{
         kind: "observed_execution";
@@ -93,3 +94,20 @@ export type DefinitionReference = Readonly<{
   revision: string;
   revisionDigest: string;
 }>;
+
+type AdditionalObjectiveCriterion =
+  | (CriterionBase &
+      Readonly<{
+        kind: "boolean_equality";
+        parameters: Readonly<{ expected: Expected<boolean, 2> }>;
+      }>)
+  | (CriterionBase &
+      Readonly<{
+        kind: "number_range";
+        parameters: Readonly<{ expected: Expected<NumericRange, 2>; unit?: string }>;
+      }>)
+  | (CriterionBase &
+      Readonly<{
+        kind: "json_equality";
+        parameters: Readonly<{ expected: Expected<JsonValue, 2> }>;
+      }>);

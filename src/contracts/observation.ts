@@ -6,7 +6,7 @@ import type { ValidationDiagnostic } from "./validation";
  * The requested facts contain no reference answers, hidden test definitions,
  * grader source, executable commands or untrusted callbacks.
  */
-export type ObservationPortKind = "text" | "number" | "set" | "execution";
+export type ObservationPortKind = "text" | "number" | "set" | "execution" | "boolean" | "json";
 export type ObservationPortCriterion = Readonly<{
   criterionId: string;
   kind: ObservationPortKind;

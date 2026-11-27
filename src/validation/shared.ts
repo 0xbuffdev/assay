@@ -39,6 +39,10 @@ const DIAGNOSTIC_PATH_FIELDS = new Set([
   "tolerance",
   "absolute",
   "relative",
+  "min",
+  "max",
+  "minInclusive",
+  "maxInclusive",
   "unit",
   "itemType",
   "order",
@@ -413,4 +417,25 @@ export function finish<T>(
   if (data === BAD) return issues.result(domain, undefined as T);
   check(data, issues);
   return issues.result(domain, data as T);
+}
+
+export function booleanValue(value: unknown, path: string, issues: Diagnostics): void {
+  if (typeof value !== "boolean") issues.add(path, "INVALID_TYPE");
+}
+
+export function rangeValue(value: unknown, path: string, issues: Diagnostics): void {
+  const fields = ["min", "max", "minInclusive", "maxInclusive"];
+  if (!object(value, path, fields, fields, issues)) return;
+  numberValue(value.min, `${path}.min`, issues);
+  numberValue(value.max, `${path}.max`, issues);
+  booleanValue(value.minInclusive, `${path}.minInclusive`, issues);
+  booleanValue(value.maxInclusive, `${path}.maxInclusive`, issues);
+  if (
+    typeof value.min === "number" &&
+    typeof value.max === "number" &&
+    (value.min > value.max ||
+      (value.min === value.max && (value.minInclusive !== true || value.maxInclusive !== true)))
+  ) {
+    issues.add(path, "INVALID_VALUE");
+  }
 }

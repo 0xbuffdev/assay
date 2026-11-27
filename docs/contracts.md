@@ -121,7 +121,7 @@ AY-I18 owns their replacement with typed execution facts. See
 
 `parseEvidenceBundle` accepts `schemaVersion: 2`, an assessment identity,
 a required evidenceDigest, an optional artifact digest, and observations tagged `text`, `number`,
-`set`, `execution` or `manual`. Each observation declares a criterion
+`set`, `boolean`, `json`, `execution` or `manual`. Each observation declares a criterion
 ID, unique evidence reference and completeness (`complete` or `truncated`).
 Use `createEvidenceBundle(definition, draft)` to derive definition lineage and
 seal content. A structural parse checks digest syntax, not integrity;
@@ -239,3 +239,10 @@ for unshipped versions.
 Run `pnpm check` to validate the frozen dependency tree, TypeScript, Biome,
 Vitest and the tsdown ESM/type-declaration build. No package release is
 authorized by this milestone.
+
+AY-I17 adds schema-2-only `boolean_equality`, `number_range`, and
+`json_equality` criteria, with matching typed observation/reference contracts.
+The shared snapshot bounds apply to the entire definition, reference bundle,
+or evidence bundle, including nested JSON values; prohibited keys, non-finite
+numbers, cycles and accessors are rejected. No raw JSON text parser is added.
+See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-2).

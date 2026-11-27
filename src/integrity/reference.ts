@@ -30,7 +30,16 @@ export function createReferenceRecord(input: unknown): ValidationResult<Referenc
 
 type ObjectiveCriterion = Extract<
   Criterion<2>,
-  { kind: "exact_text" | "normalized_text" | "number_with_tolerance" | "set_equivalence" }
+  {
+    kind:
+      | "exact_text"
+      | "normalized_text"
+      | "number_with_tolerance"
+      | "set_equivalence"
+      | "boolean_equality"
+      | "number_range"
+      | "json_equality";
+  }
 >;
 
 function matchesKind(criterion: ObjectiveCriterion, record: ReferenceRecord): boolean {
@@ -40,6 +49,12 @@ function matchesKind(criterion: ObjectiveCriterion, record: ReferenceRecord): bo
       return record.kind === "text";
     case "number_with_tolerance":
       return record.kind === "number" && criterion.parameters.unit === record.unit;
+    case "boolean_equality":
+      return record.kind === "boolean";
+    case "json_equality":
+      return record.kind === "json";
+    case "number_range":
+      return record.kind === "range" && criterion.parameters.unit === record.unit;
     case "set_equivalence":
       return record.kind === "set" && criterion.parameters.itemType === record.itemType;
   }

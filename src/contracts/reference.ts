@@ -1,7 +1,11 @@
+import type { JsonValue, NumericRange } from "./common";
 import type { DefinitionReference } from "./definition";
 
 type ReferenceValue =
   | Readonly<{ kind: "text"; value: string }>
+  | Readonly<{ kind: "boolean"; value: boolean }>
+  | Readonly<{ kind: "json"; value: JsonValue }>
+  | Readonly<{ kind: "range"; value: NumericRange; unit?: string }>
   | Readonly<{ kind: "number"; value: number; unit?: string }>
   | Readonly<{ kind: "set"; itemType: "string"; value: readonly string[] }>
   | Readonly<{ kind: "set"; itemType: "number"; value: readonly number[] }>

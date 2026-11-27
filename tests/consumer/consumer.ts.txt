@@ -327,3 +327,15 @@ if ("findings" in result) {
   }
   void incompatiblePair;
 }
+
+const newCriteria: readonly Criterion<2>[] = [
+  { id: "bool", mode: "required", visibility: "public", kind: "boolean_equality", parameters: { expected: { type: "literal", value: false } } },
+  { id: "range", mode: "required", visibility: "public", kind: "number_range", parameters: { expected: { type: "literal", value: { min: 0, max: 1, minInclusive: true, maxInclusive: false } } } },
+  { id: "json", mode: "required", visibility: "public", kind: "json_equality", parameters: { expected: { type: "literal", value: { nested: [null, false] } } } },
+];
+const jsonValue: import("@0xbuff/assay").JsonValue = { nested: [null, false] };
+// @ts-expect-error schema 1 does not admit new criterion kinds
+const legacyComparator: Criterion<1> = newCriteria[0];
+void newCriteria;
+void jsonValue;
+void legacyComparator;
