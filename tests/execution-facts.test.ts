@@ -10,7 +10,7 @@ import {
 } from "../src/index";
 
 const literal = (value: unknown) => ({ type: "literal", value });
-const criterion = (id: string, kind: string, executionFact: string, parameters: unknown) => ({
+const criterion = <P>(id: string, kind: string, executionFact: string, parameters: P) => ({
   id,
   kind,
   executionFact,
@@ -140,7 +140,7 @@ describe("typed execution facts", () => {
     ).toBe(false);
     expect(
       createAssessmentDefinition(
-        draft([{ ...exit, parameters: { ...(exit.parameters as object), unit: "m" } }]),
+        draft([{ ...exit, parameters: { ...exit.parameters, unit: "m" } }]),
       ).ok,
     ).toBe(false);
   });
@@ -283,8 +283,17 @@ describe("typed execution facts", () => {
       ],
     ] as const;
     for (const [check, observation, otherValue] of cases) {
-      const second = { ...check, id: "second", parameters: { ...check.parameters, expected: literal(otherValue) } };
-      const other = { ...observation, criterionId: "second", evidenceRef: "fact-second", value: otherValue };
+      const second = {
+        ...check,
+        id: "second",
+        parameters: { ...check.parameters, expected: literal(otherValue) },
+      };
+      const other = {
+        ...observation,
+        criterionId: "second",
+        evidenceRef: "fact-second",
+        value: otherValue,
+      };
       for (const observations of [[observation, other], [other, observation]]) {
         expect(run([check, second], observations).outcome).toBe("invalid_evidence");
       }
@@ -347,7 +356,16 @@ describe("typed execution facts", () => {
     expect(
       run(
         [exit, { ...exit, id: "second" }],
-        [status, { ...status, criterionId: "second", evidenceRef: "fact-second", completeness: "truncated", value: 1 }],
+        [
+          status,
+          {
+            ...status,
+            criterionId: "second",
+            evidenceRef: "fact-second",
+            completeness: "truncated",
+            value: 1,
+          },
+        ],
       ).outcome,
     ).toBe("inconclusive");
   });
