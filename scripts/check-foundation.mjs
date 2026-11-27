@@ -65,6 +65,7 @@ const sourcePaths = new Set([
   "src/integrity/sha256.ts",
   "src/observation/collect.ts",
   "src/projection/public.ts",
+  "src/validation/composition.ts",
   "src/validation/coverage.ts",
   "src/validation/definition.ts",
   "src/validation/evidence.ts",
