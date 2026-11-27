@@ -10,7 +10,13 @@ import {
   type ValidationResult,
   verifyEvidenceBundle,
 } from "../src/index";
-import { createAllDefinition, digestA, digestB, referenceOf, sealEvidenceFixture } from "./fixtures/contracts";
+import {
+  createAllDefinition,
+  digestA,
+  digestB,
+  referenceOf,
+  sealEvidenceFixture,
+} from "./fixtures/contracts";
 
 const expectedDigest = "sha256:06c8270cffe62153c69c77a9233044a7c97ceb5d8519142711f5f9dbddf9d301";
 const bytes =

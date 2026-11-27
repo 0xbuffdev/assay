@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 import {
   type AssessmentDefinition,
   type AssessmentDefinitionDraft,
-  createAssessmentDefinition,
   type CriterionComposition,
+  createAssessmentDefinition,
   type DefinitionReference,
   type EvaluationResult,
   type EvidenceBundle,
@@ -89,7 +89,11 @@ export function definition(): AssessmentDefinition {
         visibility: "restricted",
         kind: "normalized_text",
         parameters: {
-          expected: { type: "reference", referenceId: "reviewer-reference", referenceDigest: digestB },
+          expected: {
+            type: "reference",
+            referenceId: "reviewer-reference",
+            referenceDigest: digestB,
+          },
           normalization: {
             lineEndings: "lf",
             unicode: "NFC",

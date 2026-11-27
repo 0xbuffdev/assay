@@ -8,7 +8,8 @@ const literalVector =
   '{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}';
 const executionVector =
   '{"assessmentId":"execution","composition":{"groups":[{"children":[{"id":"out","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"executionFact":"stdout","id":"out","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"ok"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}';
-const referenceVector = '{"kind":"text","referenceId":"secret","schemaVersion":3,"value":"café\\n"}';
+const referenceVector =
+  '{"kind":"text","referenceId":"secret","schemaVersion":3,"value":"café\\n"}';
 const evidenceVector =
   '{"definition":{"assessmentId":"execution","revision":"rev1","revisionDigest":"sha256:4a14c1d05f85cfb9e78a1f0779702dc0cef28a1d084c0e475b21963b6764dc78"},"observations":[{"completeness":"complete","criterionId":"out","evidenceRef":"fact-out","executionFact":"stdout","kind":"text","origin":{"kind":"independent","runRef":"run1","sourceRef":"fixture","termination":"exited"},"value":"ok"}],"schemaVersion":3}';
 

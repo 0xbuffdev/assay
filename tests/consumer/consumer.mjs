@@ -247,10 +247,7 @@ assert.deepEqual(tamperedCollection, {
   diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
 });
 assert.equal(tamperedProviderCalled, false);
-assert.equal(
-  createAllDefinition({ ...unsigned, revisionDigest: sealed.revisionDigest }).ok,
-  false,
-);
+assert.equal(createAllDefinition({ ...unsigned, revisionDigest: sealed.revisionDigest }).ok, false);
 
 const exact = required("stdout", "exact_text", {
   expected: { type: "literal", value: "ok\n" },
@@ -661,14 +658,11 @@ assert.deepEqual(collected.receipt.evidenceRefs, ["stdout"]);
 assert.equal(collected.evidence.observations[0].origin.provenance.runRef, "mock-run");
 
 // AY-I16: the independent installed consumer rejects unsupported policies and results.
-assert.deepEqual(
-  createAllDefinition({ ...draft([exact]), policyVersion: "policy1" }),
-  {
-    ok: false,
-    domain: "invalid_definition",
-    diagnostics: [{ path: "$.policyVersion", code: "INVALID_VALUE" }],
-  },
-);
+assert.deepEqual(createAllDefinition({ ...draft([exact]), policyVersion: "policy1" }), {
+  ok: false,
+  domain: "invalid_definition",
+  diagnostics: [{ path: "$.policyVersion", code: "INVALID_VALUE" }],
+});
 assert.deepEqual(assay.evaluate({ ...sealed, policyVersion: "policy1" }, sealedEvidence), {
   outcome: "invalid_definition",
   diagnostics: [{ path: "$.policyVersion", code: "INVALID_VALUE" }],

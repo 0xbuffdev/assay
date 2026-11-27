@@ -359,10 +359,12 @@ describe("AY-I23 composition", () => {
     };
     const projections = [];
     for (const outcome of ["pass", "fail", "inconclusive"] as const) {
-      const evidence = unwrap(createEvidenceBundle(definition, {
-        schemaVersion: 3,
-        observations: [observation("first", "fail"), observation("hidden-canary", outcome)],
-      }));
+      const evidence = unwrap(
+        createEvidenceBundle(definition, {
+          schemaVersion: 3,
+          observations: [observation("first", "fail"), observation("hidden-canary", outcome)],
+        }),
+      );
       const result = evaluate(definition, evidence, refs);
       if (!("findings" in result)) throw new Error("Expected complete result");
       const projection = projectPublicResult(definition, result);

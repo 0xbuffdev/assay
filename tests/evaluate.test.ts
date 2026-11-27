@@ -394,7 +394,9 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
       mode: "required",
       visibility: "restricted",
       kind: "exact_text",
-      parameters: { expected: { type: "reference", referenceId: "hidden-ref", referenceDigest: digestB } },
+      parameters: {
+        expected: { type: "reference", referenceId: "hidden-ref", referenceDigest: digestB },
+      },
     };
     const r = resolved(testCase(criterion, complete("check", "text", "guessed answer")));
     expect(r.outcome).toBe("inconclusive");

@@ -136,13 +136,11 @@ describe("typed execution facts", () => {
     }
     expect(run([exit], [{ ...status, unit: "m" }]).outcome).toBe("invalid_evidence");
     expect(createAllDefinition(draft([stdout], 1)).ok).toBe(false);
+    expect(createAllDefinition(draft([{ ...stdout, executionFact: "exit_status" }])).ok).toBe(
+      false,
+    );
     expect(
-      createAllDefinition(draft([{ ...stdout, executionFact: "exit_status" }])).ok,
-    ).toBe(false);
-    expect(
-      createAllDefinition(
-        draft([{ ...exit, parameters: { ...exit.parameters, unit: "m" } }]),
-      ).ok,
+      createAllDefinition(draft([{ ...exit, parameters: { ...exit.parameters, unit: "m" } }])).ok,
     ).toBe(false);
   });
 

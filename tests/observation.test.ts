@@ -14,12 +14,12 @@ import {
   verifyEvidenceBundle,
 } from "../src/index";
 import {
+  createAllDefinition,
   digestA,
   digestB,
   definition as exampleDefinition,
   evidence as exampleEvidence,
   referenceOf,
-  createAllDefinition,
   sealDefinition,
   sealEvidenceFixture,
 } from "./fixtures/contracts";
