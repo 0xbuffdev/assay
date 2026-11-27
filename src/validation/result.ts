@@ -46,8 +46,7 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
       )
     )
       return;
-    if (data.schemaVersion !== 2)
-      issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     choice(
       data.outcome,
       [

@@ -198,19 +198,22 @@ describe("AY-I13 content-bound reference contracts", () => {
     expect(verifyReferenceBundle(f.definition, { ...f.bundle, references: [] }).ok).toBe(true);
 
     // Omitting separately supplied material still makes comparison unavailable.
-    const result = evaluate(f.definition, sealEvidenceFixture({
-      schemaVersion: 2,
-      definition: f.bundle.definition,
-      observations: [
-        {
-          criterionId: "output",
-          evidenceRef: "obs1",
-          kind: "text",
-          completeness: "complete",
-          value: referenceDraft.value,
-        },
-      ],
-    }));
+    const result = evaluate(
+      f.definition,
+      sealEvidenceFixture({
+        schemaVersion: 2,
+        definition: f.bundle.definition,
+        observations: [
+          {
+            criterionId: "output",
+            evidenceRef: "obs1",
+            kind: "text",
+            completeness: "complete",
+            value: referenceDraft.value,
+          },
+        ],
+      }),
+    );
     expect(result).toMatchObject({
       outcome: "inconclusive",
       findings: [{ outcome: "inconclusive", reasonCode: "REFERENCE_UNAVAILABLE" }],

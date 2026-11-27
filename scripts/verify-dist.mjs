@@ -13,6 +13,8 @@ assert.deepEqual(
     "ASSAY_EVALUATOR_VERSION",
     "computeDefinitionDigest",
     "createAssessmentDefinition",
+    "createEvidenceBundle",
+    "verifyEvidenceBundle",
     "createReferenceRecord",
     "verifyReferenceBundle",
     "verifyAssessmentDefinition",
@@ -93,9 +95,8 @@ assert.equal(sealed.ok, true, "The emitted ESM entry must seal a real definition
 const definition = sealed.value;
 const digest = definition.revisionDigest;
 assert.equal(entry.parseAssessmentDefinition(definition).ok, true);
-const observed = entry.evaluate(definition, {
-  schemaVersion: 1,
-  definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
+const prepared = entry.createEvidenceBundle(definition, {
+  schemaVersion: 2,
   observations: [
     {
       criterionId: "objective",
@@ -106,6 +107,9 @@ const observed = entry.evaluate(definition, {
     },
   ],
 });
+assert.equal(prepared.ok, true);
+const observed = entry.evaluate(definition, prepared.value);
+assert.equal(observed.evidenceDigest, prepared.value.evidenceDigest);
 assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
 assert.equal(observed.findings[0].reasonCode, "MATCH");
 const tampered = { ...definition, policyVersion: "changed" };
@@ -118,16 +122,14 @@ assert.equal(
   true,
   "Output must match its public contract",
 );
+const empty = entry.createEvidenceBundle(definition, { schemaVersion: 2, observations: [] });
+assert.equal(empty.ok, true);
 const pending = entry.collectObservations(
   definition,
-  {
-    schemaVersion: 1,
-    definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
-    observations: [],
-  },
+  empty.value,
   {
     observe: async () => ({
-      schemaVersion: 1,
+      schemaVersion: 2,
       definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
       provenance: {
         adapterId: "fixture",
