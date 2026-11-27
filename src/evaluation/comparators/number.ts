@@ -1,3 +1,4 @@
+import type { NumericRange } from "../../contracts/common";
 import type { Criterion } from "../../contracts/definition";
 import type { Observation } from "../../contracts/evidence";
 import { type Comparison, FAILED, finding, PASSED, REFERENCE_UNAVAILABLE } from "./finding";
@@ -21,4 +22,20 @@ export function compareNumber(
   const difference = Math.abs(observation.value - value);
   if (!Number.isFinite(difference)) return FAILED;
   return difference <= bound ? PASSED : FAILED;
+}
+
+export function compareRange(
+  criterion: Extract<Criterion, { kind: "number_range" }>,
+  observation: Observation,
+  referenceValue?: NumericRange,
+): Comparison {
+  if (observation.kind !== "number")
+    return finding({ outcome: "error", reasonCode: "COMPARATOR_ERROR" });
+  const expected = criterion.parameters.expected;
+  const range = expected.type === "literal" ? expected.value : referenceValue;
+  if (range === undefined) return REFERENCE_UNAVAILABLE;
+  const value = observation.value;
+  const lower = range.minInclusive ? value >= range.min : value > range.min;
+  const upper = range.maxInclusive ? value <= range.max : value < range.max;
+  return lower && upper ? PASSED : FAILED;
 }

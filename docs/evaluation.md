@@ -74,7 +74,7 @@ optional artifactDigest, policy version,
 one finding per criterion in authored order, evaluator version, and bounded,
 value-free warnings. Findings use `pass`, `fail`, `inconclusive` or `error`
 and closed, outcome-specific uppercase reason codes. The sole warning is
-`ADVISORY_UNRESOLVED`. Evaluator semantics version `v0.0.1` identifies this
+`ADVISORY_UNRESOLVED`. Evaluator semantics version `v0.0.2` identifies this
 closed contract; the package remains unreleased at version 0.0.0.
 
 An invalid definition, reference bundle or evidence bundle returns a distinct
@@ -208,3 +208,27 @@ read-only Biome checks, Vitest golden/negative fixtures, and tsdown ESM/type
 bundling with compiled-package self-import verification. AY-I04 will add a
 separate packed-tarball consumer test. No release, npm publication or
 credential authority is implied by source success.
+
+## AY-I17 objective comparisons (schema 2)
+
+- `boolean_equality` compares a `boolean` observation with a strict boolean expectation.
+- `number_range` compares a `number` observation against an expected interval
+  with finite `min`, `max`, `minInclusive` and `maxInclusive` fields. Both
+  inclusivity flags are mandatory. Reversed and empty intervals are invalid.
+  Equal endpoints require both flags to be true. Units agree exactly, including
+  deliberate absence. Comparison uses direct inequalities, not subtraction.
+- `json_equality` compares a `json` observation with a structured JSON value.
+  Object key order is immaterial, array order is significant, strings and keys
+  are exact, and negative zero equals zero. No coercion or normalization applies.
+
+Each criterion declares `parameters.expected` using the same literal or
+content-bound reference contract. Reference record kinds are respectively
+`boolean`, `range` (with matching optional unit), and `json`. A JSON null or
+boolean false is a real expected value, not an unavailable reference.
+Missing or truncated observations are inconclusive. Malformed inputs fail at
+validation, before any comparison. Restricted literals remain forbidden.
+
+The new kinds require schema-2 definitions; existing schema-1 definitions
+and canonical hash profiles are unchanged. Evaluator version `v0.0.2`
+identifies the expanded supported comparator set; earlier evaluator result
+versions are not admitted by the current structural result parser.

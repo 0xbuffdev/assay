@@ -2,7 +2,7 @@ import type { DefinitionReference, PolicyVersion } from "./definition";
 import type { ValidationDiagnostic } from "./validation";
 
 /** Evaluator semantics identifier, independent of the unpublished package version. */
-export const ASSAY_EVALUATOR_VERSION = "v0.0.1" as const;
+export const ASSAY_EVALUATOR_VERSION = "v0.0.2" as const;
 export const ASSAY_EVALUATOR_ID = "assay" as const;
 
 export type TechnicalOutcome = "pass" | "fail" | "inconclusive" | "evaluation_error";

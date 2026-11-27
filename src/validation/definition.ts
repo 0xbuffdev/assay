@@ -3,6 +3,7 @@ import type { AssessmentDefinition, AssessmentDefinitionDraft } from "../contrac
 import type { ValidationResult } from "../contracts/validation";
 import {
   BAD,
+  booleanValue,
   choice,
   type DataObject,
   Diagnostics,
@@ -12,6 +13,7 @@ import {
   list,
   numberValue,
   object,
+  rangeValue,
   revision,
   setItems,
   snapshot,
@@ -23,7 +25,7 @@ function expected(
   value: unknown,
   visibility: unknown,
   path: string,
-  kind: "text" | "number" | "set",
+  kind: "text" | "number" | "set" | "boolean" | "range" | "json",
   itemType: unknown,
   schemaVersion: unknown,
   referenceIds: Set<string>,
@@ -51,6 +53,9 @@ function expected(
     if (kind === "text") textValue(value.value, `${path}.value`, issues);
     if (kind === "number") numberValue(value.value, `${path}.value`, issues);
     if (kind === "set") setItems(value.value, itemType, `${path}.value`, issues);
+    if (kind === "boolean") booleanValue(value.value, `${path}.value`, issues);
+    if (kind === "range") rangeValue(value.value, `${path}.value`, issues);
+    // A successful snapshot already guarantees a bounded JSON value.
     return;
   }
   issues.add(`${path}.type`, "INVALID_VALUE");
@@ -135,6 +140,31 @@ function parameters(
       numberValue(tolerance.relative, `${p}.tolerance.relative`, issues, true);
     }
     if (Object.hasOwn(value, "unit")) identifier(value.unit, `${p}.unit`, issues);
+    return;
+  }
+  if (
+    criterion.kind === "boolean_equality" ||
+    criterion.kind === "number_range" ||
+    criterion.kind === "json_equality"
+  ) {
+    if (schemaVersion !== 2) {
+      issues.add(`${path}.kind`, "UNSUPPORTED_VERSION");
+      return;
+    }
+    const range = criterion.kind === "number_range";
+    if (!object(value, p, range ? ["expected", "unit"] : ["expected"], ["expected"], issues))
+      return;
+    expected(
+      value.expected,
+      criterion.visibility,
+      `${p}.expected`,
+      range ? "range" : criterion.kind === "boolean_equality" ? "boolean" : "json",
+      undefined,
+      schemaVersion,
+      referenceIds,
+      issues,
+    );
+    if (range && Object.hasOwn(value, "unit")) identifier(value.unit, `${p}.unit`, issues);
     return;
   }
   if (criterion.kind === "set_equivalence") {
@@ -246,6 +276,9 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
             "normalized_text",
             "number_with_tolerance",
             "set_equivalence",
+            "boolean_equality",
+            "number_range",
+            "json_equality",
             "observed_execution",
             "manual_evidence",
           ],

@@ -27,3 +27,19 @@ export type Completeness = "complete" | "truncated";
 
 export type SetItemType = "string" | "number" | "boolean";
 export type SetScalar = string | number | boolean;
+
+/** Inert structured data; snapshots enforce finite numbers and resource bounds. */
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | readonly JsonValue[]
+  | Readonly<{ [key: string]: JsonValue }>;
+
+export type NumericRange = Readonly<{
+  min: number;
+  max: number;
+  minInclusive: boolean;
+  maxInclusive: boolean;
+}>;

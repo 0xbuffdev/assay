@@ -6,6 +6,7 @@ import type {
 } from "../contracts/reference";
 import type { ValidationResult } from "../contracts/validation";
 import {
+  booleanValue,
   choice,
   type Diagnostics,
   definitionRef,
@@ -15,6 +16,7 @@ import {
   list,
   numberValue,
   object,
+  rangeValue,
   setItems,
   textValue,
 } from "./shared";
@@ -30,6 +32,18 @@ function record(input: unknown, path: string, sealed: boolean, issues: Diagnosti
     case "text":
       object(input, path, common, [], issues);
       textValue(input.value, `${path}.value`, issues);
+      break;
+    case "boolean":
+      object(input, path, common, [], issues);
+      booleanValue(input.value, `${path}.value`, issues);
+      break;
+    case "json":
+      object(input, path, common, [], issues);
+      break;
+    case "range":
+      object(input, path, [...common, "unit"], [], issues);
+      rangeValue(input.value, `${path}.value`, issues);
+      if (Object.hasOwn(input, "unit")) identifier(input.unit, `${path}.unit`, issues);
       break;
     case "number":
       object(input, path, [...common, "unit"], [], issues);

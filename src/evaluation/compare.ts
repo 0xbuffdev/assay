@@ -2,9 +2,10 @@ import type { Criterion } from "../contracts/definition";
 import type { Observation } from "../contracts/evidence";
 import type { ReferenceRecord } from "../contracts/reference";
 import type { Comparison } from "./comparators/finding";
-import { compareNumber } from "./comparators/number";
+import { compareNumber, compareRange } from "./comparators/number";
 import { compareExecution, compareManual } from "./comparators/review";
 import { compareSet } from "./comparators/set";
+import { compareBoolean, compareJson } from "./comparators/structured";
 import { compareExactText, compareNormalizedText } from "./comparators/text";
 
 /**
@@ -38,6 +39,24 @@ export function compare(
         criterion,
         observation,
         reference?.kind === "number" ? reference.value : undefined,
+      );
+    case "boolean_equality":
+      return compareBoolean(
+        criterion,
+        observation,
+        reference?.kind === "boolean" ? reference.value : undefined,
+      );
+    case "number_range":
+      return compareRange(
+        criterion,
+        observation,
+        reference?.kind === "range" ? reference.value : undefined,
+      );
+    case "json_equality":
+      return compareJson(
+        criterion,
+        observation,
+        reference?.kind === "json" ? reference.value : undefined,
       );
     case "set_equivalence":
       return compareSet(

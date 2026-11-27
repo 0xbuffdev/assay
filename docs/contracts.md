@@ -79,12 +79,12 @@ the import shown represents the future package entry.
   also declares line-ending, Unicode, case, whitespace and trim choices.
   Schema-2 objective references require both `referenceId` and `referenceDigest`;
   schema 1 retains its original ID-only format and digest profile.
-- Numeric criteria require explicit finite, nonnegative absolute **and**
-  relative tolerances; no implicit string-to-number coercion. Numeric observations
-  have an optional `unit` identifier. If the criterion declares `unit`, its
-  observation must carry the **same** identifier; if omitted, both must omit
-  it. Mismatch or absence returns `invalid_evidence` before comparison,
-  without any unit conversion.
+- `number_with_tolerance` requires explicit finite, nonnegative absolute **and**
+  relative tolerances; `number_range` instead declares finite bounds and explicit
+  endpoint inclusion. Neither coerces strings to numbers. For both kinds, numeric
+  observations carry the criterion's exact optional `unit` identifier, including
+  deliberate absence. A mismatch returns `invalid_evidence` before comparison,
+  without unit conversion. See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-2).
 - Set criteria declare element type, ordering and duplicate policy.
 - Execution criteria declare assertion and reference IDs, **not** an embedded
   command or code runner.
@@ -103,8 +103,8 @@ Use `createReferenceRecord` to construct a frozen, privileged schema-2 reference
 record and `verifyReferenceBundle` to validate separately supplied records
 against a verified schema-2 definition. The bundle names the exact assessment,
 revision and revision digest; each record has an ID, kind, typed value and
-content digest. Numeric records carry the criterion's exact optional unit;
-set records declare a matching item type. Unknown, duplicate, malformed,
+content digest. Number and range records carry the criterion's exact optional
+unit; set records declare a matching item type. Unknown, duplicate, malformed,
 wrong-kind, wrong-unit or tampered references are invalid input, not learner
 failure. Definitions cannot repeat an objective reference ID in schema 2.
 An empty or partial bundle is permitted, not a completeness claim.
@@ -121,7 +121,7 @@ AY-I18 owns their replacement with typed execution facts. See
 
 `parseEvidenceBundle` accepts `schemaVersion: 2`, an assessment identity,
 a required evidenceDigest, an optional artifact digest, and observations tagged `text`, `number`,
-`set`, `execution` or `manual`. Each observation declares a criterion
+`set`, `boolean`, `json`, `execution` or `manual`. Each observation declares a criterion
 ID, unique evidence reference and completeness (`complete` or `truncated`).
 Use `createEvidenceBundle(definition, draft)` to derive definition lineage and
 seal content. A structural parse checks digest syntax, not integrity;
@@ -193,7 +193,7 @@ individual input object; no implicit network or model access occurs.
 | Object/array depth                                |                       12 |
 | Visited nodes                                     |                    4,096 |
 | UTF-8 budget for input strings and property names |            262,144 bytes |
-| Individual string length                          | 16,384 UTF-16 code units |
+| Individual string or property name length         | 16,384 UTF-16 code units |
 | Object fields                                     |                       32 |
 | Array elements                                    |                      128 |
 | Definition criteria                               |                       64 |
@@ -239,3 +239,10 @@ for unshipped versions.
 Run `pnpm check` to validate the frozen dependency tree, TypeScript, Biome,
 Vitest and the tsdown ESM/type-declaration build. No package release is
 authorized by this milestone.
+
+AY-I17 adds schema-2-only `boolean_equality`, `number_range`, and
+`json_equality` criteria, with matching typed observation/reference contracts.
+The shared snapshot bounds apply to the entire definition, reference bundle,
+or evidence bundle, including nested JSON values; prohibited keys, non-finite
+numbers, cycles and accessors are rejected. No raw JSON text parser is added.
+See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-2).

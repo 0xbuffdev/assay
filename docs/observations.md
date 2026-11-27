@@ -129,7 +129,7 @@ is supplied **only** by the host. Its request is immutable and includes:
 - `schemaVersion: 2`, `definition` ID/revision/digest, optional caller
   `artifactDigest`, and `limits.maxCapturedBytes: 65536`.
 - A list of **missing public** criterion IDs and expected observation kinds
-  (`text`, `number`, `set`, or `execution`). Public numeric criteria
+  (`text`, `number`, `set`, `boolean`, `json`, or `execution`). Public numeric criteria
   may include a declared **unit identifier** so the provider can report the
   matching measurement unit without receiving the expected numeric value.
   Public execution criteria may include **assertion IDs** but never private
