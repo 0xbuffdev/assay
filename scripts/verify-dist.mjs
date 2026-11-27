@@ -112,7 +112,12 @@ const observed = entry.evaluate(definition, prepared.value);
 assert.equal(observed.evidenceDigest, prepared.value.evidenceDigest);
 assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
 assert.equal(observed.findings[0].reasonCode, "MATCH");
-const tampered = { ...definition, policyVersion: "changed" };
+const unsupportedPolicy = { ...definition, policyVersion: "changed" };
+assert.deepEqual(entry.evaluate(unsupportedPolicy, {}), {
+  outcome: "invalid_definition",
+  diagnostics: [{ path: "$.policyVersion", code: "INVALID_VALUE" }],
+});
+const tampered = { ...definition, revision: "rev2" };
 assert.deepEqual(entry.evaluate(tampered, {}), {
   outcome: "invalid_definition",
   diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
