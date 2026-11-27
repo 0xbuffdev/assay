@@ -11,6 +11,8 @@ export const CONTRACT_LIMITS = Object.freeze({
   maxDepth: 12,
   maxNodes: 4096,
   maxInputBytes: 262_144,
+  maxSerializedBytes: 262_144,
+  maxCombinedSerializedBytes: 786_432,
   maxStringLength: 16_384,
   maxIdentifierLength: 96,
   maxObjectKeys: 32,

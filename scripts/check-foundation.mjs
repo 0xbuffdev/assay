@@ -68,6 +68,7 @@ const sourcePaths = new Set([
   "src/validation/observation.ts",
   "src/validation/reference.ts",
   "src/validation/result.ts",
+  "src/validation/serialized.ts",
   "src/validation/shared.ts",
 ]);
 
@@ -98,6 +99,7 @@ for (const file of [
   "tests/evidence-integrity.test.ts",
   "tests/projection.test.ts",
   "tests/contracts.test.ts",
+  "tests/serialized.test.ts",
   "tests/fixtures/contracts.ts",
   "docs/contracts.md",
   "docs/integrity.md",
@@ -117,6 +119,7 @@ for (const file of [
 }
 
 const entry = await readFile(locate("src/index.ts"), "utf8");
+assert.match(entry, /decodeSerializedRecord/, "AY-I21 must expose bounded serialized decoding");
 assert.match(entry, /parseAssessmentDefinition/, "AY-I01 must expose contract validation");
 assert.match(entry, /parseEvidenceBundle/, "AY-I01 must expose evidence validation");
 assert.match(entry, /evaluate/, "AY-I02 must expose deterministic comparison");

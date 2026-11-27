@@ -185,8 +185,8 @@ authenticate evidence or award official credit.
 
 ## Validation and safety limits
 
-`CONTRACT_LIMITS` exposes and tests the exact bounds. They apply to an
-individual input object; no implicit network or model access occurs.
+`CONTRACT_LIMITS` exposes and tests the exact bounds. They apply to each entire input record, including nested values; no implicit
+network or model access occurs.
 
 | Limit                                             |                  Maximum |
 | ------------------------------------------------- | -----------------------: |
@@ -201,6 +201,9 @@ individual input object; no implicit network or model access occurs.
 | Set elements                                      |                      128 |
 | Evidence references per finding                   |                       32 |
 | Returned structured diagnostics                   |                       32 |
+| Combined stdout/stderr capture per provenance     |             65,536 bytes |
+| Serialized JSON transport per record              |            262,144 bytes |
+| Combined transport (definition/evidence/references) |          786,432 bytes |
 
 The parser copies and freezes accepted data. It rejects cycles, sparse
 arrays, accessor properties, custom prototypes, non-finite numbers, functions,
@@ -213,15 +216,40 @@ Diagnostics include safe, published schema field paths (for example,
 `$.criteria[0].parameters.expected.value`) but never submitted values or
 unknown field names.
 
-The validators accept JavaScript values, **not raw JSON text**. If a caller
-needs to reject duplicate keys in serialized JSON or cryptographically bind
-a published document, that requirement must be handled before passing a
-decoded value to Assay. JavaScript Proxy traps may execute when a host accesses
+The contract validators continue to accept JavaScript values, not raw JSON text.
+Use `decodeSerializedRecord(text)` first for serialized input. It accepts only a
+primitive string containing one JSON object, checks UTF-8 transport size before
+parsing, bounds depth, nodes and collection sizes before whole-record decoding,
+and rejects duplicate decoded keys (including escape-equivalent names) at every
+object level, malformed JSON, non-finite numbers and unsafe property names. The
+result is an immutable bounded record, not a validated definition, evidence or
+reference. Pass it to the appropriate existing validator or integrity operation.
+Do not use `JSON.parse` first: duplicate names cannot be recovered afterward.
+The decoder's failure contains only a bounded diagnostic array with root paths;
+it never reports parser exception messages or input text.
+
+Transport accounting includes punctuation, escape sequences and whitespace.
+Snapshot accounting counts each value as a node (root depth zero), each decoded
+string and property name in UTF-8 bytes, and string/name length in UTF-16 code
+units. Keys are counted in the byte budget but not as nodes. The three evaluation
+records each have their own full bounds, hence at most 786,432 transport bytes,
+12,288 snapshot nodes and 786,432 counted string/key bytes in total. Combined
+prepared evidence is revalidated as a single record, not granted one budget per
+observation or provider. Hosts must cap raw input bytes before allocating or
+decoding strings, reject invalid UTF-8, and cap total records and concurrent work.
+The library does not accept byte arrays, streams or executable objects at the
+serialized boundary. JavaScript Proxy traps may execute when a host accesses
 a Proxy; callers must not treat an in-process arbitrary object as a sandboxed
-format. Host security and independent evidence-origin verification remain
+format. Reflection on preexisting objects can allocate property-name lists before
+rejection; neither validation path is a process memory limit or isolation sandbox.
+Host security and independent evidence-origin verification remain
 outside the portable library.
 
 ## API surface
+
+`decodeSerializedRecord(text: unknown): SerializedRecordResult` is an explicit
+transport decoder; it does not authenticate, seal or validate any contract.
+
 
 `parseAssessmentDefinition(input: unknown)`,
 `parseEvidenceBundle(input: unknown)`,
@@ -244,7 +272,7 @@ AY-I17 adds schema-2-only `boolean_equality`, `number_range`, and
 `json_equality` criteria, with matching typed observation/reference contracts.
 The shared snapshot bounds apply to the entire definition, reference bundle,
 or evidence bundle, including nested JSON values; prohibited keys, non-finite
-numbers, cycles and accessors are rejected. No raw JSON text parser is added.
+numbers, cycles and accessors are rejected. The separate AY-I21 decoder handles raw JSON text.
 See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-2).
 
 AY-I18 adds an optional schema-2 criterion `executionFact` and matching

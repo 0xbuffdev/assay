@@ -4,6 +4,8 @@ export type ValidationDomain =
   | "invalid_reference"
   | "invalid_result";
 export type DiagnosticCode =
+  | "INVALID_JSON"
+  | "DUPLICATE_KEY"
   | "UNSUPPORTED_INPUT"
   | "INPUT_TOO_DEEP"
   | "INPUT_TOO_LARGE"
@@ -47,3 +49,8 @@ export type EvidenceCoverage = Readonly<{
   missingRequired: readonly string[];
   incompleteRequired: readonly string[];
 }>;
+
+/** Structural decoding only; contract and integrity validation remain mandatory. */
+export type SerializedRecordResult =
+  | Readonly<{ ok: true; value: Readonly<Record<string, import("./common").JsonValue>> }>
+  | Readonly<{ ok: false; diagnostics: readonly ValidationDiagnostic[] }>;
