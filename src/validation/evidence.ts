@@ -176,15 +176,7 @@ export function validateObservations(
       object(
         obs,
         p,
-        [
-          "criterionId",
-          "evidenceRef",
-          "completeness",
-          "kind",
-          "value",
-          "origin",
-          "executionFact",
-        ],
+        ["criterionId", "evidenceRef", "completeness", "kind", "value", "origin", "executionFact"],
         ["criterionId", "evidenceRef", "completeness", "kind", "value"],
         issues,
       );
@@ -193,15 +185,7 @@ export function validateObservations(
       object(
         obs,
         p,
-        [
-          "criterionId",
-          "evidenceRef",
-          "completeness",
-          "kind",
-          "value",
-          "origin",
-          "executionFact",
-        ],
+        ["criterionId", "evidenceRef", "completeness", "kind", "value", "origin", "executionFact"],
         ["criterionId", "evidenceRef", "completeness", "kind", "value"],
         issues,
       );
@@ -284,9 +268,7 @@ export function validateObservations(
               : run.stdoutTruncated || run.stderrTruncated;
       if (
         truncated ||
-        (run.termination !== undefined &&
-          run.termination !== "exited" &&
-          termination === undefined)
+        (run.termination !== undefined && run.termination !== "exited" && termination === undefined)
       ) {
         issues.add(path, "MISMATCHED_ORIGIN");
       }

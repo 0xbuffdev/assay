@@ -102,16 +102,19 @@ describe("typed execution facts", () => {
     expect(run([stdout, exit], [status]).outcome).toBe("inconclusive");
     expect(run([stdout], [{ ...out, trusted: true }]).outcome).toBe("invalid_evidence");
     expect(
-      run([stdout], [
-        {
-          criterionId: "out",
-          evidenceRef: "assertion",
-          completeness: "complete",
-          kind: "execution",
-          runRef: "run1",
-          assertions: [{ assertionId: "out", state: "confirmed" }],
-        },
-      ]).outcome,
+      run(
+        [stdout],
+        [
+          {
+            criterionId: "out",
+            evidenceRef: "assertion",
+            completeness: "complete",
+            kind: "execution",
+            runRef: "run1",
+            assertions: [{ assertionId: "out", state: "confirmed" }],
+          },
+        ],
+      ).outcome,
     ).toBe("invalid_evidence");
   });
 
@@ -160,7 +163,8 @@ describe("typed execution facts", () => {
       }
     }
     expect(
-      run([stdout, stderr], [out, { ...err, origin: { ...origin, termination: "timeout" } }]).outcome,
+      run([stdout, stderr], [out, { ...err, origin: { ...origin, termination: "timeout" } }])
+        .outcome,
     ).toBe("invalid_evidence");
   });
 
@@ -188,10 +192,10 @@ describe("typed execution facts", () => {
       expect(run(checks, observations).outcome).toBe("invalid_evidence");
     }
     expect(
-      run([stdout, property], [
-        truncatedOut,
-        { ...prop, origin: { ...origin, runRef: "other-run" } },
-      ]).outcome,
+      run(
+        [stdout, property],
+        [truncatedOut, { ...prop, origin: { ...origin, runRef: "other-run" } }],
+      ).outcome,
     ).toBe("inconclusive");
     const stderrCapture = { ...provenance, stdoutTruncated: false, stderrTruncated: true };
     expect(
@@ -200,9 +204,9 @@ describe("typed execution facts", () => {
     expect(
       run([stderr], [{ ...err, origin: { ...origin, provenance: stderrCapture } }]).outcome,
     ).toBe("invalid_evidence");
-    expect(
-      run([stdout, json], [{ ...out, completeness: "truncated" }, structured]).outcome,
-    ).toBe("invalid_evidence");
+    expect(run([stdout, json], [{ ...out, completeness: "truncated" }, structured]).outcome).toBe(
+      "invalid_evidence",
+    );
   });
 
   it("binds selection and origin into content digests and preserves protected comparisons", () => {

@@ -240,12 +240,12 @@ A selected observation requires an origin with a source reference, run
 reference and explicit `termination`: `exited`, `timeout` or `crash`.
 The existing objective comparator checks the value, not a runner's verdict.
 
-| Selector | Objective criterion kinds | Observation kind |
-| --- | --- | --- |
-| `stdout`, `stderr` | `exact_text`, `normalized_text` | `text` |
-| `exit_status` | `number_with_tolerance`, `number_range` | `number` |
-| `boolean_property` | `boolean_equality` | `boolean` |
-| `structured_stdout`, `structured_stderr` | `json_equality` | `json` |
+| Selector                                 | Objective criterion kinds               | Observation kind |
+| ---------------------------------------- | --------------------------------------- | ---------------- |
+| `stdout`, `stderr`                       | `exact_text`, `normalized_text`         | `text`           |
+| `exit_status`                            | `number_with_tolerance`, `number_range` | `number`         |
+| `boolean_property`                       | `boolean_equality`                      | `boolean`        |
+| `structured_stdout`, `structured_stderr` | `json_equality`                         | `json`           |
 
 An exit status is a signed safe integer with no unit. A boolean property's
 identity is its authored criterion ID; a host derives the property value.
