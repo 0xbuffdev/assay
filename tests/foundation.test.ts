@@ -19,6 +19,7 @@ describe("Assay independent contract package", () => {
         "ASSAY_SCHEMA_VERSION",
         "collectObservations",
         "CONTRACT_LIMITS",
+        "decodeSerializedRecord",
         "evaluate",
         "inspectEvidenceCoverage",
         "parseAssessmentDefinition",

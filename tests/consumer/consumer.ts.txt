@@ -5,6 +5,8 @@
 import {
   ASSAY_DEFINITION_DIGEST_VERSION,
   ASSAY_SCHEMA_VERSION,
+  decodeSerializedRecord,
+  type SerializedRecordResult,
   createAssessmentDefinition,
   createEvidenceBundle,
   verifyEvidenceBundle,
@@ -458,3 +460,9 @@ const missingReportTermination: import("@0xbuff/assay").ObservationPortReport = 
 void legacyReport;
 void mixedReport;
 void missingReportTermination;
+
+const decodedRecord: SerializedRecordResult = decodeSerializedRecord("{}");
+if (decodedRecord.ok) {
+  const data: Readonly<Record<string, import("@0xbuff/assay").JsonValue>> = decodedRecord.value;
+  void data;
+}

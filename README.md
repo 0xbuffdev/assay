@@ -16,6 +16,10 @@ Assay evaluates evidence; it does **not** execute learner code, authenticate a s
 4. **Evaluate.** Supply an optional content-bound reference bundle from authorized host storage alongside the definition and evidence. Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). Required findings determine the technical outcome; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
 5. **Present only appropriate findings.** The full technical record is for an authorized host. Use the [learner-safe projection](docs/projection.md) to omit restricted findings, evidence references and hidden aggregate outcomes while exposing only allowlisted public feedback. The host must still decide who is allowed to see any result.
 
+For serialized records, use `decodeSerializedRecord` before contract validation.
+It rejects duplicate JSON keys and over-limit input; the host still owns transport
+limits and isolation. See [validation and safety limits](docs/contracts.md#validation-and-safety-limits).
+
 The pure library has **no runtime dependencies**, network requirement, model provider, private workspace or mandatory executor.
 
 ## Architecture

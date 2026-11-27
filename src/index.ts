@@ -70,6 +70,7 @@ export { ASSAY_EVALUATOR_VERSION } from "./contracts/result";
 export type {
   DiagnosticCode,
   EvidenceCoverage,
+  SerializedRecordResult,
   ValidationDiagnostic,
   ValidationDomain,
   ValidationResult,
@@ -90,3 +91,4 @@ export { parseAssessmentDefinition, parseAssessmentDefinitionDraft } from "./val
 export { parseEvidenceBundle } from "./validation/evidence";
 export { parseObservationPortReport } from "./validation/observation";
 export { parseEvaluationResult } from "./validation/result";
+export { decodeSerializedRecord } from "./validation/serialized";

@@ -13,6 +13,8 @@
 
 ### Added
 
+- AY-I21: explicit bounded serialized-record decoding with duplicate-key rejection, redacted diagnostics and documented transport/snapshot budgets. No canonical digest or evaluator semantics change.
+
 - AY-I17: schema-2 boolean equality, finite numeric ranges and bounded structured JSON equality, including sealed references, evidence and public-only observation collection. Evaluator semantics `v0.0.2`; existing canonical hash profiles and package version unchanged.
 - AY-I18: explicit selected schema-2 execution facts and run termination; relevant stream completeness, assertion-only non-authority and direct objective comparison. Evaluator semantics `v0.0.3`; no executor, provider request migration or release.
 

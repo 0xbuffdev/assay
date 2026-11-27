@@ -89,6 +89,7 @@ assert.deepEqual(
     "ASSAY_SCHEMA_VERSION",
     "CONTRACT_LIMITS",
     "collectObservations",
+    "decodeSerializedRecord",
     "evaluate",
     "inspectEvidenceCoverage",
     "parseAssessmentDefinition",
@@ -745,3 +746,14 @@ for (const observations of [
     "invalid_evidence",
   );
 }
+
+// Serialized data must be decoded before the existing typed validation boundary.
+const decodedRecord = assay.decodeSerializedRecord('{"schemaVersion":1}');
+assert.equal(decodedRecord.ok, true);
+assert.equal(decodedRecord.value.schemaVersion, 1);
+assert.equal(Object.isFrozen(decodedRecord.value), true);
+assert.deepEqual(assay.decodeSerializedRecord('{"secret":1,"secret":2}'), {
+  ok: false,
+  diagnostics: [{ path: "$", code: "DUPLICATE_KEY" }],
+});
+assert.equal(assay.decodeSerializedRecord(" ".repeat(262_145)).ok, false);

@@ -117,3 +117,10 @@ aggregation, with no executor. AY-I19 extends the optional port with typed selec
 AY-I20 maps validated technical reasons to a closed public feedback vocabulary,
 checks criterion/reason and evidence-reference coherence, and retains opaque
 rejection and unconditional aggregate withholding for restricted criteria.
+
+AY-I21 adds explicit bounded serialized decoding in `src/validation/serialized.ts`.
+The decoder rejects duplicate keys before whole-record JSON parsing, then uses
+the existing snapshot owner for immutable data and byte accounting. Typed
+contract validation and integrity verification remain separate. Host byte caps,
+Proxy limitations and combined record accounting are documented in
+[contracts](contracts.md#validation-and-safety-limits).

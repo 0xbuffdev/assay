@@ -107,8 +107,8 @@ export class Diagnostics {
  * This prevents accessor invocation, cycles, inherited fields, mutable values,
  * and prototype-pollution keys from entering the typed contract.
  *
- * This is not a JSON parser: callers must reject duplicate keys before
- * JSON.parse discards them when exact serialized identity matters.
+ * This is not a JSON parser: use the separate serialized boundary before
+ * object validation when duplicate keys must be detected.
  */
 export function snapshot(input: unknown, issues: Diagnostics): unknown | typeof BAD {
   const active = new WeakSet<object>();
@@ -214,7 +214,9 @@ export function snapshot(input: unknown, issues: Diagnostics): unknown | typeof 
         if (
           keys.length !== length + 1 ||
           keys.some(
-            (key) => typeof key !== "string" || (key !== "length" && !/^(0|[1-9]\d*)$/.test(key)),
+            (key) =>
+              typeof key !== "string" ||
+              (key !== "length" && (key.length > 3 || !/^(0|[1-9]\d*)$/.test(key))),
           )
         ) {
           issues.add(path, "UNSAFE_OBJECT");

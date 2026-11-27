@@ -22,6 +22,7 @@ assert.deepEqual(
     "ASSAY_SCHEMA_VERSION",
     "collectObservations",
     "CONTRACT_LIMITS",
+    "decodeSerializedRecord",
     "evaluate",
     "inspectEvidenceCoverage",
     "parseAssessmentDefinition",
@@ -32,6 +33,11 @@ assert.deepEqual(
   ].sort(),
 );
 assert.equal(entry.ASSAY_SCHEMA_VERSION, 1);
+assert.equal(typeof entry.decodeSerializedRecord, "function");
+assert.deepEqual(entry.decodeSerializedRecord('{"x":1,"x":2}'), {
+  ok: false,
+  diagnostics: [{ path: "$", code: "DUPLICATE_KEY" }],
+});
 
 const golden = entry.createAssessmentDefinition({
   schemaVersion: 1,
@@ -95,6 +101,9 @@ assert.equal(sealed.ok, true, "The emitted ESM entry must seal a real definition
 const definition = sealed.value;
 const digest = definition.revisionDigest;
 assert.equal(entry.parseAssessmentDefinition(definition).ok, true);
+const decodedDefinition = entry.decodeSerializedRecord(JSON.stringify(definition));
+assert.equal(decodedDefinition.ok, true);
+assert.equal(entry.verifyAssessmentDefinition(decodedDefinition.value).ok, true);
 const prepared = entry.createEvidenceBundle(definition, {
   schemaVersion: 2,
   observations: [
