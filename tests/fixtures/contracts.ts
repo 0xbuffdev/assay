@@ -36,7 +36,9 @@ export function createAllDefinition<T extends { criteria: readonly unknown[] }>(
   return createAssessmentDefinition(authorAll(draft));
 }
 
-export function sealDefinition(draft: Omit<AssessmentDefinitionDraft, "composition">): AssessmentDefinition {
+export function sealDefinition(
+  draft: Omit<AssessmentDefinitionDraft, "composition">,
+): AssessmentDefinition {
   const checked = createAssessmentDefinition({
     schemaVersion: draft.schemaVersion,
     assessmentId: draft.assessmentId,
@@ -66,7 +68,10 @@ export function definition(): AssessmentDefinition {
   return {
     schemaVersion: 3,
     assessmentId: "assay-demo",
-    composition: allComposition([{ id: "output", mode: "required" }, { id: "quantity", mode: "required" }]),
+    composition: allComposition([
+      { id: "output", mode: "required" },
+      { id: "quantity", mode: "required" },
+    ]),
     revision: "rev1",
     revisionDigest: digestA,
     policyVersion: "composed-required-v1",

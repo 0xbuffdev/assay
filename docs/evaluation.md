@@ -144,10 +144,10 @@ Map/Set. The input validator rejects NaN and infinity.
 
 The only supported binding policy is `composed-required-v1`. Every required criterion belongs exactly once to an explicit nonempty bounded group tree; advisory findings are outside it. All criteria are validated and compared in authored order, even when an alternative is already decisive. Each group combines its direct children (leaves or child groups).
 
-| Operator | First decisive outcome | Otherwise | Otherwise | Otherwise |
-| --- | --- | --- | --- | --- |
-| all | any fail → fail | any error → evaluation_error | any unresolved → inconclusive | all pass → pass |
-| any | any pass → pass | any error → evaluation_error | any unresolved → inconclusive | all fail → fail |
+| Operator | First decisive outcome | Otherwise                    | Otherwise                     | Otherwise       |
+| -------- | ---------------------- | ---------------------------- | ----------------------------- | --------------- |
+| all      | any fail → fail        | any error → evaluation_error | any unresolved → inconclusive | all pass → pass |
+| any      | any pass → pass        | any error → evaluation_error | any unresolved → inconclusive | all fail → fail |
 
 An unresolved or erroneous alternative is never itself a pass. A malformed definition, supplied reference bundle or evidence record anywhere is rejected before comparison, regardless of which group might otherwise decide the result. Preserve each original finding, even if another branch determines the root. There is one shared aggregation implementation for evaluation and projection. A missing observation or missing reference is not a learner mismatch. Advisory warnings never change the root.
 

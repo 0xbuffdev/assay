@@ -58,7 +58,9 @@ const drafted = createAssessmentDefinition({
   policyVersion: "composed-required-v1",
   composition: {
     rootGroupId: "root",
-    groups: [{ id: "root", operator: "all", children: [{ kind: "criterion", id: "public-output" }] }],
+    groups: [
+      { id: "root", operator: "all", children: [{ kind: "criterion", id: "public-output" }] },
+    ],
   },
   criteria: [
     {

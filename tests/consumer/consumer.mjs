@@ -33,17 +33,22 @@ function allComposition(criteria) {
       {
         id: "fixture-root",
         operator: "all",
-        children: criteria.filter((criterion) => criterion.mode === "required").map((criterion) => ({
-          kind: "criterion",
-          id: criterion.id,
-        })),
+        children: criteria
+          .filter((criterion) => criterion.mode === "required")
+          .map((criterion) => ({
+            kind: "criterion",
+            id: criterion.id,
+          })),
       },
     ],
   };
 }
 
 function createAllDefinition(draft) {
-  return assay.createAssessmentDefinition({ ...draft, composition: allComposition(draft.criteria) });
+  return assay.createAssessmentDefinition({
+    ...draft,
+    composition: allComposition(draft.criteria),
+  });
 }
 
 const draft = (criteria, revision = "rev1") => ({
@@ -171,7 +176,11 @@ const privateSealed = createAllDefinition({
       "PRIVATE_CRITERION_CANARY",
       "exact_text",
       {
-        expected: { type: "reference", referenceId: "PRIVATE_REFERENCE_CANARY", referenceDigest: digest("a") },
+        expected: {
+          type: "reference",
+          referenceId: "PRIVATE_REFERENCE_CANARY",
+          referenceDigest: digest("a"),
+        },
       },
       "restricted",
     ),

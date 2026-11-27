@@ -73,8 +73,16 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     const verified = verifyAssessmentDefinition({ ...stored, revisionDigest: expected });
     expect(verified).toMatchObject({ ok: true, value: { revisionDigest: expected } });
     for (const schemaVersion of [1, 2, 4]) {
-      const rejected = verifyAssessmentDefinition({ ...stored, revisionDigest: expected, schemaVersion });
-      expect(rejected).toMatchObject({ ok: false, domain: "invalid_definition", diagnostics: [{ path: "$.schemaVersion", code: "UNSUPPORTED_VERSION" }] });
+      const rejected = verifyAssessmentDefinition({
+        ...stored,
+        revisionDigest: expected,
+        schemaVersion,
+      });
+      expect(rejected).toMatchObject({
+        ok: false,
+        domain: "invalid_definition",
+        diagnostics: [{ path: "$.schemaVersion", code: "UNSUPPORTED_VERSION" }],
+      });
     }
   });
   it("canonicalizes object property insertion order but respects authored array order", () => {
@@ -350,7 +358,16 @@ describe("AY-I06 versioned canonical definition integrity", () => {
       const p = large.criteria[0].parameters;
       const encoded = JSON.stringify({
         assessmentId: "vector",
-        composition: {"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},
+        composition: {
+          groups: [
+            {
+              children: [{ id: "output", kind: "criterion" }],
+              id: "fixture-root",
+              operator: "all",
+            },
+          ],
+          rootGroupId: "fixture-root",
+        },
         criteria: [
           {
             id: "output",

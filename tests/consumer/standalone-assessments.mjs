@@ -28,10 +28,12 @@ function allComposition(criteria) {
       {
         id: "fixture-root",
         operator: "all",
-        children: criteria.filter((criterion) => criterion.mode === "required").map((criterion) => ({
-          kind: "criterion",
-          id: criterion.id,
-        })),
+        children: criteria
+          .filter((criterion) => criterion.mode === "required")
+          .map((criterion) => ({
+            kind: "criterion",
+            id: criterion.id,
+          })),
       },
     ],
   };

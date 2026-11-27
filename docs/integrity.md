@@ -23,7 +23,7 @@ The unsigned draft has exactly schemaVersion, assessmentId, revision, policyVers
 
 Canonical definition golden vector (one line, escaped LF in value):
 
-```json
+```text
 {"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}
 ```
 
@@ -37,7 +37,7 @@ A ReferenceBundle contains exactly schemaVersion, definition (assessmentId, revi
 
 Canonical reference vector:
 
-```json
+```text
 {"kind":"text","referenceId":"secret","schemaVersion":3,"value":"café\n"}
 ```
 
@@ -45,15 +45,15 @@ Digest: `sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f
 
 Canonical definition binding that reference:
 
-```json
+```text
 {"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}
 ```
 
 Digest: `sha256:b0b4ed130a1ed38d5b306a7c43f10a512fbe8f2905b110ea781c4f3bcc8fd6cf`.
 
-| Canonical reference JSON | Digest |
-| --- | --- |
-| `{"kind":"number","referenceId":"quantity","schemaVersion":3,"unit":"m","value":10}` | `sha256:1e4890246c0eda1381302e0d56d458fc08d2883e806b411eec5572b24cd78a0b` |
+| Canonical reference JSON                                                                   | Digest                                                                    |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `{"kind":"number","referenceId":"quantity","schemaVersion":3,"unit":"m","value":10}`       | `sha256:1e4890246c0eda1381302e0d56d458fc08d2883e806b411eec5572b24cd78a0b` |
 | `{"itemType":"number","kind":"set","referenceId":"items","schemaVersion":3,"value":[1,2]}` | `sha256:eb8098fafa7f466e471989a3f2106d02b130766c3c27cee4692ba77b8ae587a8` |
 
 ## Current-generation evidence integrity
@@ -64,7 +64,7 @@ An artifact-scoped bundle requires explicitly scoped observations. Artifact orig
 
 Canonical evidence vector using the first definition vector:
 
-```json
+```text
 {"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\n"}],"schemaVersion":3}
 ```
 

@@ -343,10 +343,18 @@ describe("AY-I23 composition", () => {
         tolerance: { absolute: 0, relative: 0 },
       },
     } as const;
-    const definition = unwrap(createAssessmentDefinition(draft([criterion("first"), hidden], flat("any", ["first", "hidden-canary"]))));
+    const definition = unwrap(
+      createAssessmentDefinition(
+        draft([criterion("first"), hidden], flat("any", ["first", "hidden-canary"])),
+      ),
+    );
     const refs = {
       schemaVersion: 3,
-      definition: { assessmentId: definition.assessmentId, revision: definition.revision, revisionDigest: definition.revisionDigest },
+      definition: {
+        assessmentId: definition.assessmentId,
+        revision: definition.revision,
+        revisionDigest: definition.revisionDigest,
+      },
       references: [reference],
     };
     const projections = [];
@@ -361,7 +369,12 @@ describe("AY-I23 composition", () => {
       expect(projection).toMatchObject({ ok: true, value: { outcome: "withheld" } });
       expect(JSON.stringify(projection)).not.toContain("canary");
       projections.push(projection);
-      expect(projectPublicResult(definition, { ...result, outcome: result.outcome === "pass" ? "fail" : "pass" }).ok).toBe(false);
+      expect(
+        projectPublicResult(definition, {
+          ...result,
+          outcome: result.outcome === "pass" ? "fail" : "pass",
+        }).ok,
+      ).toBe(false);
     }
     expect(projections[0]).toEqual(projections[1]);
     expect(projections[1]).toEqual(projections[2]);
