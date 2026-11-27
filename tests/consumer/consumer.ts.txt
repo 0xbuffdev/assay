@@ -255,3 +255,21 @@ const mixedReference: ReferenceRecordDraft = { schemaVersion: 2, referenceId: "x
 void unbound;
 void badReference;
 void mixedReference;
+
+// Schema-2 references must not be structurally assignable to schema 1,
+// even when the source is already typed (not a fresh object literal).
+const typedV2Reference: import("@0xbuff/assay").Expected<string, 2> = {
+  type: "reference",
+  referenceId: "secret",
+  referenceDigest: "sha256:" + "a".repeat(64),
+};
+// @ts-expect-error schema 1 cannot contain a schema-2 reference digest
+const rejectedV1Reference: import("@0xbuff/assay").Expected<string, 1> = typedV2Reference;
+const typedV1Reference: import("@0xbuff/assay").Expected<string, 1> = {
+  type: "reference",
+  referenceId: "secret",
+};
+// @ts-expect-error schema 2 requires a digest even for a previously typed reference
+const rejectedV2Reference: import("@0xbuff/assay").Expected<string, 2> = typedV1Reference;
+void rejectedV1Reference;
+void rejectedV2Reference;

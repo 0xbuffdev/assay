@@ -8,7 +8,7 @@ export type ReferenceVisibility = "public" | "restricted";
 export type Expected<T, V extends DefinitionSchemaVersion = DefinitionSchemaVersion> =
   | Readonly<{ type: "literal"; value: T }>
   | (V extends 1
-      ? Readonly<{ type: "reference"; referenceId: string }>
+      ? Readonly<{ type: "reference"; referenceId: string; referenceDigest?: never }>
       : Readonly<{ type: "reference"; referenceId: string; referenceDigest: string }>);
 
 export interface CriterionBase {
