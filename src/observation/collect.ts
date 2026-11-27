@@ -40,10 +40,7 @@ function error(
   return Object.freeze({ ok: false, outcome, diagnostics });
 }
 
-function invalidEvidence(
-  path: string,
-  code: DiagnosticCode,
-): ObservationCollectionResult {
+function invalidEvidence(path: string, code: DiagnosticCode): ObservationCollectionResult {
   return error("invalid_evidence", Object.freeze([Object.freeze({ path, code })]));
 }
 

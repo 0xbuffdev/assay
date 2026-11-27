@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import tsCompiler from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const locate = (relative) => path.join(root, relative);
@@ -35,24 +36,7 @@ assert.deepEqual(Object.keys(pkg.devDependencies ?? {}).sort(), [
   "vitest",
 ]);
 
-for (const file of [
-  "README.md",
-  "LICENSE",
-  "COPYRIGHT.md",
-  "AGENTS.md",
-  "CONTRIBUTING.md",
-  "CODE_OF_CONDUCT.md",
-  "SECURITY.md",
-  "CHANGELOG.md",
-  "docs/architecture.md",
-  "docs/development.md",
-  "docs/releasing.md",
-  "pnpm-lock.yaml",
-  "biome.json",
-  "tsconfig.json",
-  "tsconfig.build.json",
-  "tsdown.config.ts",
-  "vitest.config.ts",
+const sourcePaths = new Set([
   "src/contracts/common.ts",
   "src/contracts/definition.ts",
   "src/contracts/evidence.ts",
@@ -82,6 +66,27 @@ for (const file of [
   "src/validation/observation.ts",
   "src/validation/result.ts",
   "src/validation/shared.ts",
+]);
+
+for (const file of [
+  "README.md",
+  "LICENSE",
+  "COPYRIGHT.md",
+  "AGENTS.md",
+  "CONTRIBUTING.md",
+  "CODE_OF_CONDUCT.md",
+  "SECURITY.md",
+  "CHANGELOG.md",
+  "docs/architecture.md",
+  "docs/development.md",
+  "docs/releasing.md",
+  "pnpm-lock.yaml",
+  "biome.json",
+  "tsconfig.json",
+  "tsconfig.build.json",
+  "tsdown.config.ts",
+  "vitest.config.ts",
+  ...sourcePaths,
   "tests/evaluate.test.ts",
   "tests/observation.test.ts",
   "tests/numeric-units.test.ts",
@@ -141,37 +146,6 @@ for (const rootDirectory of ["src", "tests"]) {
 }
 
 // The package root is the only public entry; implementation modules never import it.
-const sourcePaths = new Set([
-  "src/contracts/common.ts",
-  "src/contracts/definition.ts",
-  "src/contracts/evidence.ts",
-  "src/contracts/observation.ts",
-  "src/contracts/projection.ts",
-  "src/contracts/result.ts",
-  "src/contracts/validation.ts",
-  "src/evaluation/aggregate.ts",
-  "src/evaluation/comparators/finding.ts",
-  "src/evaluation/comparators/number.ts",
-  "src/evaluation/comparators/review.ts",
-  "src/evaluation/comparators/set.ts",
-  "src/evaluation/comparators/text.ts",
-  "src/evaluation/compare.ts",
-  "src/evaluation/evaluate.ts",
-  "src/evaluation/verified.ts",
-  "src/index.ts",
-  "src/integrity/canonical.ts",
-  "src/integrity/definition.ts",
-  "src/integrity/sha256.ts",
-  "src/observation/collect.ts",
-  "src/observation/verified.ts",
-  "src/projection/public.ts",
-  "src/validation/coverage.ts",
-  "src/validation/definition.ts",
-  "src/validation/evidence.ts",
-  "src/validation/observation.ts",
-  "src/validation/result.ts",
-  "src/validation/shared.ts",
-]);
 const edges = new Map();
 const allowedLayers = {
   contracts: ["contracts"],
@@ -185,10 +159,38 @@ const allowedLayers = {
 for (const file of sourcePaths) {
   const source = await readFile(locate(file), "utf8");
   const dependencies = [];
-  const imports = source.matchAll(
-    /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?)["']([^"']+)["']/g,
+  const syntax = tsCompiler.createSourceFile(
+    file,
+    source,
+    tsCompiler.ScriptTarget.ES2022,
+    true,
   );
-  for (const [, specifier] of imports) {
+  const imports = [];
+  function inspect(node) {
+    if (tsCompiler.isImportDeclaration(node) || tsCompiler.isExportDeclaration(node)) {
+      if (node.moduleSpecifier) {
+        assert.ok(tsCompiler.isStringLiteral(node.moduleSpecifier), `Nonliteral import in ${file}`);
+        imports.push(node.moduleSpecifier.text);
+      }
+    } else if (tsCompiler.isImportTypeNode(node)) {
+      assert.ok(
+        tsCompiler.isLiteralTypeNode(node.argument) &&
+          tsCompiler.isStringLiteral(node.argument.literal),
+        `Nonliteral type import in ${file}`,
+      );
+      imports.push(node.argument.literal.text);
+    } else if (
+      tsCompiler.isImportEqualsDeclaration(node) ||
+      (tsCompiler.isCallExpression(node) &&
+        (node.expression.kind === tsCompiler.SyntaxKind.ImportKeyword ||
+          (tsCompiler.isIdentifier(node.expression) && node.expression.text === "require")))
+    ) {
+      assert.fail(`Use static ESM dependencies in source: ${file}`);
+    }
+    tsCompiler.forEachChild(node, inspect);
+  }
+  inspect(syntax);
+  for (const specifier of imports) {
     assert.ok(specifier.startsWith("."), `External source import in ${file}: ${specifier}`);
     const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier)) + ".ts";
     assert.ok(sourcePaths.has(target), `Untracked module in ${file}: ${target}`);
@@ -196,12 +198,27 @@ for (const file of sourcePaths) {
     if (file !== "src/index.ts") {
       const layer = file.split("/")[1];
       const targetLayer = target.split("/")[1];
-      assert.ok(allowedLayers[layer]?.includes(targetLayer), `Forbidden dependency: ${file} -> ${target}`);
+      assert.ok(
+        allowedLayers[layer]?.includes(targetLayer),
+        `Forbidden dependency: ${file} -> ${target}`,
+      );
+      if (file.startsWith("src/evaluation/comparators/")) {
+        assert.ok(
+          targetLayer === "contracts" || target.startsWith("src/evaluation/comparators/"),
+          `Comparator depends on orchestration: ${file} -> ${target}`,
+        );
+      }
+      if (file === "src/evaluation/aggregate.ts") {
+        assert.equal(targetLayer, "contracts", "Aggregation must remain a pure contract operation");
+      }
       if (layer === "projection" && targetLayer === "evaluation") {
         assert.equal(target, "src/evaluation/aggregate.ts");
       }
       if (layer === "evaluation" && targetLayer === "integrity") {
         assert.equal(file, "src/evaluation/verified.ts");
+      }
+      if (layer === "observation" && targetLayer === "integrity") {
+        assert.equal(file, "src/observation/verified.ts");
       }
     }
     dependencies.push(target);
@@ -213,6 +230,7 @@ for (const file of sourcePaths) {
 const pendingSources = ["src"];
 while (pendingSources.length > 0) {
   const directory = pendingSources.pop();
+  if (!directory) break;
   for (const item of await readdir(locate(directory), { withFileTypes: true })) {
     const relative = path.posix.join(directory, item.name);
     if (item.isDirectory()) pendingSources.push(relative);
@@ -221,6 +239,13 @@ while (pendingSources.length > 0) {
     }
   }
 }
+for (const consumer of ["src/evaluation/evaluate.ts", "src/projection/public.ts"]) {
+  assert.ok(
+    edges.get(consumer).includes("src/evaluation/aggregate.ts"),
+    `Required aggregation must share one owner: ${consumer}`,
+  );
+}
+
 const active = new Set();
 const visited = new Set();
 function visit(file) {

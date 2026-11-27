@@ -5,8 +5,8 @@
  * authenticate evidence, or contact any external service.
  */
 
-export { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "./contracts/common";
 export type { Completeness, SetItemType, SetScalar } from "./contracts/common";
+export { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "./contracts/common";
 export type {
   AssessmentDefinition,
   AssessmentDefinitionDraft,

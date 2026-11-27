@@ -22,6 +22,7 @@ export const CONTRACT_LIMITS = Object.freeze({
   maxDiagnostics: 32,
   maxCapturedBytes: 65_536,
 } as const);
+
 export type Completeness = "complete" | "truncated";
 
 export type SetItemType = "string" | "number" | "boolean";

@@ -20,10 +20,7 @@ export function compareExecution(
   return finding("inconclusive", incomplete ? "ASSERTION_INCOMPLETE" : "EXECUTION_UNVERIFIED");
 }
 
-export function compareManual(
-  criterion: Extract<Criterion, { kind: "manual_evidence" }>,
-  observation: Observation,
-): Comparison {
+export function compareManual(observation: Observation): Comparison {
   if (observation.kind !== "manual") return finding("error", "COMPARATOR_ERROR");
   return finding(
     "inconclusive",

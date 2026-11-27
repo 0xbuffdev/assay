@@ -24,6 +24,6 @@ export function compare(criterion: Criterion, observation: Observation): Compari
     case "observed_execution":
       return compareExecution(criterion, observation);
     case "manual_evidence":
-      return compareManual(criterion, observation);
+      return compareManual(observation);
   }
 }
