@@ -1,3 +1,4 @@
+import { SCHEMA_VERSION } from "../contracts/version";
 import type { ObservationPortReport } from "../contracts/observation";
 import type { ValidationResult } from "../contracts/validation";
 import { validateObservations, validateProvenance } from "./evidence";
@@ -11,7 +12,7 @@ export function parseObservationPortReport(
     const required = ["schemaVersion", "definition", "provenance", "observations"];
     if (!object(data, "$", [...required, "artifactDigest", "termination"], required, issues))
       return;
-    if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (data.schemaVersion !== SCHEMA_VERSION) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     definitionRef(data.definition, "$.definition", issues);
     if (Object.hasOwn(data, "artifactDigest"))
       digest(data.artifactDigest, "$.artifactDigest", issues);
