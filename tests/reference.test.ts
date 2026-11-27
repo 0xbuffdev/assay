@@ -604,6 +604,8 @@ describe("AY-I14 protected reference evaluation", () => {
       revisionDigest: definitionDigest,
     };
     expect(verifyAssessmentDefinition(legacy).ok).toBe(false);
-    expect(evaluate(legacy, observed(f.definition, []), f.bundle).outcome).toBe("invalid_definition");
+    expect(evaluate(legacy, observed(f.definition, []), f.bundle).outcome).toBe(
+      "invalid_definition",
+    );
   });
 });

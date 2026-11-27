@@ -7,8 +7,8 @@ import {
   type FindingOutcome,
 } from "../contracts/result";
 import type { ValidationResult } from "../contracts/validation";
-import { choice, definitionRef, digest, finish, identifier, list, object, unique } from "./shared";
 import { SCHEMA_VERSION } from "../contracts/version";
+import { choice, definitionRef, digest, finish, identifier, list, object, unique } from "./shared";
 
 /** Validate a technical finding record without granting authority to its claim. */
 export function parseEvaluationResult(input: unknown): ValidationResult<EvaluationResult> {

@@ -26,7 +26,11 @@ const restricted: Criterion = {
   mode: "required",
   visibility: "restricted",
   parameters: {
-    expected: { type: "reference", referenceId: "SECRET_REFERENCE_CANARY", referenceDigest: digestA },
+    expected: {
+      type: "reference",
+      referenceId: "SECRET_REFERENCE_CANARY",
+      referenceDigest: digestA,
+    },
   },
 };
 

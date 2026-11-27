@@ -5,6 +5,7 @@ import type {
   ReferenceRecordDraft,
 } from "../contracts/reference";
 import type { ValidationResult } from "../contracts/validation";
+import { SCHEMA_VERSION } from "../contracts/version";
 import {
   booleanValue,
   choice,
@@ -20,13 +21,13 @@ import {
   setItems,
   textValue,
 } from "./shared";
-import { SCHEMA_VERSION } from "../contracts/version";
 
 function record(input: unknown, path: string, sealed: boolean, issues: Diagnostics): void {
   const common = ["schemaVersion", "referenceId", "kind", "value"];
   if (sealed) common.push("referenceDigest");
   if (!object(input, path, [...common, "unit", "itemType"], common, issues)) return;
-  if (input.schemaVersion !== SCHEMA_VERSION) issues.add(`${path}.schemaVersion`, "UNSUPPORTED_VERSION");
+  if (input.schemaVersion !== SCHEMA_VERSION)
+    issues.add(`${path}.schemaVersion`, "UNSUPPORTED_VERSION");
   identifier(input.referenceId, `${path}.referenceId`, issues);
   if (sealed) digest(input.referenceDigest, `${path}.referenceDigest`, issues);
   switch (input.kind) {

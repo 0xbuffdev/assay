@@ -147,12 +147,24 @@ describe("AY-I23 composition", () => {
             const definition = unwrap(
               createAssessmentDefinition(
                 draft(
-                  [criterion("first", first), criterion("second", second), criterion("third", third)],
+                  [
+                    criterion("first", first),
+                    criterion("second", second),
+                    criterion("third", third),
+                  ],
                   {
                     rootGroupId: "root",
                     groups: [
-                      { id: "alternative", operator: childOperator, children: [leaf("second"), leaf("third")] },
-                      { id: "root", operator: rootOperator, children: [leaf("first"), group("alternative")] },
+                      {
+                        id: "alternative",
+                        operator: childOperator,
+                        children: [leaf("second"), leaf("third")],
+                      },
+                      {
+                        id: "root",
+                        operator: rootOperator,
+                        children: [leaf("first"), group("alternative")],
+                      },
                     ],
                   },
                 ),
@@ -161,7 +173,11 @@ describe("AY-I23 composition", () => {
             const evidence = unwrap(
               createEvidenceBundle(definition, {
                 schemaVersion: 3,
-                observations: [observation("first", first), observation("second", second), observation("third", third)],
+                observations: [
+                  observation("first", first),
+                  observation("second", second),
+                  observation("third", third),
+                ],
               }),
             );
             expect(evaluate(definition, evidence).outcome).toBe(
@@ -211,13 +227,22 @@ describe("AY-I23 composition", () => {
       { ...valid, rootGroupId: "missing" },
       { ...valid, groups: [{ id: "first", operator: "all", children: [leaf("second")] }] },
       { ...valid, groups: [{ id: "root", operator: "all", children: [group("root")] }] },
-      { ...valid, groups: [...valid.groups, { id: "unused", operator: "all", children: [leaf("first")] }] },
-      { ...valid, groups: [
-        { id: "root", operator: "all", children: [group("shared"), group("shared")] },
-        { id: "shared", operator: "all", children: [leaf("first"), leaf("second")] },
-      ] },
+      {
+        ...valid,
+        groups: [...valid.groups, { id: "unused", operator: "all", children: [leaf("first")] }],
+      },
+      {
+        ...valid,
+        groups: [
+          { id: "root", operator: "all", children: [group("shared"), group("shared")] },
+          { id: "shared", operator: "all", children: [leaf("first"), leaf("second")] },
+        ],
+      },
       { ...valid, groups: [...valid.groups, ...valid.groups] },
-      { ...valid, groups: [{ id: "root", operator: "xor", children: [leaf("first"), leaf("second")] }] },
+      {
+        ...valid,
+        groups: [{ id: "root", operator: "xor", children: [leaf("first"), leaf("second")] }],
+      },
     ]) {
       expect(createAssessmentDefinition({ ...draft(criteria, valid), composition }).ok).toBe(false);
     }
@@ -241,30 +266,47 @@ describe("AY-I23 composition", () => {
     const maximum: CriterionComposition = {
       rootGroupId: "root",
       groups: [
-        { id: "root", operator: "all", children: [leaf("c63"), ...ids.slice(0, 63).map((id) => group(`g-${id}`))] },
-        ...ids.slice(0, 63).map((id) => ({ id: `g-${id}`, operator: "all" as const, children: [leaf(id)] })),
+        {
+          id: "root",
+          operator: "all",
+          children: [leaf("c63"), ...ids.slice(0, 63).map((id) => group(`g-${id}`))],
+        },
+        ...ids
+          .slice(0, 63)
+          .map((id) => ({ id: `g-${id}`, operator: "all" as const, children: [leaf(id)] })),
       ],
     };
     expect(createAssessmentDefinition(draft(criteria, maximum)).ok).toBe(true);
     expect(createAssessmentDefinition(draft(criteria, flat("all", [...ids, "c0"]))).ok).toBe(false);
-    expect(createAssessmentDefinition({
-      ...draft(criteria, maximum),
-      composition: { ...maximum, groups: [...maximum.groups, { id: "extra", operator: "all", children: [leaf("c0")] }] },
-    }).ok).toBe(false);
+    expect(
+      createAssessmentDefinition({
+        ...draft(criteria, maximum),
+        composition: {
+          ...maximum,
+          groups: [...maximum.groups, { id: "extra", operator: "all", children: [leaf("c0")] }],
+        },
+      }).ok,
+    ).toBe(false);
   });
 
   it("binds authored group ordering and rejects obsolete schema and policy IDs", () => {
     const authored = draft([criterion("first"), criterion("second")], flat("all"));
     const sealed = unwrap(createAssessmentDefinition(authored));
-    const reordered = unwrap(createAssessmentDefinition({
-      ...authored,
-      composition: flat("all", ["second", "first"]),
-    }));
+    const reordered = unwrap(
+      createAssessmentDefinition({
+        ...authored,
+        composition: flat("all", ["second", "first"]),
+      }),
+    );
     expect(sealed.revisionDigest).not.toBe(reordered.revisionDigest);
     const encoded = JSON.stringify(authored, (_key, value: unknown) => {
       if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
       const object = value as Record<string, unknown>;
-      return Object.fromEntries(Object.keys(object).sort().map((key) => [key, object[key]]));
+      return Object.fromEntries(
+        Object.keys(object)
+          .sort()
+          .map((key) => [key, object[key]]),
+      );
     });
     expect(sealed.revisionDigest).toBe(
       `sha256:${createHash("sha256").update(`assay:definition:v3\n${encoded}`, "utf8").digest("hex")}`,
@@ -273,23 +315,31 @@ describe("AY-I23 composition", () => {
     for (const schemaVersion of [1, 2, 4]) {
       expect(createAssessmentDefinition({ ...authored, schemaVersion }).ok).toBe(false);
     }
-    expect(createAssessmentDefinition({ ...authored, policyVersion: "all-required-v1" }).ok).toBe(false);
+    expect(createAssessmentDefinition({ ...authored, policyVersion: "all-required-v1" }).ok).toBe(
+      false,
+    );
   });
 
   it("withholds the aggregate and rejects incoherent composed results", () => {
-    const reference = unwrap(createReferenceRecord({
-      schemaVersion: 3,
-      referenceId: "private-canary",
-      kind: "number",
-      value: 42,
-    }));
+    const reference = unwrap(
+      createReferenceRecord({
+        schemaVersion: 3,
+        referenceId: "private-canary",
+        kind: "number",
+        value: 42,
+      }),
+    );
     const hidden = {
       id: "hidden-canary",
       mode: "required",
       visibility: "restricted",
       kind: "number_with_tolerance",
       parameters: {
-        expected: { type: "reference", referenceId: reference.referenceId, referenceDigest: reference.referenceDigest },
+        expected: {
+          type: "reference",
+          referenceId: reference.referenceId,
+          referenceDigest: reference.referenceDigest,
+        },
         tolerance: { absolute: 0, relative: 0 },
       },
     } as const;

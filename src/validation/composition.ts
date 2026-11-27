@@ -33,8 +33,7 @@ export function validateComposition(
       issues.add(`${gp}.id`, "DUPLICATE_ID");
       continue;
     }
-    if (!list(raw.children, `${gp}.children`, issues, CONTRACT_LIMITS.maxGroupChildren))
-      continue;
+    if (!list(raw.children, `${gp}.children`, issues, CONTRACT_LIMITS.maxGroupChildren)) continue;
     if (raw.children.length === 0) issues.add(`${gp}.children`, "INVALID_VALUE");
     edges += raw.children.length;
     if (edges > CONTRACT_LIMITS.maxCompositionEdges) {
