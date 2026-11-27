@@ -132,10 +132,13 @@ describe("typed execution facts", () => {
     }
     expect(run([exit], [{ ...status, unit: "m" }]).outcome).toBe("invalid_evidence");
     expect(createAssessmentDefinition(draft([stdout], 1)).ok).toBe(false);
-    expect(createAssessmentDefinition(draft([{ ...stdout, executionFact: "exit_status" }])).ok)
-      .toBe(false);
     expect(
-      createAssessmentDefinition(draft([{ ...exit, parameters: { ...exit.parameters as object, unit: "m" } }])).ok,
+      createAssessmentDefinition(draft([{ ...stdout, executionFact: "exit_status" }])).ok,
+    ).toBe(false);
+    expect(
+      createAssessmentDefinition(
+        draft([{ ...exit, parameters: { ...(exit.parameters as object), unit: "m" } }]),
+      ).ok,
     ).toBe(false);
   });
 
@@ -157,8 +160,7 @@ describe("typed execution facts", () => {
       }
     }
     expect(
-      run([stdout, stderr], [out, { ...err, origin: { ...origin, termination: "timeout" } }])
-        .outcome,
+      run([stdout, stderr], [out, { ...err, origin: { ...origin, termination: "timeout" } }]).outcome,
     ).toBe("invalid_evidence");
   });
 
@@ -192,10 +194,15 @@ describe("typed execution facts", () => {
       ]).outcome,
     ).toBe("inconclusive");
     const stderrCapture = { ...provenance, stdoutTruncated: false, stderrTruncated: true };
-    expect(run([stdout], [{ ...out, origin: { ...origin, provenance: stderrCapture } }]).outcome)
-      .toBe("pass");
-    expect(run([stderr], [{ ...err, origin: { ...origin, provenance: stderrCapture } }]).outcome)
-      .toBe("invalid_evidence");
+    expect(
+      run([stdout], [{ ...out, origin: { ...origin, provenance: stderrCapture } }]).outcome,
+    ).toBe("pass");
+    expect(
+      run([stderr], [{ ...err, origin: { ...origin, provenance: stderrCapture } }]).outcome,
+    ).toBe("invalid_evidence");
+    expect(
+      run([stdout, json], [{ ...out, completeness: "truncated" }, structured]).outcome,
+    ).toBe("invalid_evidence");
   });
 
   it("binds selection and origin into content digests and preserves protected comparisons", () => {
@@ -206,23 +213,29 @@ describe("typed execution facts", () => {
       value: "secret-output-canary",
     });
     if (!reference.ok) throw new Error("Invalid reference fixture");
-    const rubric = definition([{
-      ...stdout,
-      visibility: "restricted",
-      parameters: {
-        expected: {
-          type: "reference",
-          referenceId: reference.value.referenceId,
-          referenceDigest: reference.value.referenceDigest,
+    const rubric = definition([
+      {
+        ...stdout,
+        visibility: "restricted",
+        parameters: {
+          expected: {
+            type: "reference",
+            referenceId: reference.value.referenceId,
+            referenceDigest: reference.value.referenceDigest,
+          },
         },
       },
-    }]);
+    ]);
     const evidence = createEvidenceBundle(rubric, {
       schemaVersion: 2,
       observations: [{ ...out, value: "secret-output-canary" }],
     });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
-    const refs = { schemaVersion: 2, definition: evidence.value.definition, references: [reference.value] };
+    const refs = {
+      schemaVersion: 2,
+      definition: evidence.value.definition,
+      references: [reference.value],
+    };
     expect(evaluate(rubric, evidence.value).outcome).toBe("inconclusive");
     const result = evaluate(rubric, evidence.value, refs);
     expect(result.outcome).toBe("pass");
@@ -232,10 +245,39 @@ describe("typed execution facts", () => {
       ok: true,
       value: { outcome: "withheld", findings: [] },
     });
-    expect(evaluate(rubric, { ...evidence.value, observations: [{ ...out, origin: { ...origin, termination: "timeout" } }] }, refs).outcome)
-      .toBe("invalid_evidence");
+    expect(
+      evaluate(
+        rubric,
+        {
+          ...evidence.value,
+          observations: [
+            {
+              ...out,
+              value: "secret-output-canary",
+              origin: { ...origin, termination: "timeout" },
+            },
+          ],
+        },
+        refs,
+      ).outcome,
+    ).toBe("invalid_evidence");
     expect(definition([stdout]).revisionDigest).not.toBe(
       definition([{ ...stdout, executionFact: "stderr" }]).revisionDigest,
+    );
+  });
+
+  it("matches independent canonical definition and evidence vectors", () => {
+    const rubric = definition([stdout]);
+    expect(rubric.revisionDigest).toBe(
+      "sha256:198b7fa36aafa00a8bfc98768d81673d38d1decbfcf1a65e8162235f868368a3",
+    );
+    const evidence = createEvidenceBundle(rubric, {
+      schemaVersion: 2,
+      observations: [out],
+    });
+    if (!evidence.ok) throw new Error("Invalid evidence fixture");
+    expect(evidence.value.evidenceDigest).toBe(
+      "sha256:c23760b6496a44fc6d185165ab7f8015f60b47a15b7a6c78bc8358ddb1bb9d27",
     );
   });
 

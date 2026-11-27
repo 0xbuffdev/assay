@@ -118,6 +118,14 @@ export function validateObservations(
       if (Object.hasOwn(obs, "origin")) issues.add(`${p}.origin`, "UNEXPECTED_FIELD");
     } else {
       const capture = validateOrigin(obs, artifactDigest, p, issues);
+      // An explicitly truncated stream is also a completeness claim about
+      // that stream, even if the optional capture provenance is absent.
+      if (obs.completeness === "truncated") {
+        if (obs.executionFact === "stdout" || obs.executionFact === "structured_stdout")
+          capture.stdoutTruncated = true;
+        if (obs.executionFact === "stderr" || obs.executionFact === "structured_stderr")
+          capture.stderrTruncated = true;
+      }
       const origin = obs.origin;
       if (origin && typeof origin === "object" && !Array.isArray(origin)) {
         const claim = origin as Record<string, unknown>;

@@ -314,3 +314,27 @@ labels such as `policy1` are rejected rather than interpreted as the supported
 policy. Re-author and reseal explicitly to migrate; this produces different
 content identities. The canonical byte profiles and hash domains are unchanged.
 The vectors above use the newly authored policy, not rewritten historical bytes.
+
+### Selected execution fact vectors (AY-I18)
+
+The optional schema-2 selector and run termination claim participate in the
+same canonical profiles. Old records without these fields retain their bytes.
+For these synthetic vectors, hash the exact JSON below after the corresponding
+domain and one LF, with no trailing LF. The hashes were independently computed
+using Node's SHA-256 implementation.
+
+Definition (`assay:definition:v2`):
+
+```text
+{"assessmentId":"execution","criteria":[{"executionFact":"stdout","id":"out","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"ok"}},"visibility":"public"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":2}
+```
+
+Digest: `sha256:198b7fa36aafa00a8bfc98768d81673d38d1decbfcf1a65e8162235f868368a3`.
+
+Evidence (`assay:evidence:v2`):
+
+```text
+{"definition":{"assessmentId":"execution","revision":"rev1","revisionDigest":"sha256:198b7fa36aafa00a8bfc98768d81673d38d1decbfcf1a65e8162235f868368a3"},"observations":[{"completeness":"complete","criterionId":"out","evidenceRef":"fact-out","executionFact":"stdout","kind":"text","origin":{"kind":"independent","runRef":"run1","sourceRef":"fixture","termination":"exited"},"value":"ok"}],"schemaVersion":2}
+```
+
+Digest: `sha256:c23760b6496a44fc6d185165ab7f8015f60b47a15b7a6c78bc8358ddb1bb9d27`.

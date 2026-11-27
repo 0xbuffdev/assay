@@ -229,9 +229,8 @@ Missing or truncated observations are inconclusive. Malformed inputs fail at
 validation, before any comparison. Restricted literals remain forbidden.
 
 The new kinds require schema-2 definitions; existing schema-1 definitions
-and canonical hash profiles are unchanged. Evaluator version `v0.0.2`
-identifies the expanded supported comparator set; earlier evaluator result
-versions are not admitted by the current structural result parser.
+and canonical hash profiles are unchanged. AY-I17 introduced evaluator version `v0.0.2` for the expanded comparator set.
+The structural result parser admits only the current evaluator version.
 
 ## AY-I18 typed execution facts (schema 2)
 
@@ -264,7 +263,8 @@ evidence, including when it omits provenance. Truncation of stderr does not
 invalidate selected stdout and vice versa; exit status is independent of
 stream truncation. For boolean properties and unselected facts whose
 stream attribution is unknown, either stream's truncation is conservative.
-Conflicting termination claims are invalid. An exited run or zero exit
+Conflicting termination claims are invalid; a complete observation cannot
+omit termination for a run known to have timed out or crashed. An exited run or zero exit
 status alone is not proof of other required output or properties.
 
 Schema-1 definitions cannot declare a selector. Existing generic criteria
