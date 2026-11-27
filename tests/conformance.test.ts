@@ -54,17 +54,17 @@ function independentDigest(domain: string, value: unknown): string {
 
 function compare(criterion: unknown, fact: unknown, matches: boolean): void {
   const definition = unwrap(createAssessmentDefinition(draft([criterion])));
-  const evidence = unwrap(createEvidenceBundle(definition, {
-    schemaVersion: 2,
-    observations: [fact],
-  }));
+  const evidence = unwrap(
+    createEvidenceBundle(definition, {
+      schemaVersion: 2,
+      observations: [fact],
+    }),
+  );
   const result = evaluate(definition, evidence);
   const outcome = matches ? "pass" : "fail";
   expect(result).toMatchObject({
     outcome,
-    findings: [
-      { criterionId: "fact", outcome, reasonCode: matches ? "MATCH" : "VALUE_MISMATCH" },
-    ],
+    findings: [{ criterionId: "fact", outcome, reasonCode: matches ? "MATCH" : "VALUE_MISMATCH" }],
   });
   expect(parseEvaluationResult(result).ok).toBe(true);
   expect(projectPublicResult(definition, result)).toEqual({
@@ -110,9 +110,7 @@ describe("AY-I24 independent conformance, evaluator v0.0.3", () => {
         value,
       };
       const record = unwrap(createReferenceRecord(recordDraft));
-      expect(record.referenceDigest).toBe(
-        independentDigest("assay:reference:v2", recordDraft),
-      );
+      expect(record.referenceDigest).toBe(independentDigest("assay:reference:v2", recordDraft));
       expect(unwrap(createReferenceRecord({ ...recordDraft, value: reordered }))).toEqual(record);
       const definitionDraft = draft([
         {
@@ -160,21 +158,28 @@ describe("AY-I24 independent conformance, evaluator v0.0.3", () => {
         findings: [{ criterionId: "fact", outcome: "pass", reasonCode: "MATCH" }],
       });
       expect(
-        JSON.stringify(evaluate(
-          structuredClone(definition),
-          structuredClone(evidence),
-          structuredClone(references),
-        )),
+        JSON.stringify(
+          evaluate(
+            structuredClone(definition),
+            structuredClone(evidence),
+            structuredClone(references),
+          ),
+        ),
       ).toBe(JSON.stringify(result));
-      const changed = unwrap(createEvidenceBundle(definition, {
-        ...evidenceDraft,
-        observations: [{ ...observation, kind: "json", value: { ...value, z: [...value.z].reverse() } }],
-      }));
+      const changed = unwrap(
+        createEvidenceBundle(definition, {
+          ...evidenceDraft,
+          observations: [
+            { ...observation, kind: "json", value: { ...value, z: [...value.z].reverse() } },
+          ],
+        }),
+      );
       expect(changed.evidenceDigest).not.toBe(evidence.evidenceDigest);
       expect(evaluate(definition, changed, references).outcome).toBe("fail");
       expect(evaluate(definition, evidence).outcome).toBe("inconclusive");
-      expect(evaluate(definition, { ...evidence, evidenceDigest: changed.evidenceDigest }).outcome)
-        .toBe("invalid_evidence");
+      expect(
+        evaluate(definition, { ...evidence, evidenceDigest: changed.evidenceDigest }).outcome,
+      ).toBe("invalid_evidence");
     }
   });
 
