@@ -148,7 +148,10 @@ describe("AY-I24 generated adversarial boundary cases", () => {
             tolerance: { absolute: 0, relative: 2 },
           },
         };
-        for (const criteria of [[publicCriterion, hidden], [hidden, publicCriterion]]) {
+        for (const criteria of [
+          [publicCriterion, hidden],
+          [hidden, publicCriterion],
+        ]) {
           const rubric = definition(criteria);
           const hiddenFact = {
             criterionId: hidden.id,
