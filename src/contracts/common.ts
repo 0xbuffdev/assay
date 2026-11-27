@@ -5,7 +5,9 @@
  * or execution isolation. Immutable references are caller claims until a host
  * independently verifies their provenance.
  */
-export const ASSAY_SCHEMA_VERSION = 1 as const;
+import { SCHEMA_VERSION } from "./version";
+
+export const ASSAY_SCHEMA_VERSION = SCHEMA_VERSION;
 
 export const CONTRACT_LIMITS = Object.freeze({
   maxDepth: 12,
@@ -18,6 +20,10 @@ export const CONTRACT_LIMITS = Object.freeze({
   maxObjectKeys: 32,
   maxArrayLength: 128,
   maxCriteria: 64,
+  maxGroups: 64,
+  maxGroupChildren: 64,
+  maxGroupDepth: 8,
+  maxCompositionEdges: 127,
   maxObservations: 128,
   maxSetItems: 128,
   maxEvidenceRefs: 32,
