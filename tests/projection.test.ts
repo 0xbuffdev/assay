@@ -146,6 +146,150 @@ describe("AY-I20 safe technical feedback", () => {
     });
   });
 
+  it("rejects numeric decisions that contradict known literal tolerance bounds", () => {
+    for (const [expected, relative, outcome, reasonCode] of [
+      [1e308, 1e308, "evaluation_error", "NUMERIC_OVERFLOW"],
+      [10, 0.1, "pass", "MATCH"],
+    ] as const) {
+      const criterion: Criterion = {
+        ...visible,
+        kind: "number_with_tolerance",
+        parameters: {
+          expected: { type: "literal", value: expected },
+          tolerance: { absolute: 0, relative },
+        },
+      };
+      const definition = sealed([criterion]);
+      const observation = {
+        criterionId: criterion.id,
+        evidenceRef: "numeric-observation",
+        kind: "number",
+        completeness: "complete",
+        value: expected,
+      } as const;
+      const prepared = createEvidenceBundle(definition, {
+        schemaVersion: 2,
+        observations: [observation],
+      });
+      if (!prepared.ok) throw new Error("Invalid numeric evidence");
+      const result = evaluate(definition, prepared.value);
+      if (!("findings" in result)) throw new Error("Expected full result");
+      expect(result.outcome).toBe(outcome);
+      expect(result.findings[0].reasonCode).toBe(reasonCode);
+      expect(projectPublicResult(definition, result).ok).toBe(true);
+
+      const forged =
+        reasonCode === "NUMERIC_OVERFLOW"
+          ? [
+              ["pass", "MATCH", "pass"],
+              ["fail", "VALUE_MISMATCH", "fail"],
+            ]
+          : [["error", "NUMERIC_OVERFLOW", "evaluation_error"]];
+      for (const [decision, reason, total] of forged) {
+        expect(
+          projectPublicResult(definition, {
+            ...result,
+            outcome: total,
+            findings: [{ ...result.findings[0], outcome: decision, reasonCode: reason }],
+          }),
+        ).toEqual({ ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" });
+      }
+
+      for (const observations of [[], [{ ...observation, completeness: "truncated" }]]) {
+        const partial = createEvidenceBundle(definition, { schemaVersion: 2, observations });
+        if (!partial.ok) throw new Error("Invalid partial evidence");
+        const unresolved = evaluate(definition, partial.value);
+        expect(unresolved.outcome).toBe("inconclusive");
+        expect(projectPublicResult(definition, unresolved).ok).toBe(true);
+      }
+      expect(
+        projectPublicResult(definition, {
+          ...result,
+          outcome: "evaluation_error",
+          findings: [{ ...result.findings[0], outcome: "error", reasonCode: "COMPARATOR_ERROR" }],
+        }).ok,
+      ).toBe(true);
+    }
+  });
+
+  it("checks overflow feasibility without assuming unknown reference values", () => {
+    for (const [value, relative, overflowPossible, overflow] of [
+      [10, 0, false, false],
+      [Number.MAX_VALUE, 1, false, false],
+      [10, 2, true, false],
+      [Number.MAX_VALUE, 2, true, true],
+    ] as const) {
+      const record = createReferenceRecord({
+        schemaVersion: 2,
+        referenceId: "numeric-reference",
+        kind: "number",
+        value,
+      });
+      if (!record.ok) throw new Error("Invalid numeric reference");
+      const created = createAssessmentDefinition({
+        schemaVersion: 2,
+        assessmentId: "projection",
+        revision: "rev1",
+        policyVersion: "all-required-v1",
+        criteria: [
+          {
+            ...visible,
+            kind: "number_with_tolerance",
+            parameters: {
+              expected: {
+                type: "reference",
+                referenceId: record.value.referenceId,
+                referenceDigest: record.value.referenceDigest,
+              },
+              tolerance: { absolute: 0, relative },
+            },
+          },
+        ],
+      });
+      if (!created.ok) throw new Error("Invalid numeric definition");
+      const definition = created.value;
+      const prepared = createEvidenceBundle(definition, {
+        schemaVersion: 2,
+        observations: [
+          {
+            criterionId: "visible",
+            evidenceRef: "numeric-observation",
+            kind: "number",
+            completeness: "complete",
+            value,
+          },
+        ],
+      });
+      if (!prepared.ok) throw new Error("Invalid numeric evidence");
+      const result = evaluate(definition, prepared.value, {
+        schemaVersion: 2,
+        definition: prepared.value.definition,
+        references: [record.value],
+      });
+      if (!("findings" in result)) throw new Error("Expected full result");
+      expect(result.findings[0].reasonCode).toBe(overflow ? "NUMERIC_OVERFLOW" : "MATCH");
+      expect(projectPublicResult(definition, result).ok).toBe(true);
+      const candidate = {
+        ...result,
+        outcome: "evaluation_error",
+        findings: [{ ...result.findings[0], outcome: "error", reasonCode: "NUMERIC_OVERFLOW" }],
+      };
+      const response = projectPublicResult(definition, candidate);
+      if (overflowPossible) expect(response.ok).toBe(true);
+      else expect(response).toEqual({ ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" });
+      expect(
+        projectPublicResult(definition, {
+          ...result,
+          outcome: "pass",
+          findings: [{ ...result.findings[0], outcome: "pass", reasonCode: "MATCH" }],
+        }).ok,
+      ).toBe(true);
+      const unavailable = evaluate(definition, prepared.value);
+      expect(unavailable.outcome).toBe("inconclusive");
+      expect(projectPublicResult(definition, unavailable).ok).toBe(true);
+    }
+  });
+
   it("does not reveal any restricted identifier, evidence reference, reason or aggregate verdict", () => {
     const definition = sealed([visible, restricted]);
     const full = technical(definition);

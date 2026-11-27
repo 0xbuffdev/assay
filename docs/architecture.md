@@ -64,7 +64,9 @@ Contracts have no dependency on evaluation, integrity, acquisition or
 projection. Validation depends only on contracts and shared validators.
 Integrity does not import evaluation or acquisition; both operations verify
 definition integrity before inspecting evidence. Projection uses the same internal
-required aggregation as evaluation after checking result correspondence.
+required aggregation as evaluation after checking result correspondence. It also
+shares the numeric comparator's relative-bound calculation to reject impossible
+numeric decisions without inspecting evidence or reference values.
 The package root is never an internal dependency.
 
 AY-I12 makes definition integrity mandatory for `evaluate` and

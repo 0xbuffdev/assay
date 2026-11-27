@@ -7,6 +7,7 @@ import type {
 } from "../contracts/projection";
 import type { CriterionFinding, ReasonCode } from "../contracts/result";
 import { advisoryWarnings, aggregateRequired } from "../evaluation/aggregate";
+import { relativeToleranceBound } from "../evaluation/comparators/number";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { parseEvaluationResult } from "../validation/result";
 
@@ -31,6 +32,21 @@ const PUBLIC_REASONS = Object.freeze({
   NUMERIC_OVERFLOW: "evaluation_error",
 } satisfies Record<ReasonCode, PublicReason>);
 
+// A literal bound has a known overflow state. For references, a finite bound
+// at the maximum finite magnitude rules out overflow for every possible value;
+// otherwise the actual overflow state is unknown without the reference.
+function numericOverflow(
+  criterion: Extract<Criterion, { kind: "number_with_tolerance" }>,
+): boolean | undefined {
+  const { expected, tolerance } = criterion.parameters;
+  if (expected.type === "literal") {
+    return !Number.isFinite(relativeToleranceBound(expected.value, tolerance.relative));
+  }
+  return Number.isFinite(relativeToleranceBound(Number.MAX_VALUE, tolerance.relative))
+    ? false
+    : undefined;
+}
+
 // Check facts about the record that are knowable without replaying evidence.
 // The current evaluator emits one evidence ref per observed criterion.
 function coherentFinding(
@@ -46,9 +62,16 @@ function coherentFinding(
   switch (finding.reasonCode) {
     case "MATCH":
     case "VALUE_MISMATCH":
-      return comparable;
+      return (
+        comparable &&
+        (criterion.kind !== "number_with_tolerance" || numericOverflow(criterion) !== true)
+      );
     case "NUMERIC_OVERFLOW":
-      return criterion.kind === "number_with_tolerance" && comparable;
+      return (
+        criterion.kind === "number_with_tolerance" &&
+        comparable &&
+        numericOverflow(criterion) !== false
+      );
     case "REFERENCE_UNAVAILABLE":
       return expected?.type === "reference";
     case "ASSERTION_INCOMPLETE":
