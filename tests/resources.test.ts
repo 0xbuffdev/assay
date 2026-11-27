@@ -4,10 +4,12 @@ import { describe, expect, it } from "vitest";
 import {
   createAssessmentDefinition,
   createEvidenceBundle,
+  createReferenceRecord,
   decodeSerializedRecord,
   evaluate,
   projectPublicResult,
   type ValidationResult,
+  verifyReferenceBundle,
 } from "../src/index";
 
 function unwrap<T>(result: ValidationResult<T>): T {
@@ -170,5 +172,142 @@ describe("AY-I24 resource conformance and measurement", () => {
         criteria: [...criteria, { ...criteria[0], id: "extra" }],
       }).ok,
     ).toBe(false);
+  });
+
+  it("measures a maximum snapshot budget of distinct protected structured references", () => {
+    // Independent accounting from ASY-38: names and string values count,
+    // but JSON punctuation, numeric primitives and array indices do not.
+    function countedBytes(value: unknown): number {
+      if (typeof value === "string") return Buffer.byteLength(value, "utf8");
+      if (Array.isArray(value)) {
+        return value.reduce<number>((sum, item) => sum + countedBytes(item), 0);
+      }
+      if (value !== null && typeof value === "object") {
+        return Object.entries(value).reduce(
+          (sum, [key, item]) => sum + Buffer.byteLength(key, "utf8") + countedBytes(item),
+          0,
+        );
+      }
+      return 0;
+    }
+
+    const count = 64;
+    function fixture(payloadBytes: number) {
+      const values = Array.from({ length: count }, (_, i) => ({
+        ordinal: i,
+        payload: "x".repeat(
+          Math.floor(payloadBytes / count) + (i === count - 1 ? payloadBytes % count : 0),
+        ),
+      }));
+      const records = values.map((value, i) =>
+        unwrap(
+          createReferenceRecord({
+            schemaVersion: 2,
+            referenceId: `protected-${i}`,
+            kind: "json",
+            value,
+          }),
+        ),
+      );
+      const rubric = unwrap(
+        createAssessmentDefinition({
+          schemaVersion: 2,
+          assessmentId: "protected-resource",
+          revision: "v1",
+          policyVersion: "all-required-v1",
+          criteria: records.map((record, i) => ({
+            id: `fact-${i}`,
+            mode: "required",
+            visibility: "restricted",
+            kind: "json_equality",
+            parameters: {
+              expected: {
+                type: "reference",
+                referenceId: record.referenceId,
+                referenceDigest: record.referenceDigest,
+              },
+            },
+          })),
+        }),
+      );
+      const evidence = unwrap(
+        createEvidenceBundle(rubric, {
+          schemaVersion: 2,
+          observations: values.map((value, i) => ({
+            criterionId: `fact-${i}`,
+            evidenceRef: `obs-${i}`,
+            kind: "json",
+            completeness: "complete",
+            value,
+          })),
+        }),
+      );
+      const references = {
+        schemaVersion: 2,
+        definition: evidence.definition,
+        references: records,
+      };
+      return { rubric, evidence, references };
+    }
+
+    const empty = fixture(0);
+    const snapshotCap = 262_144;
+    const payloadBytes = snapshotCap - countedBytes(empty.references);
+    const exact = fixture(payloadBytes);
+    const over = fixture(payloadBytes + 1);
+    expect(countedBytes(exact.references)).toBe(snapshotCap);
+    expect(countedBytes(over.references)).toBe(snapshotCap + 1);
+    expect(new Set(over.references.references.map((record) => record.referenceId)).size).toBe(
+      count,
+    );
+    expect(verifyReferenceBundle(exact.rubric, exact.references).ok).toBe(true);
+
+    // Each over-budget record is individually sealed and bound to its own
+    // definition. Removing the last record makes the same bundle admissible.
+    expect(
+      verifyReferenceBundle(over.rubric, {
+        ...over.references,
+        references: over.references.references.slice(0, -1),
+      }).ok,
+    ).toBe(true);
+    console.info("AY-I24 protected reference workload shape", {
+      criteria: count,
+      referenceRecords: count,
+      observations: count,
+      payloadBytes,
+      referenceSnapshotBytes: countedBytes(exact.references),
+      overReferenceSnapshotBytes: countedBytes(over.references),
+      definitionSnapshotBytes: countedBytes(exact.rubric),
+      evidenceSnapshotBytes: countedBytes(exact.evidence),
+      referenceSerializedBytes: Buffer.byteLength(JSON.stringify(exact.references), "utf8"),
+    });
+    // This is the admitted object-input path, not a serialized transport test.
+    measure(
+      "evaluate 64 protected structured references / 262144 snapshot bytes",
+      () => evaluate(exact.rubric, exact.evidence, exact.references),
+      (result) => {
+        expect(result.outcome).toBe("pass");
+        if (!("findings" in result)) throw new Error("Expected complete result");
+        expect(result.findings).toHaveLength(count);
+        for (const [i, finding] of result.findings.entries()) {
+          expect(finding).toMatchObject({
+            criterionId: `fact-${i}`,
+            outcome: "pass",
+            reasonCode: "MATCH",
+          });
+        }
+        expect(projectPublicResult(exact.rubric, result)).toEqual({
+          ok: true,
+          value: { schemaVersion: 1, outcome: "withheld", findings: [] },
+        });
+      },
+    );
+    const rejected = evaluate(over.rubric, over.evidence, over.references);
+    expect(rejected).toMatchObject({
+      outcome: "invalid_reference",
+      diagnostics: [{ code: "INPUT_TOO_LARGE" }],
+    });
+    expect(rejected).not.toHaveProperty("findings");
+    expect(JSON.stringify(rejected)).not.toContain("protected-");
   });
 });
