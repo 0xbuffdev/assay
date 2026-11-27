@@ -90,6 +90,8 @@ export async function collectObservations(
   const criteria: ObservationPortCriterion[] = [];
   for (const criterion of definition.criteria) {
     if (criterion.visibility !== "public" || existing.has(criterion.id)) continue;
+    // AY-I19 owns the explicit execution-fact request and report contract.
+    if (criterion.executionFact !== undefined) continue;
     const kind = requestedKind(criterion);
     if (!kind) continue;
     const requested: ObservationPortCriterion = Object.freeze({

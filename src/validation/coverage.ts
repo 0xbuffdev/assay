@@ -59,6 +59,9 @@ export function inspectValidatedCoverage(
         criterion.parameters.itemType === observation.itemType) ||
       (criterion.kind === "observed_execution" && observation.kind === "execution") ||
       (criterion.kind === "manual_evidence" && observation.kind === "manual");
+    if (criterion.executionFact !== observation.executionFact) {
+      issues.add(`${path}.executionFact`, "MISMATCHED_OBSERVATION");
+    }
     if (!matchingKind) {
       if (
         (criterion.kind === "number_with_tolerance" || criterion.kind === "number_range") &&
@@ -104,7 +107,14 @@ export function inspectValidatedCoverage(
         obs.kind === "manual" &&
         obs.artifactRefs.length === 0;
 
-      if (obs.completeness === "truncated" || missingExecutionAssertion || missingManualArtifact) {
+      const termination = obs.origin?.termination;
+      const incompleteRun = termination !== undefined && termination !== "exited";
+      if (
+        obs.completeness === "truncated" ||
+        incompleteRun ||
+        missingExecutionAssertion ||
+        missingManualArtifact
+      ) {
         incompleteRequired.push(criterion.id);
       }
     }

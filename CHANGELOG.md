@@ -12,6 +12,7 @@
 ### Added
 
 - AY-I17: schema-2 boolean equality, finite numeric ranges and bounded structured JSON equality, including sealed references, evidence and public-only observation collection. Evaluator semantics `v0.0.2`; existing canonical hash profiles and package version unchanged.
+- AY-I18: explicit selected schema-2 execution facts and run termination; relevant stream completeness, assertion-only non-authority and direct objective comparison. Evaluator semantics `v0.0.3`; no executor, provider request migration or release.
 
 - AY-I15: schema-2 sealed evidence and technical result lineage; artifact-scoped origins, report provenance and scoped collection receipts; mandatory evidence verification and rejection of retroactive binding.
 - AY-I14: optional verified schema-2 reference comparison, reusing objective comparators and preserving opaque public projection; invalid reference material returns a diagnostic failure envelope.

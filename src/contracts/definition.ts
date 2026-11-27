@@ -1,4 +1,4 @@
-import type { JsonValue, NumericRange, SetItemType, SetScalar } from "./common";
+import type { ExecutionFact, JsonValue, NumericRange, SetItemType, SetScalar } from "./common";
 
 export type DefinitionSchemaVersion = 1 | 2;
 
@@ -28,27 +28,42 @@ export type TextNormalization = Readonly<{
   trim: "none" | "both";
 }>;
 
+type ExecutionSelection<
+  V extends DefinitionSchemaVersion,
+  F extends ExecutionFact = never,
+> = Readonly<{ executionFact?: V extends 2 ? F : never }>;
+
+type NumericExecutionSelection<V extends DefinitionSchemaVersion, P> =
+  | Readonly<{ executionFact?: never; parameters: Readonly<P & { unit?: string }> }>
+  | Readonly<{
+      executionFact: V extends 2 ? "exit_status" : never;
+      parameters: Readonly<P & { unit?: never }>;
+    }>;
+
 export type Criterion<V extends DefinitionSchemaVersion = DefinitionSchemaVersion> =
   | (CriterionBase &
+      ExecutionSelection<V, "stdout" | "stderr"> &
       Readonly<{
         kind: "exact_text";
         parameters: Readonly<{ expected: Expected<string, V> }>;
       }>)
   | (CriterionBase &
+      ExecutionSelection<V, "stdout" | "stderr"> &
       Readonly<{
         kind: "normalized_text";
         parameters: Readonly<{ expected: Expected<string, V>; normalization: TextNormalization }>;
       }>)
   | (CriterionBase &
-      Readonly<{
-        kind: "number_with_tolerance";
-        parameters: Readonly<{
+      Readonly<{ kind: "number_with_tolerance" }> &
+      NumericExecutionSelection<
+        V,
+        {
           expected: Expected<number, V>;
           tolerance: Readonly<{ absolute: number; relative: number }>;
-          unit?: string;
-        }>;
-      }>)
+        }
+      >)
   | (CriterionBase &
+      ExecutionSelection<V, never> &
       Readonly<{
         kind: "set_equivalence";
         parameters: Readonly<{
@@ -60,6 +75,7 @@ export type Criterion<V extends DefinitionSchemaVersion = DefinitionSchemaVersio
       }>)
   | (V extends 2 ? AdditionalObjectiveCriterion : never)
   | (CriterionBase &
+      ExecutionSelection<V, never> &
       Readonly<{
         kind: "observed_execution";
         parameters: Readonly<{
@@ -67,6 +83,7 @@ export type Criterion<V extends DefinitionSchemaVersion = DefinitionSchemaVersio
         }>;
       }>)
   | (CriterionBase &
+      ExecutionSelection<V, never> &
       Readonly<{
         kind: "manual_evidence";
         parameters: Readonly<{ review: "required" }>;
@@ -97,16 +114,16 @@ export type DefinitionReference = Readonly<{
 
 type AdditionalObjectiveCriterion =
   | (CriterionBase &
+      ExecutionSelection<2, "boolean_property"> &
       Readonly<{
         kind: "boolean_equality";
         parameters: Readonly<{ expected: Expected<boolean, 2> }>;
       }>)
   | (CriterionBase &
-      Readonly<{
-        kind: "number_range";
-        parameters: Readonly<{ expected: Expected<NumericRange, 2>; unit?: string }>;
-      }>)
+      Readonly<{ kind: "number_range" }> &
+      NumericExecutionSelection<2, { expected: Expected<NumericRange, 2> }>)
   | (CriterionBase &
+      ExecutionSelection<2, "structured_stdout" | "structured_stderr"> &
       Readonly<{
         kind: "json_equality";
         parameters: Readonly<{ expected: Expected<JsonValue, 2> }>;

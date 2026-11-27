@@ -7,6 +7,8 @@
 
 export type {
   Completeness,
+  ExecutionFact,
+  ExecutionTermination,
   JsonValue,
   NumericRange,
   SetItemType,

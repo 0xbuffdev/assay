@@ -159,10 +159,10 @@ export function result(): EvaluationResult {
         reasonCode: "REFERENCE_UNAVAILABLE",
         evidenceRefs: ["ev-output"],
         evaluatorId: "assay",
-        evaluatorVersion: "v0.0.2",
+        evaluatorVersion: "v0.0.3",
       },
     ],
-    evaluator: { id: "assay", version: "v0.0.2" },
+    evaluator: { id: "assay", version: "v0.0.3" },
     warnings: [],
   };
 }

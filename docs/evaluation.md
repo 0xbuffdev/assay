@@ -229,6 +229,60 @@ Missing or truncated observations are inconclusive. Malformed inputs fail at
 validation, before any comparison. Restricted literals remain forbidden.
 
 The new kinds require schema-2 definitions; existing schema-1 definitions
-and canonical hash profiles are unchanged. Evaluator version `v0.0.2`
-identifies the expanded supported comparator set; earlier evaluator result
-versions are not admitted by the current structural result parser.
+and canonical hash profiles are unchanged. AY-I17 introduced evaluator version `v0.0.2` for the expanded comparator set.
+The structural result parser admits only the current evaluator version.
+
+## AY-I18 typed execution facts (schema 2)
+
+An objective criterion may declare an optional top-level `executionFact`.
+The supplied observation must declare the same selector and typed value.
+A selected observation requires an origin with a source reference, run
+reference and explicit `termination`: `exited`, `timeout` or `crash`.
+The existing objective comparator checks the value, not a runner's verdict.
+
+| Selector                                 | Objective criterion kinds               | Observation kind |
+| ---------------------------------------- | --------------------------------------- | ---------------- |
+| `stdout`, `stderr`                       | `exact_text`, `normalized_text`         | `text`           |
+| `exit_status`                            | `number_with_tolerance`, `number_range` | `number`         |
+| `boolean_property`                       | `boolean_equality`                      | `boolean`        |
+| `structured_stdout`, `structured_stderr` | `json_equality`                         | `json`           |
+
+An exit status is a signed safe integer with no unit. A boolean property's
+identity is its authored criterion ID; a host derives the property value.
+Structured values are caller-supplied bounded JSON associated with the
+specified stream, not a new embedded parser. Missing or unavailable facts
+are omitted; do not substitute empty output, zero, false or null. Those
+values are legitimate only when actually observed. Captured partial facts
+are marked truncated. A timeout or crash is inconclusive
+(`EXECUTION_INCOMPLETE`), not a mismatch even when a partial value exists.
+A truncated observation uses `EVIDENCE_TRUNCATED` first.
+
+The complete bundle checks run termination consistency and relevant
+truncation. A complete fact contradicting known truncation is invalid
+evidence, including when it omits provenance. Truncation of stderr does not
+invalidate selected stdout and vice versa; exit status is independent of
+stream truncation. For boolean properties and unselected facts whose
+stream attribution is unknown, either stream's truncation is conservative.
+For a single source/run pair, complete observations of the same selected
+stdout, stderr, exit status or structured stream must agree on their raw
+value. JSON equality ignores object key order and distinguishes array order;
+text is compared exactly before criterion normalization and numbers exactly
+before tolerance. Boolean property identity is the criterion ID, so separate
+properties may differ. Repeated equal facts and distinct runs are permitted.
+Conflicting complete values are invalid evidence, never learner mismatch.
+
+Conflicting termination claims are invalid; a complete observation cannot
+omit termination for a run known to have timed out or crashed. An exited run or zero exit
+status alone is not proof of other required output or properties.
+
+Schema-1 definitions cannot declare a selector. Existing generic criteria
+and observations, and assertion-only `observed_execution`, retain their
+meaning. Assertions remain inconclusive even if confirmed. The schema-2
+canonical algorithm hashes every supplied field, including the new
+selector and origin termination, without changing historical bytes.
+Evaluator semantics are now `v0.0.3`.
+
+Selected execution facts are supplied directly through
+`createEvidenceBundle` and evaluated synchronously; the existing collector
+does not request them until AY-I19 specifies their report/request contract.
+The host owns authentication, capture accuracy, execution and isolation.

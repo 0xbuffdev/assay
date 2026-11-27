@@ -246,3 +246,8 @@ The shared snapshot bounds apply to the entire definition, reference bundle,
 or evidence bundle, including nested JSON values; prohibited keys, non-finite
 numbers, cycles and accessors are rejected. No raw JSON text parser is added.
 See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-2).
+
+AY-I18 adds an optional schema-2 criterion `executionFact` and matching
+selected observation with a required scoped run origin and termination.
+See the [closed selector and completeness contract](evaluation.md#ay-i18-typed-execution-facts-schema-2).
+Assertion-only execution and manual artifacts remain non-authoritative.

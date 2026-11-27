@@ -1,4 +1,11 @@
-import type { Completeness, JsonValue, SetItemType, SetScalar } from "./common";
+import type {
+  Completeness,
+  ExecutionFactFor,
+  ExecutionTermination,
+  JsonValue,
+  SetItemType,
+  SetScalar,
+} from "./common";
 import type { DefinitionReference } from "./definition";
 
 export type ObservationBase = Readonly<{
@@ -54,9 +61,12 @@ export interface ObservationPortProvenance {
 
 type OriginSource = Readonly<{
   sourceRef: string;
-  runRef?: string;
   provenance?: ObservationPortProvenance;
-}>;
+}> &
+  (
+    | Readonly<{ runRef?: string; termination?: never }>
+    | Readonly<{ runRef: string; termination: ExecutionTermination }>
+  );
 
 /** A scoped origin claim; independent observations cannot be relabeled as artifact facts. */
 export type ObservationOrigin = OriginSource &
@@ -65,7 +75,20 @@ export type ObservationOrigin = OriginSource &
     | Readonly<{ kind: "artifact"; artifactDigest: string }>
   );
 
-export type Observation = ObservationFact & Readonly<{ origin?: ObservationOrigin }>;
+type ExecutionValueKind = "text" | "number" | "boolean" | "json";
+
+type ExecutionObservation = {
+  [K in ExecutionValueKind]: Extract<ObservationFact, { kind: K }> &
+    (K extends "number" ? Readonly<{ unit?: never }> : unknown) &
+    Readonly<{
+      executionFact: ExecutionFactFor<K>;
+      origin: ObservationOrigin & Readonly<{ runRef: string; termination: ExecutionTermination }>;
+    }>;
+}[ExecutionValueKind];
+
+export type Observation =
+  | (ObservationFact & Readonly<{ executionFact?: never; origin?: ObservationOrigin }>)
+  | ExecutionObservation;
 
 export interface EvidenceBundleDraft {
   readonly schemaVersion: 2;
