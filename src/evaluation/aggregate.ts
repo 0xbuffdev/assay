@@ -27,7 +27,8 @@ export function aggregateRequired(
     const outcomes = group.children.map((child): TechnicalOutcome => {
       if (child.kind === "group") return visit(child.id);
       const outcome = comparisons.get(child.id)?.outcome;
-      return outcome === "error" || outcome === undefined ? "evaluation_error" : outcome;
+      if (outcome === "error") return "evaluation_error";
+      return outcome ?? "inconclusive";
     });
     return order.find((outcome) => outcomes.includes(outcome)) ?? "evaluation_error";
   }
