@@ -51,6 +51,7 @@ export type {
 export type {
   PublicCriterionFinding,
   PublicProjectionResponse,
+  PublicReason,
   PublicTechnicalOutcome,
   PublicTechnicalResult,
 } from "./contracts/projection";

@@ -138,7 +138,7 @@ assert.deepEqual(visibleProjection, {
   value: {
     schemaVersion: 1,
     outcome: "pass",
-    findings: [{ criterionId: "output", outcome: "pass" }],
+    findings: [{ criterionId: "output", outcome: "pass", reason: "match" }],
   },
 });
 
@@ -166,7 +166,7 @@ assert.deepEqual(privateProjection, {
   value: {
     schemaVersion: 1,
     outcome: "withheld",
-    findings: [{ criterionId: "output", outcome: "pass" }],
+    findings: [{ criterionId: "output", outcome: "pass", reason: "match" }],
   },
 });
 assert.equal(JSON.stringify(privateProjection).includes("PRIVATE_"), false);

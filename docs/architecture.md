@@ -111,3 +111,7 @@ AY-I18 adds selected execution facts to the existing objective contracts
 and validates run termination and relevant capture completeness across
 evidence. Evaluation reuses the existing objective comparators and
 aggregation, with no executor. AY-I19 extends the optional port with typed selectors, set item types, scoped termination claims and cooperative cancellation. Acquisition remains separate from synchronous evaluation.
+
+AY-I20 maps validated technical reasons to a closed public feedback vocabulary,
+checks criterion/reason and evidence-reference coherence, and retains opaque
+rejection and unconditional aggregate withholding for restricted criteria.

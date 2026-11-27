@@ -3,10 +3,13 @@ import {
   type AssessmentDefinition,
   type Criterion,
   createAssessmentDefinition,
+  createEvidenceBundle,
+  createReferenceRecord,
   type EvaluationResult,
   type EvidenceBundle,
   evaluate,
   projectPublicResult,
+  type PublicReason,
 } from "../src/index";
 import { sealEvidenceFixture } from "./fixtures/contracts";
 
@@ -73,12 +76,12 @@ function rejected(input: unknown) {
   expect(JSON.stringify(response)).not.toContain("SECRET");
 }
 
-describe("AY-I07 restricted technical finding projection", () => {
+describe("AY-I20 safe technical feedback", () => {
   it("keeps all-public outcomes and public criterion outcomes interpretable", () => {
     const definition = sealed([visible]);
-    for (const [output, outcome] of [
-      ["ok", "pass"],
-      ["wrong", "fail"],
+    for (const [output, outcome, reason] of [
+      ["ok", "pass", "match"],
+      ["wrong", "fail", "mismatch"],
     ] as const) {
       const response = projectPublicResult(definition, technical(definition, output));
       expect(response).toEqual({
@@ -86,7 +89,7 @@ describe("AY-I07 restricted technical finding projection", () => {
         value: {
           schemaVersion: 1,
           outcome,
-          findings: [{ criterionId: "visible", outcome }],
+          findings: [{ criterionId: "visible", outcome, reason }],
         },
       });
       if (response.ok) {
@@ -106,7 +109,7 @@ describe("AY-I07 restricted technical finding projection", () => {
       ok: true,
       value: {
         outcome: "inconclusive",
-        findings: [{ criterionId: "visible", outcome: "inconclusive" }],
+        findings: [{ criterionId: "visible", outcome: "inconclusive", reason: "missing_evidence" }],
       },
     });
 
@@ -138,7 +141,7 @@ describe("AY-I07 restricted technical finding projection", () => {
       ok: true,
       value: {
         outcome: "evaluation_error",
-        findings: [{ criterionId: "visible", outcome: "error" }],
+        findings: [{ criterionId: "visible", outcome: "error", reason: "evaluation_error" }],
       },
     });
   });
@@ -160,7 +163,7 @@ describe("AY-I07 restricted technical finding projection", () => {
       value: {
         schemaVersion: 1,
         outcome: "withheld",
-        findings: [{ criterionId: "visible", outcome: "pass" }],
+        findings: [{ criterionId: "visible", outcome: "pass", reason: "match" }],
       },
     });
     const serialized = JSON.stringify(view);
@@ -184,32 +187,86 @@ describe("AY-I07 restricted technical finding projection", () => {
     expect(full.findings[1].reasonCode).toBe("EVIDENCE_MISSING");
   });
 
-  it("returns indistinguishable public responses for any restricted outcome or error", () => {
-    const definition = sealed([visible, restricted]);
-    const base = technical(definition);
+  it("returns identical public bytes for protected passes, failures, missing facts and errors", () => {
+    const record = createReferenceRecord({
+      schemaVersion: 2,
+      referenceId: "SECRET_REFERENCE_CANARY",
+      kind: "text",
+      value: "SECRET_EXPECTED_CANARY",
+    });
+    if (!record.ok) throw new Error("Invalid reference fixture");
+    const hidden = {
+      ...restricted,
+      parameters: {
+        expected: {
+          type: "reference",
+          referenceId: record.value.referenceId,
+          referenceDigest: record.value.referenceDigest,
+        },
+      },
+    };
+    const created = createAssessmentDefinition({
+      schemaVersion: 2,
+      assessmentId: "projection",
+      revision: "rev1",
+      policyVersion: "all-required-v1",
+      criteria: [visible, hidden],
+    });
+    if (!created.ok) throw new Error("Invalid definition fixture");
+    const definition = created.value;
+    const reference = {
+      schemaVersion: 2,
+      definition: evidence(definition).definition,
+      references: [record.value],
+    };
     let first: string | undefined;
-    for (const [decision, total] of [
-      [{ outcome: "pass", reasonCode: "MATCH" }, "pass"],
-      [{ outcome: "fail", reasonCode: "VALUE_MISMATCH" }, "fail"],
-      [{ outcome: "error", reasonCode: "COMPARATOR_ERROR" }, "evaluation_error"],
-      [{ outcome: "inconclusive", reasonCode: "REFERENCE_UNAVAILABLE" }, "inconclusive"],
+    for (const [value, outcome] of [
+      ["SECRET_EXPECTED_CANARY", "pass"],
+      ["SECRET_OBSERVED_CANARY", "fail"],
+      [undefined, "inconclusive"],
     ] as const) {
-      const forged: EvaluationResult = {
-        ...base,
-        outcome: total,
-        findings: [
-          base.findings[0],
-          { ...base.findings[1], ...decision, evidenceRefs: ["SECRET_EVIDENCE_CANARY"] },
+      const prepared = createEvidenceBundle(definition, {
+        schemaVersion: 2,
+        observations: [
+          ...evidence(definition).observations,
+          ...(value === undefined
+            ? []
+            : [
+                {
+                  criterionId: hidden.id,
+                  evidenceRef: "SECRET_EVIDENCE_CANARY",
+                  kind: "text",
+                  completeness: "complete",
+                  value,
+                },
+              ]),
         ],
-      };
-      const response = projectPublicResult(definition, forged);
-      expect(response.ok).toBe(true);
-      const text = JSON.stringify(response);
-      first ??= text;
-      expect(text).toBe(first);
-      expect(text).not.toContain("SECRET");
-      expect(text).not.toContain("fail");
-      expect(text).not.toContain("evaluation_error");
+      });
+      if (!prepared.ok) throw new Error("Invalid evidence fixture");
+      const result = evaluate(definition, prepared.value, reference);
+      if (!("findings" in result)) throw new Error("Expected full result");
+      expect(result.outcome).toBe(outcome);
+      const variants: EvaluationResult[] = [result];
+      if (outcome === "pass") {
+        variants.push({
+          ...result,
+          outcome: "evaluation_error",
+          findings: [
+            result.findings[0],
+            { ...result.findings[1], outcome: "error", reasonCode: "COMPARATOR_ERROR" },
+          ],
+        });
+      }
+      for (const variant of variants) {
+        const response = projectPublicResult(definition, variant);
+        expect(response.ok).toBe(true);
+        const bytes = JSON.stringify(response);
+        first ??= bytes;
+        expect(bytes).toBe(first);
+        expect(bytes).not.toContain("SECRET");
+        expect(bytes).not.toContain("fail");
+        expect(bytes).not.toContain("evaluation_error");
+      }
     }
   });
 
@@ -222,7 +279,7 @@ describe("AY-I07 restricted technical finding projection", () => {
     const publicView = projectPublicResult(definition, full);
     expect(publicView).toMatchObject({
       ok: true,
-      value: { outcome: "withheld", findings: [{ criterionId: "visible", outcome: "pass" }] },
+      value: { outcome: "withheld", findings: [{ criterionId: "visible", outcome: "pass", reason: "match" }] },
     });
     expect(JSON.stringify(publicView)).not.toContain("ADVISORY_UNRESOLVED");
   });
@@ -235,7 +292,7 @@ describe("AY-I07 restricted technical finding projection", () => {
       ok: true,
       value: {
         outcome: "withheld",
-        findings: [{ criterionId: "visible", outcome: "pass" }],
+        findings: [{ criterionId: "visible", outcome: "pass", reason: "match" }],
       },
     });
   });
@@ -292,6 +349,121 @@ describe("AY-I07 restricted technical finding projection", () => {
       expect(result).toEqual({ ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" });
       expect(JSON.stringify(result)).not.toContain("SECRET");
     }
+  });
+
+  it("maps every supported technical reason to the finite public vocabulary", () => {
+    const numeric: Criterion = {
+      ...visible,
+      kind: "number_with_tolerance",
+      parameters: {
+        expected: { type: "literal", value: 1e308 },
+        tolerance: { absolute: 0, relative: 1e308 },
+      },
+    };
+    const manual: Criterion = {
+      ...visible,
+      kind: "manual_evidence",
+      parameters: { review: "required" },
+    };
+    const execution: Criterion = {
+      ...visible,
+      kind: "observed_execution",
+      parameters: { assertions: [{ id: "assertion", referenceId: "SECRET_ASSERTION_CANARY" }] },
+    };
+    const referenced: Criterion = {
+      ...restricted,
+      id: "visible",
+      visibility: "public",
+    };
+    const cases = [
+      [visible, "pass", "MATCH", "pass", "match"],
+      [visible, "fail", "VALUE_MISMATCH", "fail", "mismatch"],
+      [referenced, "inconclusive", "REFERENCE_UNAVAILABLE", "inconclusive", "unavailable"],
+      [visible, "inconclusive", "EVIDENCE_MISSING", "inconclusive", "missing_evidence"],
+      [visible, "inconclusive", "EVIDENCE_TRUNCATED", "inconclusive", "incomplete_evidence"],
+      [execution, "inconclusive", "ASSERTION_INCOMPLETE", "inconclusive", "incomplete_evidence"],
+      [execution, "inconclusive", "EXECUTION_UNVERIFIED", "inconclusive", "unavailable"],
+      [visible, "inconclusive", "EXECUTION_INCOMPLETE", "inconclusive", "incomplete_evidence"],
+      [manual, "inconclusive", "ARTIFACT_MISSING", "inconclusive", "missing_evidence"],
+      [manual, "inconclusive", "REVIEW_REQUIRED", "inconclusive", "review_needed"],
+      [visible, "error", "COMPARATOR_ERROR", "evaluation_error", "evaluation_error"],
+      [numeric, "error", "NUMERIC_OVERFLOW", "evaluation_error", "evaluation_error"],
+    ] as const;
+    for (const [criterion, outcome, reasonCode, overall, reason] of cases) {
+      const definition = sealed([criterion]);
+      const base = evaluate(
+        definition,
+        sealEvidenceFixture({ ...evidence(definition), observations: [] }),
+      );
+      if (!("findings" in base)) throw new Error("Expected full result");
+      const result = {
+        ...base,
+        outcome: overall,
+        findings: [
+          {
+            ...base.findings[0],
+            outcome,
+            reasonCode,
+            evidenceRefs: reasonCode === "EVIDENCE_MISSING" ? [] : ["SECRET_EVIDENCE_CANARY"],
+          },
+        ],
+      };
+      const feedback: PublicReason = reason;
+      const response = projectPublicResult(definition, result);
+      expect(response).toEqual({
+        ok: true,
+        value: {
+          schemaVersion: 1,
+          outcome: overall,
+          findings: [{ criterionId: "visible", outcome, reason: feedback }],
+        },
+      });
+      expect(JSON.stringify(response)).not.toContain(reasonCode);
+      expect(JSON.stringify(response)).not.toContain("SECRET");
+    }
+  });
+
+  it("rejects forged reason semantics and impossible evidence correspondence", () => {
+    const definition = sealed([visible]);
+    const base = technical(definition);
+    const first = base.findings[0];
+    for (const [outcome, reasonCode, evidenceRefs, total] of [
+      ["pass", "MATCH", [], "pass"],
+      ["pass", "MATCH", ["one", "two"], "pass"],
+      ["inconclusive", "EVIDENCE_MISSING", ["one"], "inconclusive"],
+      ["inconclusive", "REFERENCE_UNAVAILABLE", ["one"], "inconclusive"],
+      ["inconclusive", "REVIEW_REQUIRED", ["one"], "inconclusive"],
+      ["inconclusive", "ASSERTION_INCOMPLETE", ["one"], "inconclusive"],
+      ["error", "NUMERIC_OVERFLOW", ["one"], "evaluation_error"],
+      ["pass", "VALUE_MISMATCH", ["one"], "pass"],
+      ["pass", "match", ["one"], "pass"],
+    ] as const) {
+      rejected({
+        ...base,
+        outcome: total,
+        findings: [{ ...first, outcome, reasonCode, evidenceRefs }],
+      });
+    }
+
+    const two = sealed([visible, { ...visible, id: "second" }]);
+    const result = technical(two);
+    expect(
+      projectPublicResult(two, {
+        ...result,
+        outcome: "pass",
+        findings: [result.findings[0], { ...result.findings[0], criterionId: "second" }],
+      }),
+    ).toEqual({ ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" });
+
+    const manual = sealed([
+      { ...visible, kind: "manual_evidence", parameters: { review: "required" } },
+    ]);
+    expect(
+      projectPublicResult(manual, {
+        ...base,
+        definition: evidence(manual).definition,
+      }),
+    ).toEqual({ ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" });
   });
 
   it("fails closed for hostile source objects and never executes getters", () => {

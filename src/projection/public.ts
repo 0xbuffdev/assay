@@ -1,5 +1,11 @@
 import { ASSAY_SCHEMA_VERSION } from "../contracts/common";
-import type { PublicCriterionFinding, PublicProjectionResponse } from "../contracts/projection";
+import type { Criterion, DefinitionSchemaVersion } from "../contracts/definition";
+import type {
+  PublicCriterionFinding,
+  PublicProjectionResponse,
+  PublicReason,
+} from "../contracts/projection";
+import type { CriterionFinding, ReasonCode } from "../contracts/result";
 import { advisoryWarnings, aggregateRequired } from "../evaluation/aggregate";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { parseEvaluationResult } from "../validation/result";
@@ -8,6 +14,55 @@ const REJECTED: PublicProjectionResponse = Object.freeze({
   ok: false,
   reasonCode: "PUBLIC_PROJECTION_REJECTED",
 });
+
+// Exhaustive, explicit translation: no privileged reason string is copied.
+const PUBLIC_REASONS = Object.freeze({
+  MATCH: "match",
+  VALUE_MISMATCH: "mismatch",
+  REFERENCE_UNAVAILABLE: "unavailable",
+  EVIDENCE_MISSING: "missing_evidence",
+  EVIDENCE_TRUNCATED: "incomplete_evidence",
+  ASSERTION_INCOMPLETE: "incomplete_evidence",
+  EXECUTION_UNVERIFIED: "unavailable",
+  EXECUTION_INCOMPLETE: "incomplete_evidence",
+  ARTIFACT_MISSING: "missing_evidence",
+  REVIEW_REQUIRED: "review_needed",
+  COMPARATOR_ERROR: "evaluation_error",
+  NUMERIC_OVERFLOW: "evaluation_error",
+} satisfies Record<ReasonCode, PublicReason>);
+
+// Check facts about the record that are knowable without replaying evidence.
+// The current evaluator emits one evidence ref per observed criterion.
+function coherentFinding(
+  criterion: Criterion,
+  finding: CriterionFinding,
+  schemaVersion: DefinitionSchemaVersion,
+): boolean {
+  if (finding.reasonCode === "EVIDENCE_MISSING") return finding.evidenceRefs.length === 0;
+  if (finding.evidenceRefs.length !== 1) return false;
+
+  const expected = "expected" in criterion.parameters ? criterion.parameters.expected : undefined;
+  const comparable = expected !== undefined && (expected.type === "literal" || schemaVersion === 2);
+  switch (finding.reasonCode) {
+    case "MATCH":
+    case "VALUE_MISMATCH":
+      return comparable;
+    case "NUMERIC_OVERFLOW":
+      return criterion.kind === "number_with_tolerance" && comparable;
+    case "REFERENCE_UNAVAILABLE":
+      return expected?.type === "reference";
+    case "ASSERTION_INCOMPLETE":
+    case "EXECUTION_UNVERIFIED":
+      return criterion.kind === "observed_execution";
+    case "ARTIFACT_MISSING":
+    case "REVIEW_REQUIRED":
+      return criterion.kind === "manual_evidence";
+    case "EVIDENCE_TRUNCATED":
+    case "EXECUTION_INCOMPLETE":
+    case "COMPARATOR_ERROR":
+      return true;
+  }
+}
 
 /**
  * Produce a narrowly scoped learner-safe view of an authorized technical
@@ -20,6 +75,7 @@ const REJECTED: PublicProjectionResponse = Object.freeze({
  * For ANY restricted criterion, return no aggregate technical outcome, even
  * when the private result is a pass/fail/error. Never copy warnings, reason
  * codes, evidence refs, evaluation metadata or source lineage to this view.
+ * Public reasons are explicitly mapped from the validated built-in taxonomy.
  * On ANY rejected input emit the SAME opaque error without diagnostic paths.
  */
 export function projectPublicResult(
@@ -46,14 +102,20 @@ export function projectPublicResult(
   // Require complete ordered correspondence with the supplied content-verified
   // rubric, rejecting missing, reordered, extra, or inconsistent findings.
   // Structural validation alone does not establish authorship of a result.
+  const evidenceRefs = new Set<string>();
   for (const [index, criterion] of definition.criteria.entries()) {
     const finding = result.findings[index];
     if (
       finding.criterionId !== criterion.id ||
       finding.evaluatorId !== result.evaluator.id ||
-      finding.evaluatorVersion !== result.evaluator.version
+      finding.evaluatorVersion !== result.evaluator.version ||
+      !coherentFinding(criterion, finding, definition.schemaVersion)
     ) {
       return REJECTED;
+    }
+    for (const ref of finding.evidenceRefs) {
+      if (evidenceRefs.has(ref)) return REJECTED;
+      evidenceRefs.add(ref);
     }
   }
   const findingsByCriterion = new Map(
@@ -80,6 +142,7 @@ export function projectPublicResult(
       Object.freeze({
         criterionId: criterion.id,
         outcome: result.findings[index].outcome,
+        reason: PUBLIC_REASONS[result.findings[index].reasonCode],
       }),
     );
   }

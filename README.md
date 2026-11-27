@@ -14,7 +14,7 @@ Assay evaluates evidence; it does **not** execute learner code, authenticate a s
 2. **Bind the definition to its content.** Use [definition integrity](docs/integrity.md) to create or verify a deterministic, versioned SHA-256 digest. A hash identifies content; it does not authenticate its publisher.
 3. **Supply observations.** Seal bounded, typed evidence with `createEvidenceBundle` or use an [optional injected observation port](docs/observations.md). A provider's claimed provenance is not independent proof of execution.
 4. **Evaluate.** Supply an optional content-bound reference bundle from authorized host storage alongside the definition and evidence. Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). Required findings determine the technical outcome; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
-5. **Present only appropriate findings.** The full technical record is for an authorized host. Use the [learner-safe projection](docs/projection.md) to omit restricted findings, evidence references and hidden aggregate outcomes. The host must still decide who is allowed to see any result.
+5. **Present only appropriate findings.** The full technical record is for an authorized host. Use the [learner-safe projection](docs/projection.md) to omit restricted findings, evidence references and hidden aggregate outcomes while exposing only allowlisted public feedback. The host must still decide who is allowed to see any result.
 
 The pure library has **no runtime dependencies**, network requirement, model provider, private workspace or mandatory executor.
 
@@ -133,7 +133,7 @@ flowchart TD
     R["Full technical result"] --> Verify
     Verify --> Coherent{"Lineage, findings and aggregate consistent?"}
     Coherent -->|No| Reject["Opaque projection rejection"]
-    Coherent -->|Yes| Filter["Keep public criterion IDs and outcomes only"]
+    Coherent -->|Yes| Filter["Keep public criterion IDs, outcomes and mapped reasons only"]
     Filter --> Restricted{"Any restricted criterion?"}
     Restricted -->|Yes| Withheld["Overall outcome: withheld"]
     Restricted -->|No| Public["Overall technical outcome"]
@@ -142,7 +142,7 @@ flowchart TD
     View --> Gate["Host verifies origin and authorizes access"]
 ```
 
-Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence and artifact digests, evidence references, reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
+Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence and artifact digests, evidence references, raw reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
 
 See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; schema-2 objective comparators and direct typed execution facts are implemented; selected execution fact acquisition remains ticket-gated.
 

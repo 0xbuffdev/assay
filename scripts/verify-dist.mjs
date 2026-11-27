@@ -112,6 +112,14 @@ const observed = entry.evaluate(definition, prepared.value);
 assert.equal(observed.evidenceDigest, prepared.value.evidenceDigest);
 assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
 assert.equal(observed.findings[0].reasonCode, "MATCH");
+assert.deepEqual(entry.projectPublicResult(definition, observed), {
+  ok: true,
+  value: {
+    schemaVersion: 1,
+    outcome: "pass",
+    findings: [{ criterionId: observed.findings[0].criterionId, outcome: "pass", reason: "match" }],
+  },
+});
 const unsupportedPolicy = { ...definition, policyVersion: "changed" };
 assert.deepEqual(entry.evaluate(unsupportedPolicy, {}), {
   outcome: "invalid_definition",
