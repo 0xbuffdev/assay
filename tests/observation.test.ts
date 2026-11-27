@@ -3,6 +3,8 @@ import {
   type AssessmentDefinition,
   CONTRACT_LIMITS,
   collectObservations,
+  createAssessmentDefinition,
+  createEvidenceBundle,
   type EvidenceBundle,
   evaluate,
   type ObservationCollectionResult,
@@ -10,6 +12,7 @@ import {
   type ObservationPortReport,
   type ObservationPortRequest,
   parseObservationPortReport,
+  verifyEvidenceBundle,
 } from "../src/index";
 import {
   digestA,
@@ -745,6 +748,96 @@ describe("AY-I19 closed report metadata", () => {
         },
       });
       expect(failed(collected).outcome).toBe("invalid_evidence");
+    }
+  });
+});
+
+describe("AY-I21 combined observation resource limits", () => {
+  it.each([
+    { overflow: false, label: "within budget" },
+    { overflow: true, label: "over budget" },
+  ])("revalidates individually valid JSON facts after collection ($label)", async ({ overflow }) => {
+    const authored = createAssessmentDefinition({
+      schemaVersion: 2,
+      assessmentId: "combined-budget",
+      revision: "rev1",
+      policyVersion: "all-required-v1",
+      criteria: ["existing", "acquired"].map((id) => ({
+        id,
+        mode: "required",
+        visibility: "public",
+        kind: "json_equality",
+        parameters: { expected: { type: "literal", value: null } },
+      })),
+    });
+    if (!authored.ok) throw new Error("Invalid combined-budget definition fixture");
+    const rubric = authored.value;
+    const canary = "PRIVATE_COMBINED_BUDGET_CANARY";
+    const chunk = canary.padEnd(CONTRACT_LIMITS.maxStringLength, "x");
+    const starting = createEvidenceBundle(rubric, {
+      schemaVersion: 2,
+      observations: [
+        {
+          criterionId: "existing",
+          evidenceRef: "existing-fact",
+          kind: "json",
+          completeness: "complete",
+          origin: { kind: "independent", sourceRef: "local" },
+          value: Array(9).fill(chunk),
+        },
+      ],
+    });
+    expect(starting.ok).toBe(true);
+    if (!starting.ok) throw new Error("Invalid starting evidence fixture");
+    expect(verifyEvidenceBundle(rubric, starting.value).ok).toBe(true);
+
+    // Six full chunks and a seventh shortened by 1 KiB leave enough room
+    // for record metadata. Seven full chunks exhaust the entire byte
+    // budget together with the existing nine, before metadata is counted.
+    const acquiredValue = [
+      ...Array(6).fill(chunk),
+      overflow ? chunk : chunk.slice(0, -1024),
+    ];
+    const incoming = {
+      schemaVersion: 2,
+      definition: referenceOf(rubric),
+      provenance: { ...report().provenance, capturedStdoutBytes: 0 },
+      observations: [
+        {
+          criterionId: "acquired",
+          evidenceRef: "acquired-fact",
+          kind: "json",
+          completeness: "complete",
+          value: acquiredValue,
+        },
+      ],
+    };
+    expect(parseObservationPortReport(incoming).ok).toBe(true);
+    const observe = vi.fn(async (request: ObservationPortRequest) => {
+      expect(request.criteria).toEqual([{ criterionId: "acquired", kind: "json" }]);
+      return incoming;
+    });
+    const result = await collectObservations(rubric, starting.value, { observe });
+    expect(observe).toHaveBeenCalledTimes(1);
+    expect(starting.value.observations).toHaveLength(1);
+
+    if (overflow) {
+      expect(result).toMatchObject({
+        ok: false,
+        outcome: "invalid_evidence",
+        diagnostics: [expect.objectContaining({ code: "INPUT_TOO_LARGE" })],
+      });
+      expect(result).not.toHaveProperty("evidence");
+      expect(result).not.toHaveProperty("receipt");
+      expect(JSON.stringify(result)).not.toContain(canary);
+    } else {
+      const collected = successful(result);
+      expect(collected.evidence.observations.map((item) => item.evidenceRef)).toEqual([
+        "existing-fact",
+        "acquired-fact",
+      ]);
+      expect(collected.receipt?.evidenceRefs).toEqual(["acquired-fact"]);
+      expect(verifyEvidenceBundle(rubric, collected.evidence).ok).toBe(true);
     }
   });
 });
