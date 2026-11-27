@@ -1,3 +1,4 @@
+import { SCHEMA_VERSION } from "../contracts/version";
 import { CONTRACT_LIMITS } from "../contracts/common";
 import type {
   ReferenceBundle,
@@ -25,7 +26,7 @@ function record(input: unknown, path: string, sealed: boolean, issues: Diagnosti
   const common = ["schemaVersion", "referenceId", "kind", "value"];
   if (sealed) common.push("referenceDigest");
   if (!object(input, path, [...common, "unit", "itemType"], common, issues)) return;
-  if (input.schemaVersion !== 2) issues.add(`${path}.schemaVersion`, "UNSUPPORTED_VERSION");
+  if (input.schemaVersion !== SCHEMA_VERSION) issues.add(`${path}.schemaVersion`, "UNSUPPORTED_VERSION");
   identifier(input.referenceId, `${path}.referenceId`, issues);
   if (sealed) digest(input.referenceDigest, `${path}.referenceDigest`, issues);
   switch (input.kind) {
@@ -72,7 +73,7 @@ export function parseReferenceBundle(input: unknown): ValidationResult<Reference
   return finish(input, "invalid_reference", (data, issues) => {
     const keys = ["schemaVersion", "definition", "references"];
     if (!object(data, "$", keys, keys, issues)) return;
-    if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (data.schemaVersion !== SCHEMA_VERSION) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     definitionRef(data.definition, "$.definition", issues);
     if (!list(data.references, "$.references", issues, CONTRACT_LIMITS.maxCriteria)) return;
     const ids = new Set<string>();
