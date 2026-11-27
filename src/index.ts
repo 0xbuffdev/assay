@@ -18,11 +18,11 @@ export { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "./contracts/common";
 export type {
   AssessmentDefinition,
   AssessmentDefinitionDraft,
+  CompositionChild,
   Criterion,
   CriterionBase,
   CriterionComposition,
   CriterionGroup,
-  CompositionChild,
   CriterionMode,
   DefinitionReference,
   Expected,
