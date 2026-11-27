@@ -1,4 +1,4 @@
-import type { ASSAY_SCHEMA_VERSION, Completeness, SetItemType, SetScalar } from "./common";
+import type { Completeness, SetItemType, SetScalar } from "./common";
 import type { DefinitionReference } from "./definition";
 
 export type ObservationBase = Readonly<{
@@ -7,7 +7,7 @@ export type ObservationBase = Readonly<{
   completeness: Completeness;
 }>;
 
-export type Observation =
+export type ObservationFact =
   | (ObservationBase & Readonly<{ kind: "text"; value: string }>)
   | (ObservationBase &
       Readonly<{
@@ -37,9 +37,41 @@ export type Observation =
         artifactRefs: readonly string[];
       }>);
 
-export interface EvidenceBundle {
-  readonly schemaVersion: typeof ASSAY_SCHEMA_VERSION;
-  readonly definition: DefinitionReference;
+/** Bounded provider claims, not authenticated provenance. */
+export interface ObservationPortProvenance {
+  readonly adapterId: string;
+  readonly adapterVersion: string;
+  readonly runRef: string;
+  readonly toolchainId: string;
+  readonly toolchainVersion: string;
+  readonly capturedStdoutBytes: number;
+  readonly capturedStderrBytes: number;
+  readonly stdoutTruncated: boolean;
+  readonly stderrTruncated: boolean;
+}
+
+type OriginSource = Readonly<{
+  sourceRef: string;
+  runRef?: string;
+  provenance?: ObservationPortProvenance;
+}>;
+
+/** A scoped origin claim; independent observations cannot be relabeled as artifact facts. */
+export type ObservationOrigin = OriginSource &
+  (
+    | Readonly<{ kind: "independent"; artifactDigest?: never }>
+    | Readonly<{ kind: "artifact"; artifactDigest: string }>
+  );
+
+export type Observation = ObservationFact & Readonly<{ origin?: ObservationOrigin }>;
+
+export interface EvidenceBundleDraft {
+  readonly schemaVersion: 2;
   readonly artifactDigest?: string;
   readonly observations: readonly Observation[];
+}
+
+export interface EvidenceBundle extends EvidenceBundleDraft {
+  readonly definition: DefinitionReference;
+  readonly evidenceDigest: string;
 }

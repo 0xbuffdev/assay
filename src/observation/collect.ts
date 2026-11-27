@@ -1,6 +1,6 @@
-import { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "../contracts/common";
+import { CONTRACT_LIMITS } from "../contracts/common";
 import type { AssessmentDefinition } from "../contracts/definition";
-import type { EvidenceBundle, Observation } from "../contracts/evidence";
+import type { EvidenceBundle, Observation, ObservationOrigin } from "../contracts/evidence";
 import type {
   ObservationCollectionResult,
   ObservationPort,
@@ -11,8 +11,7 @@ import type {
 } from "../contracts/observation";
 import type { DiagnosticCode } from "../contracts/validation";
 import { verifyAssessmentDefinition } from "../integrity/definition";
-import { inspectEvidenceCoverage } from "../validation/coverage";
-import { parseEvidenceBundle } from "../validation/evidence";
+import { createEvidenceBundle, verifyEvidenceForDefinition } from "../integrity/evidence";
 import { parseObservationPortReport } from "../validation/observation";
 
 function requestedKind(
@@ -76,13 +75,11 @@ export async function collectObservations(
   const checkedDefinition = verifyAssessmentDefinition(definitionInput);
   if (!checkedDefinition.ok) return error("invalid_definition", checkedDefinition.diagnostics);
 
-  const checkedEvidence = parseEvidenceBundle(evidenceInput);
+  const definition = checkedDefinition.value;
+  const checkedEvidence = verifyEvidenceForDefinition(definition, evidenceInput);
   if (!checkedEvidence.ok) return error("invalid_evidence", checkedEvidence.diagnostics);
 
-  const definition = checkedDefinition.value;
   const evidence = checkedEvidence.value;
-  const coverage = inspectEvidenceCoverage(definition, evidence);
-  if (!coverage.ok) return error("invalid_evidence", coverage.diagnostics);
 
   const existing = new Set(evidence.observations.map((item) => item.criterionId));
   const criteria: ObservationPortCriterion[] = [];
@@ -110,7 +107,7 @@ export async function collectObservations(
   }
 
   const request: ObservationPortRequest = Object.freeze({
-    schemaVersion: ASSAY_SCHEMA_VERSION,
+    schemaVersion: 2,
     definition: Object.freeze({
       assessmentId: definition.assessmentId,
       revision: definition.revision,
@@ -144,6 +141,22 @@ export async function collectObservations(
     return invalidEvidence("$.artifactDigest", "MISMATCHED_DEFINITION");
   }
 
+  if (
+    evidence.artifactDigest === undefined &&
+    report.artifactDigest !== undefined &&
+    evidence.observations.length > 0
+  ) {
+    return invalidEvidence("$.artifactDigest", "MISMATCHED_ORIGIN");
+  }
+
+  const origin: ObservationOrigin = Object.freeze({
+    ...(report.artifactDigest === undefined
+      ? { kind: "independent" as const }
+      : { kind: "artifact" as const, artifactDigest: report.artifactDigest }),
+    sourceRef: report.provenance.adapterId,
+    runRef: report.provenance.runRef,
+    provenance: report.provenance,
+  });
   const allowed = new Map(criteria.map((criterion) => [criterion.criterionId, criterion]));
   const returned: Observation[] = [];
   const truncated = report.provenance.stdoutTruncated || report.provenance.stderrTruncated;
@@ -169,24 +182,23 @@ export async function collectObservations(
     returned.push(
       Object.freeze({
         ...observation,
+        origin,
         completeness: truncated ? "truncated" : observation.completeness,
       }) as Observation,
     );
   }
 
-  const combined: EvidenceBundle = {
-    schemaVersion: ASSAY_SCHEMA_VERSION,
-    definition: evidence.definition,
+  const parsedCombined = createEvidenceBundle(definition, {
+    schemaVersion: 2,
     ...(report.artifactDigest ? { artifactDigest: report.artifactDigest } : {}),
     observations: [...evidence.observations, ...returned],
-  };
-  const parsedCombined = parseEvidenceBundle(combined);
+  });
   if (!parsedCombined.ok) return error("invalid_evidence", parsedCombined.diagnostics);
-  const consistency = inspectEvidenceCoverage(definition, parsedCombined.value);
-  if (!consistency.ok) return error("invalid_evidence", consistency.diagnostics);
 
   const receipt: ObservationPortReceipt = Object.freeze({
     definition: report.definition,
+    evidenceDigest: parsedCombined.value.evidenceDigest,
+    evidenceRefs: Object.freeze(returned.map((item) => item.evidenceRef)),
     ...(report.artifactDigest ? { artifactDigest: report.artifactDigest } : {}),
     provenance: report.provenance,
   });
