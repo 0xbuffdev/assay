@@ -194,19 +194,21 @@ const definition = createAssessmentDefinition({
   assessmentId: "vector",
   revision: "rev1",
   policyVersion: "policy1",
-  criteria: [{
-    id: "output",
-    kind: "exact_text",
-    mode: "required",
-    visibility: "restricted",
-    parameters: {
-      expected: {
-        type: "reference",
-        referenceId: reference.value.referenceId,
-        referenceDigest: reference.value.referenceDigest,
+  criteria: [
+    {
+      id: "output",
+      kind: "exact_text",
+      mode: "required",
+      visibility: "restricted",
+      parameters: {
+        expected: {
+          type: "reference",
+          referenceId: reference.value.referenceId,
+          referenceDigest: reference.value.referenceDigest,
+        },
       },
     },
-  }],
+  ],
 });
 if (!definition.ok) throw new Error("Invalid definition");
 const verified = verifyReferenceBundle(definition.value, {
@@ -256,7 +258,7 @@ or execution fact schema is introduced here.
 
 Additional reference vectors (same domain and LF; no trailing LF):
 
-| Canonical JSON | SHA-256 digest |
-| --- | --- |
-| `{"kind":"number","referenceId":"quantity","schemaVersion":2,"unit":"m","value":10}` | `sha256:9d9dd9e71c2daf11f25122ef06f982ca2fc3f30a5b02e83f7a3460996e133076` |
+| Canonical JSON                                                                             | SHA-256 digest                                                            |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `{"kind":"number","referenceId":"quantity","schemaVersion":2,"unit":"m","value":10}`       | `sha256:9d9dd9e71c2daf11f25122ef06f982ca2fc3f30a5b02e83f7a3460996e133076` |
 | `{"itemType":"number","kind":"set","referenceId":"items","schemaVersion":2,"value":[1,2]}` | `sha256:1ea024bc6ce68a3e7e55a0b29f1a95dbb7f56228b3d736634fdde1a23165373a` |

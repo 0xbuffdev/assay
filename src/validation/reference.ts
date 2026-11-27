@@ -1,10 +1,14 @@
 import { CONTRACT_LIMITS } from "../contracts/common";
-import type { ReferenceBundle, ReferenceRecord, ReferenceRecordDraft } from "../contracts/reference";
+import type {
+  ReferenceBundle,
+  ReferenceRecord,
+  ReferenceRecordDraft,
+} from "../contracts/reference";
 import type { ValidationResult } from "../contracts/validation";
 import {
   choice,
-  definitionRef,
   type Diagnostics,
+  definitionRef,
   digest,
   finish,
   identifier,

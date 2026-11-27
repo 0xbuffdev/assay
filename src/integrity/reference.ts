@@ -1,5 +1,9 @@
 import type { Criterion } from "../contracts/definition";
-import type { ReferenceBundle, ReferenceRecord, ReferenceRecordDraft } from "../contracts/reference";
+import type {
+  ReferenceBundle,
+  ReferenceRecord,
+  ReferenceRecordDraft,
+} from "../contracts/reference";
 import type { ValidationResult } from "../contracts/validation";
 import {
   parseReferenceBundle,
@@ -83,7 +87,7 @@ export function verifyReferenceBundle(
     if (referenceDigest !== hashDraft(draft)) {
       issues.add(`${path}.referenceDigest`, "REFERENCE_DIGEST_MISMATCH");
     }
-    if (!criterion || criterion.parameters.expected.type !== "reference") {
+    if (criterion?.parameters.expected.type !== "reference") {
       issues.add(`${path}.referenceId`, "UNKNOWN_REFERENCE");
       continue;
     }

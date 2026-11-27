@@ -430,7 +430,6 @@ assert.ok(!JSON.stringify(portRejected).includes("trusted"));
 
 console.log("Independent packed ESM consumer: acceptance and hostile-input cases passed");
 
-
 // AY-I13: independently pinned schema-2 content and definition lineage.
 const reference = assay.createReferenceRecord({
   schemaVersion: 2,
