@@ -13,13 +13,13 @@ import {
 } from "../src/index";
 import { sealEvidenceFixture } from "./fixtures/contracts";
 
-const visible: Criterion = {
+const visible = {
   id: "visible",
   kind: "exact_text",
   mode: "required",
   visibility: "public",
   parameters: { expected: { type: "literal", value: "ok" } },
-};
+} as const satisfies Criterion;
 
 const restricted: Criterion = {
   id: "SECRET_CRITERION_CANARY",
@@ -279,7 +279,10 @@ describe("AY-I20 safe technical feedback", () => {
     const publicView = projectPublicResult(definition, full);
     expect(publicView).toMatchObject({
       ok: true,
-      value: { outcome: "withheld", findings: [{ criterionId: "visible", outcome: "pass", reason: "match" }] },
+      value: {
+        outcome: "withheld",
+        findings: [{ criterionId: "visible", outcome: "pass", reason: "match" }],
+      },
     });
     expect(JSON.stringify(publicView)).not.toContain("ADVISORY_UNRESOLVED");
   });
