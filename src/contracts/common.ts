@@ -82,3 +82,23 @@ export function equalJsonValue(left: unknown, right: unknown): boolean {
     keys.every((key) => Object.hasOwn(b, key) && equalJsonValue(a[key], b[key]))
   );
 }
+
+/** Unknown stream attribution is conservative; exit status is not a stream. */
+export function captureTruncated(
+  fact: unknown,
+  stdoutTruncated: boolean,
+  stderrTruncated: boolean,
+): boolean {
+  switch (fact) {
+    case "exit_status":
+      return false;
+    case "stdout":
+    case "structured_stdout":
+      return stdoutTruncated;
+    case "stderr":
+    case "structured_stderr":
+      return stderrTruncated;
+    default:
+      return stdoutTruncated || stderrTruncated;
+  }
+}

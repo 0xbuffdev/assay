@@ -38,6 +38,8 @@ export type {
   ObservationPortProvenance,
 } from "./contracts/evidence";
 export type {
+  ObservationAbortSignal,
+  ObservationCollectionOptions,
   ObservationCollectionResult,
   ObservationPort,
   ObservationPortCriterion,

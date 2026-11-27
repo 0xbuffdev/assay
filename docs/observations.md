@@ -123,7 +123,7 @@ hash or proof of publisher identity.
 
 ## Contracts and limits
 
-`ObservationPort.observe(request: ObservationPortRequest): Promise<unknown>`
+`ObservationPort<S>.observe(request: ObservationPortRequest, signal?: S): Promise<unknown>`
 is supplied **only** by the host. Its request is immutable and includes:
 
 - `schemaVersion: 2`, `definition` ID/revision/digest, optional caller
@@ -132,6 +132,8 @@ is supplied **only** by the host. Its request is immutable and includes:
   (`text`, `number`, `set`, `boolean`, `json`, or `execution`). Public numeric criteria
   may include a declared **unit identifier** so the provider can report the
   matching measurement unit without receiving the expected numeric value.
+  Set criteria include `itemType`; selected execution criteria include `executionFact`
+  with its matching observation kind (exit status is unitless).
   Public execution criteria may include **assertion IDs** but never private
   assertion reference IDs.
 - No expected literals, reference outputs, hidden criteria, secret test
@@ -166,9 +168,7 @@ to newly returned facts. Existing observations keep their own origin and
 completeness. If the report reveals truncation of a run also claimed by an
 existing complete observation, the shared evidence validator rejects the
 combined bundle rather than mutating or relabeling earlier evidence. Omitting
-provenance on the existing fact does not avoid this check. If either output
-truncation flag is true, all returned observations are
-marked `completeness: "truncated"` before evaluation. An incomplete stdout
+provenance on the existing fact does not avoid this check. Selected stdout/stderr and structured stream facts are downgraded only for their relevant stream; exit status is not stream-derived. Unknown stream attribution remains conservative: either truncation flag downgrades the returned observation. An incomplete stdout
 capture cannot satisfy an exact-text required criterion. An empty report
 is legal but cannot satisfy missing required evidence.
 
@@ -186,6 +186,8 @@ is legal but cannot satisfy missing required evidence.
 - `{ ok: false, outcome: "evaluation_error", reasonCode:
   "OBSERVATION_PORT_ERROR" }`: provider threw or failed. No exception
   message, stack, stdout/stderr text or private reference is returned.
+- `{ ok: false, outcome: "evaluation_error", reasonCode: "OBSERVATION_CANCELLED" }`:
+  the host signal aborted before invocation or during acquisition. No report is merged.
 
 The receipt includes the new `evidenceDigest` and ordered `evidenceRefs` of
 only the newly returned observations, not previously supplied facts. The
@@ -223,14 +225,36 @@ truncated streams, forged markers, wrong revision/digest, malicious HTML
 text, and provider failures. Tests intentionally contain **no real hidden
 test sources, secrets or learner data**.
 
-## Explicit execution facts (AY-I18)
+## Selected execution facts and cancellation (AY-I19)
 
-The direct schema-2 evidence API now supports selected stdout, stderr,
-exit status, boolean properties and structured stream output with explicit
-run termination. See [execution facts](evaluation.md#ay-i18-typed-execution-facts-schema-2).
-The current port request cannot express these selectors: the collector skips
-selected criteria and rejects report attempts to introduce a selector or
-observation origin. AY-I19 owns the request/report upgrade and cancellation.
-Legacy unselected port observations retain conservative truncation handling;
-the shared evidence validator uses relevant stream attribution for explicit
-direct facts and checks cross-observation run consistency.
+Selected public criteria are eligible for acquisition. A report echoes the
+selector on each selected observation and supplies a top-level
+`termination: "exited" | "timeout" | "crash"` when returning any selected fact.
+The collector derives each new observation's origin from the envelope scope,
+run and termination; observation-level origins remain forbidden. A report
+may omit unavailable facts. Interrupted runs remain inconclusive, and no
+exit value or output is synthesized. The receipt records termination when
+supplied. Unselected reports may omit termination. Even an empty report must
+agree with existing claims for the same adapter and run: an envelope is
+validated against earlier origins without modifying or adding observations.
+
+Supply a host-owned signal as the fourth argument:
+`collectObservations(definition, startingEvidence, port, { signal })`.
+The same native signal is passed as the second argument to the provider, without wrapping.
+The exported structural `ObservationAbortSignal` type requires only the abort flag
+and listener methods, so the installed declarations remain usable without Node
+or DOM ambient types. Hosts needing the full native signal API can declare
+`ObservationPort<AbortSignal>`; the collector preserves that signal type.
+Native signals in the supported Node runtime use a private dependent signal for
+the collector subscription, so a host listener stopping propagation does not
+suppress cancellation. Synthetic events without an aborted flag are ignored.
+Custom structural signals are trusted host code: they must set `aborted`
+before notifying all listeners, must not suppress notification and must not
+throw from listener methods.
+Verified
+inputs are checked before cancellation; a valid pre-aborted operation never
+invokes the port. Pending abort settles the collector, removes its listener,
+ignores late resolution and consumes late rejection. No retries or default
+timeout are applied. The host must arrange actual execution termination,
+isolation and resource limits; an aborted collector does not prove the
+provider stopped.

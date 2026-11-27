@@ -438,6 +438,50 @@ const portRejected = await assay.collectObservations(
 assert.equal(portRejected.outcome, "invalid_evidence");
 assert.ok(!JSON.stringify(portRejected).includes("trusted"));
 
+const cancellation = new AbortController();
+const startingEvidence = evidence([], publicDefinition);
+let providerCalls = 0;
+let resolveLate;
+const pendingCollection = assay.collectObservations(
+  publicDefinition,
+  startingEvidence,
+  {
+    observe: (_request, signal) => {
+      providerCalls++;
+      assert.equal(signal, cancellation.signal);
+      return new Promise((resolve) => {
+        resolveLate = resolve;
+      });
+    },
+  },
+  { signal: cancellation.signal },
+);
+assert.equal(providerCalls, 1);
+cancellation.abort();
+const cancelled = {
+  ok: false,
+  outcome: "evaluation_error",
+  reasonCode: "OBSERVATION_CANCELLED",
+};
+assert.deepEqual(await pendingCollection, cancelled);
+resolveLate({ private: "ignored" });
+assert.deepEqual(startingEvidence.observations, []);
+assert.deepEqual(
+  await assay.collectObservations(
+    publicDefinition,
+    startingEvidence,
+    {
+      observe: async () => {
+        providerCalls++;
+        return {};
+      },
+    },
+    { signal: cancellation.signal },
+  ),
+  cancelled,
+);
+assert.equal(providerCalls, 1);
+
 console.log("Independent packed ESM consumer: acceptance and hostile-input cases passed");
 
 // AY-I13: independently pinned schema-2 content and definition lineage.

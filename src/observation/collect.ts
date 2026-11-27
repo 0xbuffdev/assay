@@ -1,40 +1,105 @@
-import { CONTRACT_LIMITS } from "../contracts/common";
+import { CONTRACT_LIMITS, captureTruncated } from "../contracts/common";
 import type { AssessmentDefinition } from "../contracts/definition";
-import type { EvidenceBundle, Observation, ObservationOrigin } from "../contracts/evidence";
+import type { EvidenceBundle } from "../contracts/evidence";
 import type {
+  ObservationAbortSignal,
+  ObservationCollectionOptions,
   ObservationCollectionResult,
   ObservationPort,
   ObservationPortCriterion,
-  ObservationPortKind,
   ObservationPortReceipt,
   ObservationPortRequest,
 } from "../contracts/observation";
 import type { DiagnosticCode } from "../contracts/validation";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { createEvidenceBundle, verifyEvidenceForDefinition } from "../integrity/evidence";
+import { validateEmptyReportOrigin } from "../validation/evidence";
 import { parseObservationPortReport } from "../validation/observation";
 
-function requestedKind(
+function requestedCriterion(
   criterion: AssessmentDefinition["criteria"][number],
-): ObservationPortKind | null {
+): ObservationPortCriterion | null {
+  const criterionId = criterion.id;
   switch (criterion.kind) {
     case "exact_text":
     case "normalized_text":
-      return "text";
+      return criterion.executionFact === undefined
+        ? { criterionId, kind: "text" }
+        : { criterionId, kind: "text", executionFact: criterion.executionFact };
     case "boolean_equality":
-      return "boolean";
+      return criterion.executionFact === undefined
+        ? { criterionId, kind: "boolean" }
+        : { criterionId, kind: "boolean", executionFact: criterion.executionFact };
     case "json_equality":
-      return "json";
+      return criterion.executionFact === undefined
+        ? { criterionId, kind: "json" }
+        : { criterionId, kind: "json", executionFact: criterion.executionFact };
     case "number_range":
     case "number_with_tolerance":
-      return "number";
+      return criterion.executionFact === undefined
+        ? {
+            criterionId,
+            kind: "number",
+            ...(criterion.parameters.unit === undefined ? {} : { unit: criterion.parameters.unit }),
+          }
+        : { criterionId, kind: "number", executionFact: criterion.executionFact };
     case "set_equivalence":
-      return "set";
+      return { criterionId, kind: "set", itemType: criterion.parameters.itemType };
     case "observed_execution":
-      return "execution";
+      return {
+        criterionId,
+        kind: "execution",
+        assertionIds: Object.freeze(criterion.parameters.assertions.map((a) => a.id)),
+      };
     case "manual_evidence":
       return null;
   }
+}
+
+type PortFailure = Extract<ObservationCollectionResult, { outcome: "evaluation_error" }>;
+
+function acquisitionFailure(reasonCode: PortFailure["reasonCode"]): PortFailure {
+  return Object.freeze({ ok: false, outcome: "evaluation_error", reasonCode });
+}
+
+type Acquisition = Readonly<{ ok: true; report: unknown }> | PortFailure;
+
+function acquire<S extends ObservationAbortSignal>(
+  port: ObservationPort<S>,
+  request: ObservationPortRequest,
+  signal: S | undefined,
+): Promise<Acquisition> {
+  return new Promise((resolve) => {
+    // A private dependent native signal cannot be suppressed by another
+    // listener on the host signal. The provider still receives the original.
+    const subscription = signal instanceof AbortSignal ? AbortSignal.any([signal]) : signal;
+    let settled = false;
+    const finish = (result: Acquisition): void => {
+      if (settled) return;
+      settled = true;
+      subscription?.removeEventListener("abort", abort);
+      resolve(result);
+    };
+    const abort = (): void => {
+      // Ignore synthetic events without consuming the genuine subscription.
+      if (signal?.aborted) finish(acquisitionFailure("OBSERVATION_CANCELLED"));
+    };
+    subscription?.addEventListener("abort", abort);
+    if (signal?.aborted) {
+      abort();
+      return;
+    }
+    try {
+      // Attach both handlers even if the provider synchronously triggers abort.
+      // A noncooperative provider may settle long after collection has returned.
+      void Promise.resolve(port.observe(request, signal)).then(
+        (report) => finish({ ok: true, report }),
+        () => finish(acquisitionFailure("OBSERVATION_PORT_ERROR")),
+      );
+    } catch {
+      finish(acquisitionFailure("OBSERVATION_PORT_ERROR"));
+    }
+  });
 }
 
 function error(
@@ -72,10 +137,11 @@ function sameDefinition(
  * snippet or restricted criterion is sent. The port cannot overwrite existing
  * observations or supply unsolicited observations.
  */
-export async function collectObservations(
+export async function collectObservations<S extends ObservationAbortSignal>(
   definitionInput: unknown,
   evidenceInput: unknown,
-  port: ObservationPort,
+  port: ObservationPort<S>,
+  options: ObservationCollectionOptions<S> = {},
 ): Promise<ObservationCollectionResult> {
   const checkedDefinition = verifyAssessmentDefinition(definitionInput);
   if (!checkedDefinition.ok) return error("invalid_definition", checkedDefinition.diagnostics);
@@ -85,27 +151,15 @@ export async function collectObservations(
   if (!checkedEvidence.ok) return error("invalid_evidence", checkedEvidence.diagnostics);
 
   const evidence = checkedEvidence.value;
+  const signal = options.signal;
+  if (signal?.aborted) return acquisitionFailure("OBSERVATION_CANCELLED");
 
   const existing = new Set(evidence.observations.map((item) => item.criterionId));
   const criteria: ObservationPortCriterion[] = [];
   for (const criterion of definition.criteria) {
     if (criterion.visibility !== "public" || existing.has(criterion.id)) continue;
-    // AY-I19 owns the explicit execution-fact request and report contract.
-    if (criterion.executionFact !== undefined) continue;
-    const kind = requestedKind(criterion);
-    if (!kind) continue;
-    const requested: ObservationPortCriterion = Object.freeze({
-      criterionId: criterion.id,
-      kind,
-      ...((criterion.kind === "number_with_tolerance" || criterion.kind === "number_range") &&
-      criterion.parameters.unit !== undefined
-        ? { unit: criterion.parameters.unit }
-        : {}),
-      ...(criterion.kind === "observed_execution"
-        ? { assertionIds: Object.freeze(criterion.parameters.assertions.map((a) => a.id)) }
-        : {}),
-    });
-    criteria.push(requested);
+    const requested = requestedCriterion(criterion);
+    if (requested) criteria.push(Object.freeze(requested));
   }
 
   // No request is made when all evidence exists or only restricted/manual
@@ -126,19 +180,10 @@ export async function collectObservations(
     limits: Object.freeze({ maxCapturedBytes: CONTRACT_LIMITS.maxCapturedBytes }),
   });
 
-  let unknownReport: unknown;
-  try {
-    unknownReport = await port.observe(request);
-  } catch {
-    // Do not reveal thrown provider messages, stacks, tokens or raw output.
-    return Object.freeze({
-      ok: false,
-      outcome: "evaluation_error",
-      reasonCode: "OBSERVATION_PORT_ERROR",
-    });
-  }
-
-  const checkedReport = parseObservationPortReport(unknownReport);
+  const acquired = await acquire(port, request, signal);
+  if (signal?.aborted) return acquisitionFailure("OBSERVATION_CANCELLED");
+  if (!acquired.ok) return acquired;
+  const checkedReport = parseObservationPortReport(acquired.report);
   if (!checkedReport.ok) return error("invalid_evidence", checkedReport.diagnostics);
   const report = checkedReport.value;
 
@@ -157,45 +202,46 @@ export async function collectObservations(
     return invalidEvidence("$.artifactDigest", "MISMATCHED_ORIGIN");
   }
 
-  const origin: ObservationOrigin = Object.freeze({
+  const origin = Object.freeze({
     ...(report.artifactDigest === undefined
       ? { kind: "independent" as const }
       : { kind: "artifact" as const, artifactDigest: report.artifactDigest }),
     sourceRef: report.provenance.adapterId,
     runRef: report.provenance.runRef,
     provenance: report.provenance,
+    ...(report.termination === undefined ? {} : { termination: report.termination }),
   });
-  const allowed = new Map(criteria.map((criterion) => [criterion.criterionId, criterion]));
-  const returned: Observation[] = [];
-  const truncated = report.provenance.stdoutTruncated || report.provenance.stderrTruncated;
+  if (report.observations.length === 0) {
+    const checkedOrigin = validateEmptyReportOrigin(evidence, origin);
+    if (!checkedOrigin.ok) return error("invalid_evidence", checkedOrigin.diagnostics);
+  }
+  const allowed = new Set(criteria.map((criterion) => criterion.criterionId));
+  const returned = [];
   for (const [index, observation] of report.observations.entries()) {
-    const criterion = allowed.get(observation.criterionId);
     const path = `$.observations[${index}]`;
-    if (!criterion) return invalidEvidence(`${path}.criterionId`, "UNKNOWN_CRITERION");
-    if (criterion.kind !== observation.kind) {
-      return invalidEvidence(`${path}.kind`, "MISMATCHED_OBSERVATION");
+    if (!allowed.has(observation.criterionId))
+      return invalidEvidence(`${path}.criterionId`, "UNKNOWN_CRITERION");
+    if (observation.kind === "execution" && report.provenance.runRef !== observation.runRef) {
+      return invalidEvidence(`${path}.runRef`, "MISMATCHED_OBSERVATION");
     }
-    if (observation.kind === "execution") {
-      if (report.provenance.runRef !== observation.runRef) {
-        return invalidEvidence(`${path}.runRef`, "MISMATCHED_OBSERVATION");
-      }
-      const ids = new Set(criterion.assertionIds ?? []);
-      for (const [i, assertion] of observation.assertions.entries()) {
-        if (!ids.has(assertion.assertionId)) {
-          return invalidEvidence(`${path}.assertions[${i}].assertionId`, "UNKNOWN_CRITERION");
-        }
-      }
-    }
+    // The shared evidence coverage boundary checks kind, selector, unit,
+    // set item type and assertion IDs against the verified definition.
+    const truncated = captureTruncated(
+      observation.executionFact,
+      report.provenance.stdoutTruncated,
+      report.provenance.stderrTruncated,
+    );
     // Incomplete captured output cannot be promoted to complete evidence.
     returned.push(
       Object.freeze({
         ...observation,
         origin,
         completeness: truncated ? "truncated" : observation.completeness,
-      }) as Observation,
+      }),
     );
   }
 
+  if (signal?.aborted) return acquisitionFailure("OBSERVATION_CANCELLED");
   const parsedCombined = createEvidenceBundle(definition, {
     schemaVersion: 2,
     ...(report.artifactDigest ? { artifactDigest: report.artifactDigest } : {}),
@@ -207,6 +253,7 @@ export async function collectObservations(
     definition: report.definition,
     evidenceDigest: parsedCombined.value.evidenceDigest,
     evidenceRefs: Object.freeze(returned.map((item) => item.evidenceRef)),
+    ...(report.termination === undefined ? {} : { termination: report.termination }),
     ...(report.artifactDigest ? { artifactDigest: report.artifactDigest } : {}),
     provenance: report.provenance,
   });

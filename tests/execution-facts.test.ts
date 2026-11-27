@@ -6,6 +6,7 @@ import {
   createReferenceRecord,
   evaluate,
   inspectEvidenceCoverage,
+  parseObservationPortReport,
   projectPublicResult,
 } from "../src/index";
 
@@ -386,19 +387,168 @@ describe("typed execution facts", () => {
     );
   });
 
-  it("leaves selected fact acquisition to AY-I19", async () => {
+  it("acquires selected facts through a scoped provider report", async () => {
     const rubric = definition([stdout]);
     const evidence = createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
-    let calls = 0;
     const collected = await collectObservations(rubric, evidence.value, {
-      async observe() {
-        calls++;
-        throw new Error("Must not request an unsupported selector");
+      async observe(request) {
+        expect(request.criteria).toEqual([
+          { criterionId: stdout.id, kind: "text", executionFact: "stdout" },
+        ]);
+        return {
+          schemaVersion: 2,
+          definition: request.definition,
+          termination: "exited",
+          provenance: {
+            adapterId: "fixture",
+            adapterVersion: "v1",
+            runRef: "run1",
+            toolchainId: "node",
+            toolchainVersion: "v24",
+            capturedStdoutBytes: 2,
+            capturedStderrBytes: 0,
+            stdoutTruncated: false,
+            stderrTruncated: true,
+          },
+          observations: [
+            {
+              criterionId: stdout.id,
+              evidenceRef: "acquired",
+              kind: "text",
+              executionFact: "stdout",
+              completeness: "complete",
+              value: "ok",
+            },
+          ],
+        };
       },
     });
-    expect(calls).toBe(0);
-    expect(collected).toMatchObject({ ok: true, receipt: null });
-    expect(evaluate(rubric, evidence.value).outcome).toBe("inconclusive");
+    if (!collected.ok) throw new Error("Invalid collection");
+    expect(collected.receipt?.termination).toBe("exited");
+    expect(evaluate(rubric, collected.evidence).outcome).toBe("pass");
+  });
+});
+
+describe("AY-I19 scoped selected reports", () => {
+  it("acquires every selected kind and applies relevant completeness", async () => {
+    const cases = [
+      [stdout, out, "inconclusive"],
+      [stderr, err, "pass"],
+      [exit, status, "pass"],
+      [property, prop, "inconclusive"],
+      [json, structured, "inconclusive"],
+    ] as const;
+    for (const [check, observation, expected] of cases) {
+      const rubric = definition([check]);
+      const empty = createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] });
+      if (!empty.ok) throw new Error("Invalid evidence fixture");
+      const { origin: _origin, ...returned } = observation;
+      const report = {
+        schemaVersion: 2,
+        definition: empty.value.definition,
+        termination: "exited",
+        provenance,
+        observations: [returned],
+      };
+      const collected = await collectObservations(rubric, empty.value, {
+        async observe(request) {
+          expect(request.criteria).toEqual([
+            { criterionId: check.id, kind: observation.kind, executionFact: check.executionFact },
+          ]);
+          return report;
+        },
+      });
+      if (!collected.ok) throw new Error("Invalid collection");
+      expect(evaluate(rubric, collected.evidence).outcome).toBe(expected);
+      const interrupted = await collectObservations(rubric, empty.value, {
+        observe: async () => ({
+          ...report,
+          termination: "timeout",
+          provenance: { ...provenance, stdoutTruncated: false },
+        }),
+      });
+      if (!interrupted.ok) throw new Error("Invalid collection");
+      expect(evaluate(rubric, interrupted.evidence).outcome).toBe("inconclusive");
+    }
+  });
+
+  it("rejects missing termination, wrong selectors and report-level origin spoofing", async () => {
+    const rubric = definition([stdout]);
+    const empty = createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] });
+    if (!empty.ok) throw new Error("Invalid evidence fixture");
+    const { origin: _origin, ...returned } = out;
+    const report = {
+      schemaVersion: 2,
+      definition: empty.value.definition,
+      provenance,
+      observations: [returned],
+    };
+    expect(parseObservationPortReport(report).ok).toBe(false);
+    for (const response of [
+      report,
+      { ...report, termination: "unknown" },
+      { ...report, termination: "exited", observations: [out] },
+      {
+        ...report,
+        termination: "exited",
+        observations: [{ ...returned, executionFact: "stderr" }],
+      },
+      {
+        ...report,
+        termination: "exited",
+        observations: [{ ...returned, executionFact: "exit_status" }],
+      },
+    ]) {
+      const collected = await collectObservations(rubric, empty.value, {
+        observe: async () => response,
+      });
+      expect(collected).toMatchObject({ ok: false, outcome: "invalid_evidence" });
+    }
+  });
+});
+
+describe("AY-I19 empty report run claims", () => {
+  it("rejects conflicting same-run termination and relevant truncation without changing evidence", async () => {
+    const rubric = definition([stdout, { ...stderr, mode: "advisory" }]);
+    const initial = createEvidenceBundle(rubric, { schemaVersion: 2, observations: [out] });
+    if (!initial.ok) throw new Error("Invalid evidence fixture");
+    const baseReport = {
+      schemaVersion: 2,
+      definition: initial.value.definition,
+      termination: "exited",
+      provenance: { ...provenance, stdoutTruncated: false },
+      observations: [],
+    };
+    for (const response of [
+      { ...baseReport, termination: "timeout" },
+      { ...baseReport, termination: "crash" },
+      { ...baseReport, provenance },
+    ]) {
+      const collected = await collectObservations(rubric, initial.value, {
+        observe: async () => response,
+      });
+      expect(collected).toMatchObject({ ok: false, outcome: "invalid_evidence" });
+    }
+    for (const response of [
+      baseReport,
+      {
+        ...baseReport,
+        provenance: { ...baseReport.provenance, stderrTruncated: true },
+      },
+      {
+        ...baseReport,
+        termination: "timeout",
+        provenance: { ...provenance, runRef: "unrelated" },
+      },
+    ]) {
+      const collected = await collectObservations(rubric, initial.value, {
+        observe: async () => response,
+      });
+      if (!collected.ok) throw new Error("Invalid collection");
+      expect(collected.evidence).toEqual(initial.value);
+      expect(collected.receipt?.evidenceRefs).toEqual([]);
+      expect(evaluate(rubric, collected.evidence).outcome).toBe("pass");
+    }
   });
 });

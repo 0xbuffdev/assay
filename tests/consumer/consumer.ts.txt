@@ -29,6 +29,7 @@ import {
   type PolicyVersion,
   type ReasonCode,
   type WarningCode,
+  type ObservationAbortSignal,
   type ObservationPort,
   type ObservationPortRequest,
   type ValidationResult,
@@ -132,7 +133,8 @@ if ("diagnostics" in result) {
 }
 
 const port: ObservationPort = {
-  async observe(request: ObservationPortRequest): Promise<unknown> {
+  async observe(request: ObservationPortRequest, signal?: ObservationAbortSignal): Promise<unknown> {
+    void signal;
     const ids: readonly string[] = request.criteria.map((criterion) => criterion.criterionId);
     const max: number = request.limits.maxCapturedBytes;
     void ids;
@@ -156,13 +158,19 @@ const port: ObservationPort = {
   },
 };
 
+// The ES2022-only consumer needs neither Node nor DOM ambient types.
+const fixtureSignal: ObservationAbortSignal = {
+  aborted: false,
+  addEventListener(_type, _listener, _options) {},
+  removeEventListener(_type, _listener) {},
+};
 async function verifyCollection(): Promise<void> {
-  const collected = await collectObservations(definition, evidence, port);
+  const collected = await collectObservations(definition, evidence, port, { signal: fixtureSignal });
   if (collected.ok) {
     const claims: string | undefined = collected.receipt?.provenance.adapterId;
     void claims;
   } else if (collected.outcome === "evaluation_error") {
-    const reason: "OBSERVATION_PORT_ERROR" = collected.reasonCode;
+    const reason: "OBSERVATION_PORT_ERROR" | "OBSERVATION_CANCELLED" = collected.reasonCode;
     void reason;
   } else {
     const details: readonly { readonly path: string }[] = collected.diagnostics;
@@ -393,3 +401,54 @@ void unitExit;
 void unitRange;
 void unitExitFact;
 void missingTerminationRun;
+
+const setRequest: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "set", kind: "set", itemType: "number" };
+// @ts-expect-error set acquisition requires item type
+const missingItemType: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "set", kind: "set" };
+// @ts-expect-error selected exit status must be unitless
+const unitRequest: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "exit", kind: "number", executionFact: "exit_status", unit: "ms" };
+// @ts-expect-error stdout is not a boolean execution selector
+const wrongRequest: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "out", kind: "boolean", executionFact: "stdout" };
+void setRequest;
+void missingItemType;
+void unitRequest;
+void wrongRequest;
+
+// A host can preserve its full signal type through the generic port and options.
+interface HostSignal extends ObservationAbortSignal {
+  readonly hostMarker: string;
+}
+const hostSignal: HostSignal = { ...fixtureSignal, hostMarker: "fixture" };
+const typedHostPort: ObservationPort<HostSignal> = {
+  async observe(_request, signal) {
+    const marker: string | undefined = signal?.hostMarker;
+    void marker;
+    return {};
+  },
+};
+void collectObservations(definition, evidence, typedHostPort, { signal: hostSignal });
+// @ts-expect-error a bare aborted flag lacks the required listener methods
+const invalidSignal: ObservationAbortSignal = { aborted: false };
+void invalidSignal;
+
+const reportEnvelope = {
+  schemaVersion: 2,
+  definition: evidence.definition,
+  provenance: {
+    adapterId: "fixture", adapterVersion: "v1", runRef: "run1",
+    toolchainId: "node", toolchainVersion: "v24",
+    capturedStdoutBytes: 2, capturedStderrBytes: 0,
+    stdoutTruncated: false, stderrTruncated: false,
+  },
+} as const;
+const unselectedReportFact = {
+  criterionId: "plain", evidenceRef: "plain1", kind: "text", completeness: "complete", value: "ok",
+} as const;
+const selectedReportFact = { ...unselectedReportFact, criterionId: "out", evidenceRef: "out1", executionFact: "stdout" } as const;
+const legacyReport: import("@0xbuff/assay").ObservationPortReport = { ...reportEnvelope, observations: [unselectedReportFact] };
+const mixedReport: import("@0xbuff/assay").ObservationPortReport = { ...reportEnvelope, termination: "exited", observations: [selectedReportFact, unselectedReportFact] };
+// @ts-expect-error selected reports require termination
+const missingReportTermination: import("@0xbuff/assay").ObservationPortReport = { ...reportEnvelope, observations: [selectedReportFact] };
+void legacyReport;
+void mixedReport;
+void missingReportTermination;
