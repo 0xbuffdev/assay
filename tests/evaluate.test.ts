@@ -22,7 +22,7 @@ import {
 } from "./fixtures/contracts";
 
 function caseOf(
-  criterion: Criterion<1>,
+  criterion: Criterion,
   observation?: Observation,
 ): [AssessmentDefinition<1>, EvidenceBundle] {
   const definition = sealDefinition({ ...fixtureDefinition(), criteria: [criterion] });
@@ -65,7 +65,7 @@ function textCriterion(
   kind: "exact_text" | "normalized_text",
   expected: string,
   normalization?: TextNormalization,
-): Criterion<1> {
+): Criterion {
   const base = { id: "check", mode: "required" as const, visibility: "public" as const };
   if (kind === "exact_text")
     return { ...base, kind, parameters: { expected: { type: "literal", value: expected } } };
@@ -77,7 +77,7 @@ function textCriterion(
   };
 }
 
-function numberCriterion(expected: number, absolute: number, relative: number): Criterion<1> {
+function numberCriterion(expected: number, absolute: number, relative: number): Criterion {
   return {
     id: "check",
     mode: "required",
@@ -95,7 +95,7 @@ function setCriterion(
   order: "ignore" | "preserve",
   duplicates: "ignore" | "respect",
   itemType: "string" | "number" | "boolean" = "string",
-): Criterion<1> {
+): Criterion {
   return {
     id: "check",
     mode: "required",
@@ -125,7 +125,7 @@ function resolved(result: EvaluationResponse): EvaluationResult {
   return result;
 }
 
-function testCase(criterion: Criterion<1>, observation?: Observation): EvaluationResponse {
+function testCase(criterion: Criterion, observation?: Observation): EvaluationResponse {
   const [definition, evidence] = caseOf(criterion, observation);
   return evaluate(definition, evidence);
 }
@@ -353,7 +353,7 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
 
   it("fails conclusively for a required mismatch even with missing evidence and advisory praise", () => {
     const base = fixtureDefinition();
-    const criteria: readonly Criterion<1>[] = [
+    const criteria: readonly Criterion[] = [
       textCriterion("exact_text", "expected"),
       { ...numberCriterion(10, 0, 0), id: "missing" },
       { ...textCriterion("exact_text", "great"), id: "advice", mode: "advisory" },
@@ -389,12 +389,12 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
   });
 
   it("requires resolved references; missing reference data is not a pass or a failure", () => {
-    const criterion: Criterion<1> = {
+    const criterion: Criterion = {
       id: "check",
       mode: "required",
       visibility: "restricted",
       kind: "exact_text",
-      parameters: { expected: { type: "reference", referenceId: "hidden-ref" } },
+      parameters: { expected: { type: "reference", referenceId: "hidden-ref", referenceDigest: digestB } },
     };
     const r = resolved(testCase(criterion, complete("check", "text", "guessed answer")));
     expect(r.outcome).toBe("inconclusive");
@@ -447,7 +447,7 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
   it("distinguishes unknown or incomplete execution assertions", () => {
     const c = fixtureDefinition().criteria.find((item) => item.kind === "observed_execution");
     if (!c) throw new Error("fixture");
-    const req: Criterion<1> = { ...c, mode: "required" };
+    const req: Criterion = { ...c, mode: "required" };
     const observed: Observation = {
       criterionId: req.id,
       evidenceRef: "ex1",
@@ -467,7 +467,7 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
   });
 
   it("requires manual review even with a file, and marks no file explicitly", () => {
-    const c: Criterion<1> = {
+    const c: Criterion = {
       id: "check",
       mode: "required",
       visibility: "public",
@@ -489,7 +489,7 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
 
   it("does not let advisory errors or missing advisory data invalidate a required pass", () => {
     const required = textCriterion("exact_text", "ok");
-    const advisory: Criterion<1> = {
+    const advisory: Criterion = {
       ...textCriterion("exact_text", "hint"),
       id: "hint",
       mode: "advisory",
@@ -580,7 +580,7 @@ describe("AY-I16 invalid advisory input and policy rejection", () => {
       ],
     });
     const evidence = sealEvidenceFixture({
-      schemaVersion: 2,
+      schemaVersion: 3,
       definition: referenceOf(rubric),
       observations: [
         complete("check", "text", "ok"),
