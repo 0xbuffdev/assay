@@ -323,7 +323,12 @@ export function textValue(value: unknown, path: string, issues: Diagnostics): vo
   if (typeof value !== "string") issues.add(path, "INVALID_TYPE");
 }
 
-export function numberValue(value: unknown, path: string, issues: Diagnostics, nonnegative = false): void {
+export function numberValue(
+  value: unknown,
+  path: string,
+  issues: Diagnostics,
+  nonnegative = false,
+): void {
   if (typeof value !== "number" || !Number.isFinite(value) || (nonnegative && value < 0)) {
     issues.add(path, "INVALID_VALUE");
   }
@@ -365,7 +370,12 @@ function scalarType(
   }
 }
 
-export function setItems(value: unknown, itemType: unknown, path: string, issues: Diagnostics): void {
+export function setItems(
+  value: unknown,
+  itemType: unknown,
+  path: string,
+  issues: Diagnostics,
+): void {
   if (!list(value, path, issues, CONTRACT_LIMITS.maxSetItems)) return;
   if (itemType === "string" || itemType === "number" || itemType === "boolean") {
     for (const [i, item] of value.entries()) scalarType(item, itemType, `${path}[${i}]`, issues);

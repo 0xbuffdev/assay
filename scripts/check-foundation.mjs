@@ -159,12 +159,7 @@ const allowedLayers = {
 for (const file of sourcePaths) {
   const source = await readFile(locate(file), "utf8");
   const dependencies = [];
-  const syntax = tsCompiler.createSourceFile(
-    file,
-    source,
-    tsCompiler.ScriptTarget.ES2022,
-    true,
-  );
+  const syntax = tsCompiler.createSourceFile(file, source, tsCompiler.ScriptTarget.ES2022, true);
   const imports = [];
   function inspect(node) {
     if (tsCompiler.isImportDeclaration(node) || tsCompiler.isExportDeclaration(node)) {
@@ -192,7 +187,8 @@ for (const file of sourcePaths) {
   inspect(syntax);
   for (const specifier of imports) {
     assert.ok(specifier.startsWith("."), `External source import in ${file}: ${specifier}`);
-    const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier)) + ".ts";
+    const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
+    const target = `${resolved}.ts`;
     assert.ok(sourcePaths.has(target), `Untracked module in ${file}: ${target}`);
     assert.notEqual(target, "src/index.ts", `Internal dependency on public root: ${file}`);
     if (file !== "src/index.ts") {

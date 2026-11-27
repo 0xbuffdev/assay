@@ -3,8 +3,8 @@ import type { EvaluationResult } from "../contracts/result";
 import type { ValidationResult } from "../contracts/validation";
 import {
   choice,
-  definitionRef,
   type Diagnostics,
+  definitionRef,
   finish,
   identifier,
   list,

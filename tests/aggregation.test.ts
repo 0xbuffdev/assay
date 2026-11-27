@@ -38,12 +38,8 @@ describe("shared required aggregation", () => {
   });
 
   it("preserves the evaluator's conservative treatment of absent required outcomes", () => {
-    const passing = new Map<string, { outcome: FindingOutcome }>([
-      ["first", { outcome: "pass" }],
-    ]);
-    const failing = new Map<string, { outcome: FindingOutcome }>([
-      ["first", { outcome: "fail" }],
-    ]);
+    const passing = new Map<string, { outcome: FindingOutcome }>([["first", { outcome: "pass" }]]);
+    const failing = new Map<string, { outcome: FindingOutcome }>([["first", { outcome: "fail" }]]);
     expect(aggregateRequired(rubric, passing)).toBe("inconclusive");
     expect(aggregateRequired(rubric, failing)).toBe("fail");
   });

@@ -29,15 +29,15 @@ digest profile, outcome semantics or package-root exports. The accepted
 [organization requirement ASY-32](https://github.com/0xbuffdev/context/blob/main/repos/assay/specs/0003-evaluation-semantics.md)
 governs this structure.
 
-| Module | Responsibility |
-| --- | --- |
-| `src/index.ts` | Explicit public exports; no implementation logic |
-| `src/contracts/` | Versioned definitions, evidence, results, observation ports, projection and validation contracts |
-| `src/validation/` | Bounded snapshots and shared diagnostics, per-contract validators, evidence coverage |
-| `src/evaluation/` | Pure orchestration, focused comparators and one required-outcome aggregation owner |
-| `src/integrity/` | Canonical bytes, SHA-256 and definition integrity |
-| `src/observation/` | Optional injected acquisition and its verified entry point |
-| `src/projection/` | Privileged result checks and public-safe projection |
+| Module             | Responsibility                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `src/index.ts`     | Explicit public exports; no implementation logic                                                 |
+| `src/contracts/`   | Versioned definitions, evidence, results, observation ports, projection and validation contracts |
+| `src/validation/`  | Bounded snapshots and shared diagnostics, per-contract validators, evidence coverage             |
+| `src/evaluation/`  | Pure orchestration, focused comparators and one required-outcome aggregation owner               |
+| `src/integrity/`   | Canonical bytes, SHA-256 and definition integrity                                                |
+| `src/observation/` | Optional injected acquisition and its verified entry point                                       |
+| `src/projection/`  | Privileged result checks and public-safe projection                                              |
 
 ```mermaid
 flowchart TD
