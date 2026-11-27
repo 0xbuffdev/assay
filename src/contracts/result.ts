@@ -1,3 +1,4 @@
+import type { SCHEMA_VERSION } from "./version";
 import type { DefinitionReference, PolicyVersion } from "./definition";
 import type { ValidationDiagnostic } from "./validation";
 import { EVALUATOR_ID, EVALUATOR_VERSION } from "./version";
@@ -49,7 +50,7 @@ export type CriterionFinding = FindingDecision &
   }>;
 
 export interface EvaluationResult {
-  readonly schemaVersion: 2;
+  readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly evidenceDigest: string;
   readonly artifactDigest?: string;
   readonly outcome: TechnicalOutcome;
