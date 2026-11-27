@@ -114,6 +114,7 @@ for (const file of [
   "tests/objective-comparators.test.ts",
   "scripts/version-metadata.mjs",
   "tests/consumer/version-vectors.mjs",
+  "tests/consumer/standalone-assessments.mjs",
   "scripts/verify-dist.mjs",
   "scripts/verify-package.mjs",
   "tests/consumer/consumer.mjs",

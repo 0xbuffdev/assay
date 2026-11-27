@@ -116,3 +116,89 @@ Preserve the actual CI run and reviewed-head/tree identity when reporting
 acceptance, including any failed or unexecuted commands. Source review does
 not establish execution evidence, and the resource samples do not authorize
 publication. AY-I08 and AY-I23 remain conditional and excluded.
+
+## Standalone engineering assessment integration (AY-I25)
+
+The mandatory packed-consumer gate copies and executes
+`tests/consumer/standalone-assessments.mjs` outside this repository against the
+same offline-installed tarball as the existing ESM and TypeScript fixtures.
+The fixture imports only the package root and Node built-ins. Its records are
+synthetic; it does not run submitted code, access a service, resolve real
+protected material or establish genuine provenance.
+
+The sensor-calibration scenario compares a measured voltage against an
+inclusive tolerance and a Boolean device-status expectation without a
+provider. It covers matching and out-of-range measurements, missing facts and
+wrong units. Its public projection includes the overall technical outcome
+because every criterion is public.
+
+The inventory-summary scenario compares a CLI's public stdout and exit status
+with authored expectations and a separate protected structured result with a
+content-bound JSON reference. An injected mock adapter supplies only missing
+public execution facts; a separate synthetic host-owned origin supplies the
+restricted observation. The scenarios exercise matching and mismatching
+protected values, missing reference material, altered reference content and
+lineage, altered evidence and foreign definition lineage, empty and truncated
+reports, provider errors, public mismatch precedence, deterministic serialized
+replay and identical public bytes across hidden outcomes. A zero exit status
+does not establish correctness. The verifier checks that known synthetic
+private canaries are absent from the compiled payloads.
+
+### Host integration prerequisites
+
+1. Authorize the exact versioned definition, reference records and binding
+   policy independently of the submission. Keep reference values, reference
+   digests and restricted criteria in a privileged comparison environment;
+   content identity is not a signature or proof of publisher authority.
+2. Authenticate the submission and artifact association in the host.
+   Apply per-record and combined transport limits before decoding untrusted
+   bytes. Reject invalid UTF-8, then use `decodeSerializedRecord` before
+   integrity validation. Never accept a self-sealed record as an authenticated
+   observation. Bound request concurrency and retained evidence independently.
+3. Acquire observations only through a host-authorized, isolated execution
+   environment or independently verified measurement source. The public port
+   receives only eligible public fact descriptors and scope metadata, not
+   expected values. Protected execution and reference access must remain
+   outside that port's privileges. Its definition and artifact digests are
+   scope metadata, not secrets or proof of execution; restrict access to
+   recipients authorized to know them.
+4. Enforce real execution, memory, time, capture and network limits in the
+   host, and verify adapter/run/artifact provenance independently. Supply
+   typed facts and honest completeness/termination claims. An empty report
+   leaves missing evidence; an error or cancellation is an acquisition
+   failure, not learner deficiency. Do not fabricate facts, attach a
+   successful receipt after an error, or interpret cancellation as proof
+   that a runner stopped. See [observation acquisition](observations.md).
+5. Verify the exact sealed definition, reference bundle and evidence before
+   evaluation. Distinguish invalid inputs from complete technical results;
+   preserve exact inputs, policy/evaluator identity, evidence lineage and
+   claimed receipts privately for authorized audit/replay. Corrections
+   produce new sealed evidence, not mutable history.
+6. Authorize disclosure separately. Send only the validated public projection
+   (or a host-defined opaque failure response), never technical findings,
+   protected data, digests or raw diagnostic messages. Restrict logs,
+   repeated submissions, timing and metadata disclosure; the projection
+   alone is not a side-channel defense or access-control system. See
+   [public projection](projection.md).
+7. Independently test admission, origin verification, execution isolation,
+   authorization and formal decision policy in the actual host. A technical
+   pass is not a grade, credential, identity proof or trusted execution.
+   This package has no runner, model, grading authority or service dependency.
+
+Run the complete gate on the exact candidate with Node.js 24+ and pnpm 11.2.2:
+
+```sh
+git rev-parse HEAD
+node --version
+pnpm --version
+pnpm check
+# To rerun only the packed-consumer gate:
+pnpm build
+pnpm verify:package
+```
+
+The verifier retains the original exact archive allowlist, offline
+no-script install, dependency/license checks and isolated declaration
+typecheck. Its standalone-assessment success marker must appear on both
+Ubuntu and Windows. The temporary installation is removed after verification;
+no registry publication or release version selection is part of AY-I25.

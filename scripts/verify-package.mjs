@@ -227,6 +227,7 @@ try {
       "PRIVATE_CANARY_MUST_NOT_ECHO",
       "SECRET_ACCESS_TOKEN_IN_RUNNER_ERROR",
       "SENSITIVE_EXCEPTION",
+      "AYI25_PRIVATE_",
     ]) {
       assert.ok(!contents.includes(canary), "Test or private sentinel entered the shipped package");
     }
@@ -242,6 +243,11 @@ try {
     await readFile(path.join(fixtureDir, "version-vectors.mjs"), "utf8"),
   );
   command(process.execPath, ["version-vectors.mjs"], consumerDir);
+  await writeFile(
+    path.join(consumerDir, "standalone-assessments.mjs"),
+    await readFile(path.join(fixtureDir, "standalone-assessments.mjs"), "utf8"),
+  );
+  console.log(command(process.execPath, ["standalone-assessments.mjs"], consumerDir).trim());
 
   await writeFile(
     path.join(consumerDir, "consumer.ts"),
