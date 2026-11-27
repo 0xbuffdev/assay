@@ -12,21 +12,21 @@ implementation is pure: no clock, random source, network request, dynamic
 predicates, AI service, code runner or institutional grade writer.
 
 The accepted [versioned data contracts](contracts.md) are validated on every
-call. Neither a syntactically valid SHA-256 digest nor an evidence reference
+call. The definition content digest is recomputed before any evidence inspection
+or comparison; mismatch returns `invalid_definition`. Neither a valid content
+digest nor an evidence reference
 authenticates a publisher, runner or learner; consumers that issue formal
 credit must enforce those requirements independently.
 
 ## Example
 
 ```ts
-import { evaluate } from "@0xbuff/assay";
+import { createAssessmentDefinition, evaluate } from "@0xbuff/assay";
 
-const digest = `sha256:${"a".repeat(64)}`;
-const definition = {
+const created = createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "example",
   revision: "rev1",
-  revisionDigest: digest,
   policyVersion: "policy1",
   criteria: [
     {
@@ -37,10 +37,16 @@ const definition = {
       parameters: { expected: { type: "literal", value: "ok\\n" } },
     },
   ],
-};
+});
+if (!created.ok) throw new Error("Invalid authored definition");
+const definition = created.value;
 const evidence = {
   schemaVersion: 1,
-  definition: { assessmentId: "example", revision: "rev1", revisionDigest: digest },
+  definition: {
+    assessmentId: definition.assessmentId,
+    revision: definition.revision,
+    revisionDigest: definition.revisionDigest,
+  },
   observations: [
     {
       criterionId: "stdout",

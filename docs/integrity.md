@@ -5,7 +5,7 @@ Assay has two explicit trust boundaries:
 1. **Content integrity:** Are the criteria, expected values, policy, revision, and other authored fields exactly those named by the declared digest?
 2. **Publisher and evidence authenticity:** Did a trusted publisher authorize that definition and did independently authenticated observations come from the claimed source?
 
-**AY-I06 implements only the first.** A digest is neither a signature nor an access-control token. The source remains unpublished at 0.0.0; official grades, protected references and publisher authentication remain the host's responsibility.
+**Assay implements only the first.** A digest is neither a signature nor an access-control token. The source remains unpublished at 0.0.0; official grades, protected references and publisher authentication remain the host's responsibility.
 
 ## Creating and checking definitions
 
@@ -15,8 +15,8 @@ Author an **unsigned draft** (all fields except revisionDigest). Then call:
 import {
   createAssessmentDefinition,
   verifyAssessmentDefinition,
-  evaluateVerified,
-  collectVerifiedObservations,
+  evaluate,
+  collectObservations,
 } from "@0xbuff/assay";
 
 const draft = {
@@ -58,13 +58,13 @@ const evidence = {
     },
   ],
 };
-const outcome = evaluateVerified(definition, evidence);
+const outcome = evaluate(definition, evidence);
 // outcome is a technical result, NOT a formal grade
 ```
 
-Use collectVerifiedObservations to guard optional injected provider requests before any provider invocation. It verifies definition content before calling collectObservations and does **not** verify the adapter's run or publisher.
+`collectObservations` verifies definition content before inspecting evidence or invoking the optional injected provider. It does **not** verify the adapter's run or publisher.
 
-The existing parseAssessmentDefinition is **structural validation**; evaluate is a **pure comparator of caller-claimed identities**. They intentionally remain usable for local exploratory analysis without asserting that a supplied digest is verified. If content integrity matters, always select verifyAssessmentDefinition and evaluateVerified / collectVerifiedObservations. All integrity failures return value-free diagnostics, not a secret expected answer or a full diff.
+`parseAssessmentDefinition` and `inspectEvidenceCoverage` perform structural checks, not integrity verification. `evaluate`, `collectObservations` and `projectPublicResult` always verify definition integrity. `verifyAssessmentDefinition` remains available for explicit admission checks. All integrity failures return value-free diagnostics or an opaque projection rejection, not a secret expected answer or a full diff.
 
 parseAssessmentDefinitionDraft rejects caller-supplied revisionDigest fields instead of overwriting them. computeDefinitionDigest returns the digest for such a validated draft without constructing a full definition; createAssessmentDefinition both generates the digest and returns a deeply frozen, validated definition.
 
@@ -135,5 +135,5 @@ This vector is independently verified against the Node crypto implementation in 
 - **No publisher authenticity:** An attacker can create their own modified draft and compute a perfectly valid digest. An authorized host still needs authenticated source/policy admission, independently resolved protected expectations, runner provenance and access controls.
 - **No automatic hiding of restricted criteria:** The digest check sees validated definition content and may include reference IDs in its hash input. Do not hand out full private definitions or full technical findings to untrusted learners; the restricted public projection is scoped separately in AY-I07.
 - **No result signature:** A valid JSON result or verified digest does not make evidence, an AI verdict, or official credit authentic.
-- **No legacy adapter:** The package is unreleased, so callers using new authored definitions should create them from drafts rather than populating the digest with arbitrary placeholder hex. The unverified comparator remains explicitly named and documented as such, not as a credential path.
+- **No legacy adapter:** The package is unreleased, so callers using new authored definitions should create them from drafts rather than populating the digest with arbitrary placeholder hex. The unchecked evaluation and collection paths have been removed; there is no compatibility alias.
 - **Collision resistance is not source authenticity:** SHA-256 provides content integrity under its usual cryptographic assumptions; an independently established authorized digest or authenticated publisher is needed to prevent substitution of both the definition and its digest.

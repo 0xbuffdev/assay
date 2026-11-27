@@ -44,13 +44,12 @@ source code, invoke a command or call a network endpoint.
 ## Using a mock port
 
 ```ts
-import { collectObservations, evaluate } from "@0xbuff/assay";
+import { collectObservations, createAssessmentDefinition, evaluate } from "@0xbuff/assay";
 
-const definition = {
+const created = createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "public-demo",
   revision: "rev1",
-  revisionDigest: `sha256:${"a".repeat(64)}`,
   policyVersion: "policy1",
   criteria: [
     {
@@ -61,7 +60,9 @@ const definition = {
       parameters: { expected: { type: "literal", value: "ok" } },
     },
   ],
-};
+});
+if (!created.ok) throw new Error("Invalid authored definition");
+const definition = created.value;
 
 const startingEvidence = {
   schemaVersion: 1,
@@ -114,8 +115,9 @@ if (collected.ok) {
 ```
 
 No actual executor is installed or published. The mock is deliberately
-ungraded. The example digest is syntactically valid but is not a signature,
-a verified artifact hash or proof of publisher identity.
+ungraded. Definition content integrity is verified before any evidence is read
+or provider called. A definition digest is not a signature, verified artifact
+hash or proof of publisher identity.
 
 ## Contracts and limits
 

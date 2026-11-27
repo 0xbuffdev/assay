@@ -62,13 +62,11 @@ This shows the verified evaluation path. The host owns authorization, execution 
 
 ```mermaid
 flowchart TD
-    Start["Definition and evidence"] --> Verified{"Entry point"}
-    Verified -->|"evaluateVerified"| Digest{"Definition digest valid?"}
-    Digest -->|No| InvalidDefinition["invalid_definition"]
-    Digest -->|Yes| Validate{"Definition structure valid?"}
-    Verified -->|"evaluate"| Validate
-    Validate -->|No| InvalidDefinition
-    Validate -->|Yes| EvidenceCheck{"Evidence valid and consistent?"}
+    Start["Definition and evidence"] --> Validate{"Definition structure valid?"}
+    Validate -->|No| InvalidDefinition["invalid_definition"]
+    Validate -->|Yes| Digest{"Definition digest valid?"}
+    Digest -->|No| InvalidDefinition
+    Digest -->|Yes| EvidenceCheck{"Evidence valid and consistent?"}
     EvidenceCheck -->|No| InvalidEvidence["invalid_evidence"]
     EvidenceCheck -->|Yes| Compare["Evaluate each criterion in authored order"]
     Compare --> Findings["Criterion findings: pass, fail, inconclusive or error"]
@@ -84,7 +82,7 @@ flowchart TD
     Pass --> Result
 ```
 
-The current `evaluate` entry point checks structural validity and definition/evidence consistency but does not recompute the definition digest. Prefer `evaluateVerified` when using a content-bound definition. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
+The `evaluate` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. There is no unchecked public evaluation path. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
 
 ### Optional observation acquisition
 
@@ -94,7 +92,7 @@ sequenceDiagram
     participant A as Assay
     participant P as Injected observation port
 
-    H->>A: collectVerifiedObservations(definition, evidence, port)
+    H->>A: collectObservations(definition, evidence, port)
     A->>A: Verify definition digest and validate evidence
     alt Invalid definition or evidence
         A-->>H: Structured failure

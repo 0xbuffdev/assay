@@ -28,7 +28,7 @@ A successful call returns:
 **Example:**
 
 ```ts
-import { createAssessmentDefinition, evaluateVerified, projectPublicResult } from "@0xbuff/assay";
+import { createAssessmentDefinition, evaluate, projectPublicResult } from "@0xbuff/assay";
 
 const drafted = createAssessmentDefinition({
   schemaVersion: 1,
@@ -48,7 +48,7 @@ const drafted = createAssessmentDefinition({
 if (!drafted.ok) throw new Error("Definition invalid");
 const definition = drafted.value;
 
-const technical = evaluateVerified(definition, {
+const technical = evaluate(definition, {
   schemaVersion: 1,
   definition: {
     assessmentId: definition.assessmentId,

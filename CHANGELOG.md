@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- AY-I12: evaluation and observation collection always verify definition content integrity before inspecting evidence or invoking a provider. Removed the redundant verified aliases; schema-1 canonical bytes, comparators and package version are unchanged.
+- AY-I11: focused internal contracts, validation, comparison, aggregation, integrity, acquisition and projection modules with one aggregation owner and dependency checks.
+
 ### Added
 
 - AY-I07: learner-safe technical result projection that withholds restricted findings, all evidence references, reason codes and hidden aggregates, with strict definition/result coherence checks and uniform opaque rejection.

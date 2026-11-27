@@ -114,10 +114,7 @@ const sealedEvidence = {
 };
 assert.equal(assay.evaluate(sealed, sealedEvidence).outcome, "pass");
 
-const visibleProjection = assay.projectPublicResult(
-  sealed,
-  assay.evaluate(sealed, sealedEvidence),
-);
+const visibleProjection = assay.projectPublicResult(sealed, assay.evaluate(sealed, sealedEvidence));
 assert.deepEqual(visibleProjection, {
   ok: true,
   value: {

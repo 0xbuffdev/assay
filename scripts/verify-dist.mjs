@@ -156,10 +156,7 @@ const pending = entry.collectObservations(
 const collected = await pending;
 assert.equal(collected.ok, true, "Emitted ESM must accept the optional port");
 assert.equal(
-  entry.evaluate(
-    definition,
-    collected.evidence,
-  ).outcome,
+  entry.evaluate(definition, collected.evidence).outcome,
   "pass",
   "Optional port must supply bounded evidence to pure evaluation",
 );
