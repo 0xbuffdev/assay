@@ -1,4 +1,3 @@
-import { SCHEMA_VERSION } from "../contracts/version";
 import {
   CONTRACT_LIMITS,
   captureTruncated,
@@ -23,6 +22,7 @@ import {
   textValue,
   unique,
 } from "./shared";
+import { SCHEMA_VERSION } from "../contracts/version";
 
 /** Validate complete evidence shape, not digest integrity or authenticity. */
 export function parseEvidenceBundle(input: unknown): ValidationResult<EvidenceBundle> {
