@@ -243,9 +243,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     const signed = seal(vector);
     expect(evaluate(signed, observed(signed.revisionDigest)).outcome).toBe("pass");
     expect(evaluate(signed, observed(signed.revisionDigest, "wrong")).outcome).toBe("fail");
-    expect(evaluate(signed, observed(`sha256:${"b".repeat(64)}`)).outcome).toBe(
-      "invalid_evidence",
-    );
+    expect(evaluate(signed, observed(`sha256:${"b".repeat(64)}`)).outcome).toBe("invalid_evidence");
   });
 
   it("rejects untrusted or malformed unsigned drafts without invoking getters", () => {

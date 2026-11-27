@@ -34,7 +34,12 @@ function definition(): AssessmentDefinition {
 
 function evidence(rubric = definition()): EvidenceBundle {
   const original = exampleEvidence();
-  return { ...original, definition: referenceOf(rubric), observations: [], artifactDigest: digestA };
+  return {
+    ...original,
+    definition: referenceOf(rubric),
+    observations: [],
+    artifactDigest: digestA,
+  };
 }
 
 function report(overrides: Partial<ObservationPortReport> = {}): ObservationPortReport {

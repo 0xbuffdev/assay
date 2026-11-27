@@ -91,22 +91,19 @@ assert.equal(sealed.ok, true, "The emitted ESM entry must seal a real definition
 const definition = sealed.value;
 const digest = definition.revisionDigest;
 assert.equal(entry.parseAssessmentDefinition(definition).ok, true);
-const observed = entry.evaluate(
-  definition,
-  {
-    schemaVersion: 1,
-    definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
-    observations: [
-      {
-        criterionId: "objective",
-        evidenceRef: "obs1",
-        completeness: "complete",
-        kind: "text",
-        value: "ok",
-      },
-    ],
-  },
-);
+const observed = entry.evaluate(definition, {
+  schemaVersion: 1,
+  definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
+  observations: [
+    {
+      criterionId: "objective",
+      evidenceRef: "obs1",
+      completeness: "complete",
+      kind: "text",
+      value: "ok",
+    },
+  ],
+});
 assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
 assert.equal(observed.findings[0].reasonCode, "MATCH");
 const tampered = { ...definition, policyVersion: "changed" };

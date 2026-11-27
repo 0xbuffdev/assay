@@ -193,7 +193,7 @@ assert.deepEqual(assay.evaluate(changedBody, sealedEvidence), {
   diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
 });
 let tamperedProviderCalled = false;
-const tamperedCollection = await assay.collectObservations(changedBody, sealedEvidence, {
+const tamperedCollection = await assay.collectObservations(changedBody, evidence([], sealed), {
   observe: async () => {
     tamperedProviderCalled = true;
     return {};
@@ -399,25 +399,30 @@ if (collected.ok) {
   valid(assay.evaluate(portDefinition, collected.evidence), "inconclusive");
   assert.equal("trusted" in collected.receipt, false);
 }
-const portRejected = await assay.collectObservations(define([exact]), evidence([], define([exact])), {
-  observe: async (request) => ({
-    schemaVersion: 1,
-    definition: request.definition,
-    provenance: {
-      adapterId: "mock",
-      adapterVersion: "v1",
-      runRef: "fake",
-      toolchainId: "none",
-      toolchainVersion: "v1",
-      capturedStdoutBytes: 0,
-      capturedStderrBytes: 0,
-      stdoutTruncated: false,
-      stderrTruncated: false,
-      trusted: true,
-    },
-    observations: [text("stdout", "ok\n")],
-  }),
-});
+const publicDefinition = define([exact]);
+const portRejected = await assay.collectObservations(
+  publicDefinition,
+  evidence([], publicDefinition),
+  {
+    observe: async (request) => ({
+      schemaVersion: 1,
+      definition: request.definition,
+      provenance: {
+        adapterId: "mock",
+        adapterVersion: "v1",
+        runRef: "fake",
+        toolchainId: "none",
+        toolchainVersion: "v1",
+        capturedStdoutBytes: 0,
+        capturedStderrBytes: 0,
+        stdoutTruncated: false,
+        stderrTruncated: false,
+        trusted: true,
+      },
+      observations: [text("stdout", "ok\n")],
+    }),
+  },
+);
 assert.equal(portRejected.outcome, "invalid_evidence");
 assert.ok(!JSON.stringify(portRejected).includes("trusted"));
 
