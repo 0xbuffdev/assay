@@ -19,12 +19,14 @@ const expected = [
 ] as const;
 
 const base = definition();
+const objective = base.criteria[0];
+if (objective.kind !== "exact_text") throw new Error("Invalid objective fixture");
 const rubric: AssessmentDefinition = authorAll({
   ...base,
   criteria: [
-    { ...base.criteria[0], id: "first", mode: "required" },
-    { ...base.criteria[0], id: "second", mode: "required" },
-    { ...base.criteria[0], id: "advisory", mode: "advisory" },
+    { ...objective, id: "first", mode: "required" },
+    { ...objective, id: "second", mode: "required" },
+    { ...objective, id: "advisory", mode: "advisory" },
   ],
 });
 
