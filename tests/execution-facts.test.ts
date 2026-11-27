@@ -386,19 +386,45 @@ describe("typed execution facts", () => {
     );
   });
 
-  it("leaves selected fact acquisition to AY-I19", async () => {
+  it("acquires selected facts through a scoped provider report", async () => {
     const rubric = definition([stdout]);
     const evidence = createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
-    let calls = 0;
     const collected = await collectObservations(rubric, evidence.value, {
-      async observe() {
-        calls++;
-        throw new Error("Must not request an unsupported selector");
+      async observe(request) {
+        expect(request.criteria).toEqual([
+          { criterionId: stdout.id, kind: "text", executionFact: "stdout" },
+        ]);
+        return {
+          schemaVersion: 2,
+          definition: request.definition,
+          termination: "exited",
+          provenance: {
+            adapterId: "fixture",
+            adapterVersion: "v1",
+            runRef: "run1",
+            toolchainId: "node",
+            toolchainVersion: "v24",
+            capturedStdoutBytes: 2,
+            capturedStderrBytes: 0,
+            stdoutTruncated: false,
+            stderrTruncated: true,
+          },
+          observations: [
+            {
+              criterionId: stdout.id,
+              evidenceRef: "acquired",
+              kind: "text",
+              executionFact: "stdout",
+              completeness: "complete",
+              value: "ok",
+            },
+          ],
+        };
       },
     });
-    expect(calls).toBe(0);
-    expect(collected).toMatchObject({ ok: true, receipt: null });
-    expect(evaluate(rubric, evidence.value).outcome).toBe("inconclusive");
+    if (!collected.ok) throw new Error("Invalid collection");
+    expect(collected.receipt?.termination).toBe("exited");
+    expect(evaluate(rubric, collected.evidence).outcome).toBe("pass");
   });
 });

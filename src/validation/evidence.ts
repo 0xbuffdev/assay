@@ -1,4 +1,4 @@
-import { CONTRACT_LIMITS, EXECUTION_FACT_KINDS, equalJsonValue } from "../contracts/common";
+import { captureTruncated, CONTRACT_LIMITS, EXECUTION_FACT_KINDS, equalJsonValue } from "../contracts/common";
 import type { EvidenceBundle, EvidenceBundleDraft } from "../contracts/evidence";
 import type { ValidationResult } from "../contracts/validation";
 import {
@@ -97,7 +97,6 @@ export function validateObservations(
     ids.push(obs.criterionId);
     refs.push(obs.evidenceRef);
     if (Object.hasOwn(obs, "executionFact")) {
-      if (report) issues.add(`${p}.executionFact`, "UNEXPECTED_FIELD");
       const selector = obs.executionFact;
       if (
         typeof selector !== "string" ||
@@ -259,6 +258,7 @@ export function validateObservations(
       }
       unique(assertionIds, `${p}.assertions`, issues);
     } else if (obs.kind === "manual") {
+      if (report) issues.add(`${p}.kind`, "INVALID_VALUE");
       object(
         obs,
         p,
@@ -277,14 +277,7 @@ export function validateObservations(
   // Unknown stream attribution remains conservative. Exit status is not a stream.
   for (const run of runs.values()) {
     for (const { path, fact, termination } of run.completePaths) {
-      const truncated =
-        fact === "exit_status"
-          ? false
-          : fact === "stdout" || fact === "structured_stdout"
-            ? run.stdoutTruncated
-            : fact === "stderr" || fact === "structured_stderr"
-              ? run.stderrTruncated
-              : run.stdoutTruncated || run.stderrTruncated;
+      const truncated = captureTruncated(fact, run.stdoutTruncated, run.stderrTruncated);
       if (
         truncated ||
         (run.termination !== undefined && run.termination !== "exited" && termination === undefined)

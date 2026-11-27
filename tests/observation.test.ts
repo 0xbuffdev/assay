@@ -132,7 +132,7 @@ describe("AY-I03 optional injected observation port", () => {
         schemaVersion: 2,
         definition: referenceOf(input),
         artifactDigest: digestA,
-        criteria: [{ criterionId: "members", kind: "set" }],
+        criteria: [{ criterionId: "members", kind: "set", itemType: "string" }],
         limits: { maxCapturedBytes: CONTRACT_LIMITS.maxCapturedBytes },
       });
       expect(Object.isFrozen(request)).toBe(true);
@@ -535,5 +535,88 @@ describe("AY-I03 optional injected observation port", () => {
     expect("credential" in valid).toBe(false);
     expect("grade" in valid).toBe(false);
     expect("trusted" in (valid.receipt ?? {})).toBe(false);
+  });
+});
+
+describe("AY-I19 cooperative cancellation", () => {
+  const cancelled = {
+    ok: false,
+    outcome: "evaluation_error",
+    reasonCode: "OBSERVATION_CANCELLED",
+  };
+
+  it("does not invoke the provider with a pre-aborted signal", async () => {
+    const controller = new AbortController();
+    controller.abort("PRIVATE_ABORT_REASON");
+    const observe = vi.fn(async () => report());
+    const result = await collectObservations(definition(), evidence(), { observe }, {
+      signal: controller.signal,
+    });
+    expect(result).toEqual(cancelled);
+    expect(observe).not.toHaveBeenCalled();
+  });
+
+  it("settles while a noncooperative provider is pending and ignores late resolution", async () => {
+    const controller = new AbortController();
+    let resolve!: (value: unknown) => void;
+    const pending = new Promise<unknown>((done) => {
+      resolve = done;
+    });
+    const observe = vi.fn((_request, signal) => {
+      expect(signal).toBe(controller.signal);
+      return pending;
+    });
+    const before = evidence();
+    const remove = vi.spyOn(controller.signal, "removeEventListener");
+    const collection = collectObservations(definition(), before, { observe }, {
+      signal: controller.signal,
+    });
+    expect(observe).toHaveBeenCalledTimes(1);
+    controller.abort();
+    expect(await collection).toEqual(cancelled);
+    expect(remove).toHaveBeenCalledWith("abort", expect.any(Function));
+    resolve(report());
+    await pending;
+    expect(before.observations).toEqual([]);
+    expect(await collection).toEqual(cancelled);
+  });
+
+  it("handles synchronous abort and a late provider rejection", async () => {
+    const controller = new AbortController();
+    let reject!: (reason: unknown) => void;
+    const pending = new Promise<unknown>((_resolve, fail) => {
+      reject = fail;
+    });
+    const result = await collectObservations(definition(), evidence(), {
+      observe() {
+        controller.abort();
+        return pending;
+      },
+    }, { signal: controller.signal });
+    expect(result).toEqual(cancelled);
+    reject(new Error("PRIVATE_LATE_REJECTION"));
+    await Promise.resolve();
+  });
+
+  it("reports synchronous exceptions and removes listeners on success", async () => {
+    const controller = new AbortController();
+    const remove = vi.spyOn(controller.signal, "removeEventListener");
+    const result = await collectObservations(definition(), evidence(), {
+      observe() {
+        throw new Error("PRIVATE_PROVIDER_ERROR");
+      },
+    }, { signal: controller.signal });
+    expect(result).toEqual({
+      ok: false,
+      outcome: "evaluation_error",
+      reasonCode: "OBSERVATION_PORT_ERROR",
+    });
+    const success = await collectObservations(definition(), evidence(), provider(report()), {
+      signal: controller.signal,
+    });
+    expect(success.ok).toBe(true);
+    expect(remove).toHaveBeenCalledTimes(2);
+    controller.abort();
+    expect(success.ok).toBe(true);
   });
 });

@@ -132,7 +132,8 @@ if ("diagnostics" in result) {
 }
 
 const port: ObservationPort = {
-  async observe(request: ObservationPortRequest): Promise<unknown> {
+  async observe(request: ObservationPortRequest, signal?: AbortSignal): Promise<unknown> {
+    void signal;
     const ids: readonly string[] = request.criteria.map((criterion) => criterion.criterionId);
     const max: number = request.limits.maxCapturedBytes;
     void ids;
@@ -157,12 +158,12 @@ const port: ObservationPort = {
 };
 
 async function verifyCollection(): Promise<void> {
-  const collected = await collectObservations(definition, evidence, port);
+  const collected = await collectObservations(definition, evidence, port, { signal: new AbortController().signal });
   if (collected.ok) {
     const claims: string | undefined = collected.receipt?.provenance.adapterId;
     void claims;
   } else if (collected.outcome === "evaluation_error") {
-    const reason: "OBSERVATION_PORT_ERROR" = collected.reasonCode;
+    const reason: "OBSERVATION_PORT_ERROR" | "OBSERVATION_CANCELLED" = collected.reasonCode;
     void reason;
   } else {
     const details: readonly { readonly path: string }[] = collected.diagnostics;
@@ -393,3 +394,15 @@ void unitExit;
 void unitRange;
 void unitExitFact;
 void missingTerminationRun;
+
+const setRequest: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "set", kind: "set", itemType: "number" };
+// @ts-expect-error set acquisition requires item type
+const missingItemType: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "set", kind: "set" };
+// @ts-expect-error selected exit status must be unitless
+const unitRequest: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "exit", kind: "number", executionFact: "exit_status", unit: "ms" };
+// @ts-expect-error stdout is not a boolean execution selector
+const wrongRequest: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "out", kind: "boolean", executionFact: "stdout" };
+void setRequest;
+void missingItemType;
+void unitRequest;
+void wrongRequest;

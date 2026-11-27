@@ -110,5 +110,4 @@ expected range endpoints and structured values are never sent to the port.
 AY-I18 adds selected execution facts to the existing objective contracts
 and validates run termination and relevant capture completeness across
 evidence. Evaluation reuses the existing objective comparators and
-aggregation, with no executor. Selected direct facts are not acquired
-through the legacy port; AY-I19 owns that request/report migration.
+aggregation, with no executor. AY-I19 extends the optional port with typed selectors, set item types, scoped termination claims and cooperative cancellation. Acquisition remains separate from synchronous evaluation.

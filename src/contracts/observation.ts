@@ -1,3 +1,4 @@
+import type { ExecutionFactFor, ExecutionTermination, SetItemType } from "./common";
 import type { DefinitionReference } from "./definition";
 import type { EvidenceBundle, ObservationFact, ObservationPortProvenance } from "./evidence";
 import type { ValidationDiagnostic } from "./validation";
@@ -7,13 +8,39 @@ import type { ValidationDiagnostic } from "./validation";
  * grader source, executable commands or untrusted callbacks.
  */
 export type ObservationPortKind = "text" | "number" | "set" | "execution" | "boolean" | "json";
-export type ObservationPortCriterion = Readonly<{
-  criterionId: string;
-  kind: ObservationPortKind;
-  /** Public unit metadata for numeric observations, never an expected value. */
-  unit?: string;
-  assertionIds?: readonly string[];
-}>;
+type SelectedKind = "text" | "number" | "boolean" | "json";
+
+type SelectedRequest = {
+  [K in SelectedKind]: Readonly<{
+    kind: K;
+    executionFact: ExecutionFactFor<K>;
+    unit?: never;
+  }>;
+}[SelectedKind];
+
+export type ObservationPortCriterion = Readonly<{ criterionId: string }> &
+  (
+    | Readonly<{ kind: "text" | "boolean" | "json"; executionFact?: never }>
+    | Readonly<{ kind: "number"; unit?: string; executionFact?: never }>
+    | Readonly<{ kind: "set"; itemType: SetItemType }>
+    | Readonly<{ kind: "execution"; assertionIds: readonly string[] }>
+    | SelectedRequest
+  );
+
+type SelectedReportFact = {
+  [K in SelectedKind]: Extract<ObservationFact, { kind: K }> &
+    (K extends "number" ? Readonly<{ unit?: never }> : unknown) &
+    Readonly<{ executionFact: ExecutionFactFor<K>; origin?: never }>;
+}[SelectedKind];
+
+type ReportFact =
+  | (Exclude<ObservationFact, { kind: "manual" }> &
+      Readonly<{ executionFact?: never; origin?: never }>)
+  | SelectedReportFact;
+
+export interface ObservationCollectionOptions {
+  readonly signal?: AbortSignal;
+}
 
 export interface ObservationPortRequest {
   readonly schemaVersion: 2;
@@ -29,7 +56,7 @@ export interface ObservationPortRequest {
  * establish its authenticity or confer credential/grade authority.
  */
 export interface ObservationPort {
-  observe(request: ObservationPortRequest): Promise<unknown>;
+  observe(request: ObservationPortRequest, signal?: AbortSignal): Promise<unknown>;
 }
 
 export interface ObservationPortReport {
@@ -37,13 +64,16 @@ export interface ObservationPortReport {
   readonly definition: DefinitionReference;
   readonly artifactDigest?: string;
   readonly provenance: ObservationPortProvenance;
-  readonly observations: readonly ObservationFact[];
+  /** Required when a report returns a selected execution fact. */
+  readonly termination?: ExecutionTermination;
+  readonly observations: readonly ReportFact[];
 }
 
 export interface ObservationPortReceipt {
   readonly definition: DefinitionReference;
   readonly evidenceDigest: string;
   readonly evidenceRefs: readonly string[];
+  readonly termination?: ExecutionTermination;
   readonly artifactDigest?: string;
   readonly provenance: ObservationPortProvenance;
 }
@@ -62,5 +92,5 @@ export type ObservationCollectionResult =
   | Readonly<{
       ok: false;
       outcome: "evaluation_error";
-      reasonCode: "OBSERVATION_PORT_ERROR";
+      reasonCode: "OBSERVATION_PORT_ERROR" | "OBSERVATION_CANCELLED";
     }>;
