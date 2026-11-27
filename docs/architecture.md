@@ -106,3 +106,9 @@ reference, evidence and coverage boundaries govern all new facts. Pure
 comparators reuse the existing reason taxonomy, aggregation and disclosure.
 The collector requests only public fact kinds and optional numeric units;
 expected range endpoints and structured values are never sent to the port.
+
+AY-I18 adds selected execution facts to the existing objective contracts
+and validates run termination and relevant capture completeness across
+evidence. Evaluation reuses the existing objective comparators and
+aggregation, with no executor. Selected direct facts are not acquired
+through the legacy port; AY-I19 owns that request/report migration.

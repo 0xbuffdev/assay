@@ -74,7 +74,10 @@ export function evaluate(
     let comparison: Comparison;
     if (!observation) comparison = MISSING_EVIDENCE;
     else if (observation.completeness === "truncated") comparison = TRUNCATED_EVIDENCE;
-    else if (observation.executionFact !== undefined && observation.origin.termination !== "exited") {
+    else if (
+      observation.origin?.termination !== undefined &&
+      observation.origin.termination !== "exited"
+    ) {
       comparison = finding({ outcome: "inconclusive", reasonCode: "EXECUTION_INCOMPLETE" });
     } else {
       try {

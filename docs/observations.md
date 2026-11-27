@@ -222,3 +222,15 @@ These limits are tested with simulated runner reports, missing references,
 truncated streams, forged markers, wrong revision/digest, malicious HTML
 text, and provider failures. Tests intentionally contain **no real hidden
 test sources, secrets or learner data**.
+
+## Explicit execution facts (AY-I18)
+
+The direct schema-2 evidence API now supports selected stdout, stderr,
+exit status, boolean properties and structured stream output with explicit
+run termination. See [execution facts](evaluation.md#ay-i18-typed-execution-facts-schema-2).
+The current port request cannot express these selectors: the collector skips
+selected criteria and rejects report attempts to introduce a selector or
+observation origin. AY-I19 owns the request/report upgrade and cancellation.
+Legacy unselected port observations retain conservative truncation handling;
+the shared evidence validator uses relevant stream attribution for explicit
+direct facts and checks cross-observation run consistency.

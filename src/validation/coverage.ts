@@ -107,8 +107,8 @@ export function inspectValidatedCoverage(
         obs.kind === "manual" &&
         obs.artifactRefs.length === 0;
 
-      const incompleteRun =
-        obs.executionFact !== undefined && obs.origin.termination !== "exited";
+      const termination = obs.origin?.termination;
+      const incompleteRun = termination !== undefined && termination !== "exited";
       if (
         obs.completeness === "truncated" ||
         incompleteRun ||

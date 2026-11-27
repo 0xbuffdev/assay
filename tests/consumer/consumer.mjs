@@ -637,3 +637,34 @@ const objectiveEvidence = evidence(
   objectiveDefinition.value,
 );
 valid(assay.evaluate(objectiveDefinition.value, objectiveEvidence), "pass");
+
+// AY-I18: evaluate a selected execution fact in the isolated packed consumer.
+const executionDefinition = assay.createAssessmentDefinition({
+  ...draft([
+    {
+      ...required("out", "exact_text", { expected: { type: "literal", value: "ok" } }),
+      executionFact: "stdout",
+    },
+  ]),
+  schemaVersion: 2,
+});
+assert.equal(executionDefinition.ok, true);
+const outputFact = {
+  ...text("out", "ok"),
+  executionFact: "stdout",
+  origin: { kind: "independent", sourceRef: "fixture", runRef: "run1", termination: "exited" },
+};
+const executionEvidence = evidence([outputFact], executionDefinition.value);
+valid(assay.evaluate(executionDefinition.value, executionEvidence), "pass");
+const timedOut = evidence(
+  [{ ...outputFact, origin: { ...outputFact.origin, termination: "timeout" } }],
+  executionDefinition.value,
+);
+valid(assay.evaluate(executionDefinition.value, timedOut), "inconclusive");
+assert.equal(
+  assay.createEvidenceBundle(executionDefinition.value, {
+    schemaVersion: 2,
+    observations: [{ ...outputFact, executionFact: "stderr" }],
+  }).ok,
+  false,
+);

@@ -61,7 +61,7 @@ export function validateObservations(
       stdoutTruncated: boolean;
       stderrTruncated: boolean;
       termination: unknown;
-      completePaths: { path: string; fact: unknown }[];
+      completePaths: { path: string; fact: unknown; termination: unknown }[];
     }
   >();
   for (const [i, obs] of observations.entries()) {
@@ -125,7 +125,11 @@ export function validateObservations(
           const key = JSON.stringify([claim.sourceRef, claim.runRef]);
           const run = runs.get(key);
           const prior = run?.claim;
-          const completePath = { path: `${p}.completeness`, fact: obs.executionFact };
+          const completePath = {
+            path: `${p}.completeness`,
+            fact: obs.executionFact,
+            termination: claim.termination,
+          };
           if (
             run?.termination !== undefined &&
             claim.termination !== undefined &&
@@ -261,7 +265,7 @@ export function validateObservations(
   // Consult the whole run, including observations that omit capture provenance.
   // Unknown stream attribution remains conservative. Exit status is not a stream.
   for (const run of runs.values()) {
-    for (const { path, fact } of run.completePaths) {
+    for (const { path, fact, termination } of run.completePaths) {
       const truncated =
         fact === "exit_status"
           ? false
@@ -270,7 +274,14 @@ export function validateObservations(
             : fact === "stderr" || fact === "structured_stderr"
               ? run.stderrTruncated
               : run.stdoutTruncated || run.stderrTruncated;
-      if (truncated) issues.add(path, "MISMATCHED_ORIGIN");
+      if (
+        truncated ||
+        (run.termination !== undefined &&
+          run.termination !== "exited" &&
+          termination === undefined)
+      ) {
+        issues.add(path, "MISMATCHED_ORIGIN");
+      }
     }
   }
   unique(ids, "$.observations", issues);

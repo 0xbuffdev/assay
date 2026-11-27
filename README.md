@@ -91,7 +91,7 @@ flowchart TD
     Pass --> Result
 ```
 
-The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch; supplying a bundle for a schema-1 definition returns `invalid_definition`. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path: the evidence digest and origin scope are verified before comparison. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
+The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch; supplying a bundle for a schema-1 definition returns `invalid_definition`. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path: the evidence digest and origin scope are verified before comparison. Missing, truncated or explicitly interrupted execution evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
 
 ### Optional observation acquisition
 
@@ -144,7 +144,7 @@ flowchart TD
 
 Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence and artifact digests, evidence references, reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
 
-See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; expanded comparator and execution fact contracts remain ticket-gated.
+See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; schema-2 objective comparators and direct typed execution facts are implemented; selected execution fact acquisition remains ticket-gated.
 
 ## Develop from source
 

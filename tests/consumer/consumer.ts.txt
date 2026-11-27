@@ -339,3 +339,23 @@ const legacyComparator: Criterion<1> = newCriteria[0];
 void newCriteria;
 void jsonValue;
 void legacyComparator;
+
+const selected: Criterion<2> = {
+  id: "out", mode: "required", visibility: "public", kind: "exact_text",
+  executionFact: "stdout", parameters: { expected: { type: "literal", value: "ok" } },
+};
+// @ts-expect-error selected execution criteria require schema 2
+const selectedLegacy: Criterion<1> = selected;
+const selectedFact: import("@0xbuff/assay").Observation = {
+  criterionId: "out", evidenceRef: "fact-out", kind: "text", completeness: "complete",
+  executionFact: "stdout", value: "ok",
+  origin: { kind: "independent", sourceRef: "fixture", runRef: "run1", termination: "exited" },
+};
+// @ts-expect-error selected facts need an explicit run origin and termination
+const missingRun: import("@0xbuff/assay").Observation = { criterionId: "out", evidenceRef: "fact-out", kind: "text", completeness: "complete", executionFact: "stdout", value: "ok" };
+// @ts-expect-error numeric facts cannot select stdout
+const wrongSelector: import("@0xbuff/assay").Observation = { ...selectedFact, kind: "number", value: 0 };
+void selectedLegacy;
+void selectedFact;
+void missingRun;
+void wrongSelector;
