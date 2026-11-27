@@ -3,20 +3,45 @@ import {
   type AssessmentDefinition,
   type AssessmentDefinitionDraft,
   createAssessmentDefinition,
+  type CriterionComposition,
   type DefinitionReference,
   type EvaluationResult,
   type EvidenceBundle,
 } from "../../src/index";
 
-export function sealDefinition(draft: AssessmentDefinitionDraft<1>): AssessmentDefinition<1> {
+export function allComposition(criteria: readonly unknown[]): CriterionComposition {
+  return {
+    rootGroupId: "fixture-root",
+    groups: [
+      {
+        id: "fixture-root",
+        operator: "all",
+        children: criteria.flatMap((raw) => {
+          const criterion = raw as { mode?: unknown; id?: unknown };
+          return criterion?.mode === "required" && typeof criterion.id === "string"
+            ? [{ kind: "criterion" as const, id: criterion.id }]
+            : [];
+        }),
+      },
+    ],
+  };
+}
+
+/** Author explicit conjunction for current synthetic test fixtures only. */
+export function authorAll<T extends { criteria: readonly unknown[] }>(draft: T) {
+  return { ...draft, composition: allComposition(draft.criteria) };
+}
+
+export function sealDefinition(draft: Omit<AssessmentDefinitionDraft, "composition">): AssessmentDefinition {
   const checked = createAssessmentDefinition({
     schemaVersion: draft.schemaVersion,
     assessmentId: draft.assessmentId,
     revision: draft.revision,
     policyVersion: draft.policyVersion,
     criteria: draft.criteria,
+    composition: allComposition(draft.criteria),
   });
-  if (!checked.ok || checked.value.schemaVersion !== 1) {
+  if (!checked.ok || checked.value.schemaVersion !== 3) {
     throw new Error("Invalid authored test fixture");
   }
   return checked.value;
@@ -33,13 +58,14 @@ export function referenceOf(definition: AssessmentDefinition): DefinitionReferen
 export const digestA = `sha256:${"a".repeat(64)}`;
 export const digestB = `sha256:${"b".repeat(64)}`;
 
-export function definition(): AssessmentDefinition<1> {
+export function definition(): AssessmentDefinition {
   return {
-    schemaVersion: 1,
+    schemaVersion: 3,
     assessmentId: "assay-demo",
+    composition: allComposition([{ id: "output", mode: "required" }, { id: "quantity", mode: "required" }]),
     revision: "rev1",
     revisionDigest: digestA,
-    policyVersion: "all-required-v1",
+    policyVersion: "composed-required-v1",
     criteria: [
       {
         id: "output",
@@ -54,7 +80,7 @@ export function definition(): AssessmentDefinition<1> {
         visibility: "restricted",
         kind: "normalized_text",
         parameters: {
-          expected: { type: "reference", referenceId: "reviewer-reference" },
+          expected: { type: "reference", referenceId: "reviewer-reference", referenceDigest: digestB },
           normalization: {
             lineEndings: "lf",
             unicode: "NFC",
@@ -108,7 +134,7 @@ export function definition(): AssessmentDefinition<1> {
 
 export function evidence(): EvidenceBundle {
   return sealEvidenceFixture({
-    schemaVersion: 2,
+    schemaVersion: 3,
     definition: {
       assessmentId: "assay-demo",
       revision: "rev1",
@@ -143,7 +169,7 @@ export function evidence(): EvidenceBundle {
 
 export function result(): EvaluationResult {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     evidenceDigest: digestB,
     outcome: "inconclusive",
     definition: {
@@ -151,7 +177,7 @@ export function result(): EvaluationResult {
       revision: "rev1",
       revisionDigest: digestA,
     },
-    policyVersion: "all-required-v1",
+    policyVersion: "composed-required-v1",
     findings: [
       {
         criterionId: "output",
@@ -159,10 +185,10 @@ export function result(): EvaluationResult {
         reasonCode: "REFERENCE_UNAVAILABLE",
         evidenceRefs: ["ev-output"],
         evaluatorId: "assay",
-        evaluatorVersion: "v0.0.3",
+        evaluatorVersion: "v0.0.4",
       },
     ],
-    evaluator: { id: "assay", version: "v0.0.3" },
+    evaluator: { id: "assay", version: "v0.0.4" },
     warnings: [],
   };
 }
@@ -185,7 +211,7 @@ export function sealEvidenceFixture(
     );
   });
   const evidenceDigest = `sha256:${createHash("sha256")
-    .update(`assay:evidence:v2\n${bytes}`, "utf8")
+    .update(`assay:evidence:v3\n${bytes}`, "utf8")
     .digest("hex")}`;
   return { ...content, evidenceDigest } as EvidenceBundle;
 }
