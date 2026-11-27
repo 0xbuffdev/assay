@@ -10,6 +10,7 @@ through `evaluate` as described in [evaluation](evaluation.md); it still does
 ```ts
 import {
   createAssessmentDefinition,
+  createEvidenceBundle,
   parseAssessmentDefinition,
   parseEvidenceBundle,
   inspectEvidenceCoverage,
@@ -33,15 +34,12 @@ const created = createAssessmentDefinition({
 if (!created.ok) throw new Error("Invalid authored definition");
 const definition = created.value;
 
-const observed = {
-  schemaVersion: 1,
-  definition: {
-    assessmentId: "sample",
-    revision: "rev1",
-    revisionDigest: definition.revisionDigest,
-  },
+const prepared = createEvidenceBundle(definition, {
+  schemaVersion: 2,
   observations: [],
-};
+});
+if (!prepared.ok) throw new Error("Invalid evidence");
+const observed = prepared.value;
 
 const parsedDefinition = parseAssessmentDefinition(definition);
 const parsedEvidence = parseEvidenceBundle(observed);
@@ -121,12 +119,28 @@ AY-I18 owns their replacement with typed execution facts. See
 
 ## Evidence rules
 
-`parseEvidenceBundle` accepts `schemaVersion: 1`, an assessment identity,
-an optional artifact digest, and observations tagged `text`, `number`,
+`parseEvidenceBundle` accepts `schemaVersion: 2`, an assessment identity,
+a required evidenceDigest, an optional artifact digest, and observations tagged `text`, `number`,
 `set`, `execution` or `manual`. Each observation declares a criterion
 ID, unique evidence reference and completeness (`complete` or `truncated`).
-Unknown fields, bogus `trusted` claims, duplicate observation IDs, unsupported
+Use `createEvidenceBundle(definition, draft)` to derive definition lineage and
+seal content. A structural parse checks digest syntax, not integrity;
+`verifyEvidenceBundle`, evaluation and acquisition recompute it. Schema-1
+unsigned bundles are rejected. Unknown fields, bogus `trusted` claims, duplicate observation IDs, unsupported
 values and malformed data are rejected.
+
+An optional origin claims `kind: "independent" | "artifact"`, sourceRef,
+optional runRef and optional bounded provenance. Artifact origins require
+the exact bundle artifactDigest; independent origins cannot carry one. A
+scoped bundle requires every observation to declare its origin. Unscoped
+observations may omit origin, but cannot claim an artifact. Execution run
+references must match any stated origin. Claims for the same source/run
+cannot conflict in scope or provenance. A supplied provenance record must
+match source/run. Known output truncation applies to every observation
+claiming the same source/run pair, including observations that omit their
+own provenance. Without stream attribution, complete claims for that run
+are rejected; distinct source/run pairs retain their own completeness. A correction
+creates a new sealed evidence bundle. See [integrity](integrity.md#canonical-evidence-digest-v2-ay-i15).
 
 **Absent observations and truncated data are structurally valid.** A caller can
 use `inspectEvidenceCoverage` to identify missing or incomplete _required_
@@ -148,7 +162,8 @@ reason codes, warnings and aggregate conclusions. Use the explicit
 approval. The projection does not authenticate a purported result.
 
 `parseEvaluationResult` validates the shape of a typed, versioned technical
-finding record, with criterion outcomes, reason codes, evidence references,
+schema-2 finding record, with evidenceDigest, optional artifactDigest,
+criterion outcomes, reason codes, evidence references,
 evaluator identity and warnings. It is **structural validation, not attestation**:
 parsing a caller-supplied `"pass"` is not verification of correctness or
 official credit.
@@ -207,7 +222,9 @@ outside the portable library.
 `inspectEvidenceCoverage(definition: unknown, evidence: unknown)`
 return discriminated `ValidationResult<T>` values. On success the data is
 deeply cloned and frozen; on error the output reports only diagnostic codes
-and paths. The separate `evaluate(definition, evidence, references?)` operation produces
+and paths. `createEvidenceBundle(definition, draft)` and
+`verifyEvidenceBundle(definition, evidence)` return typed validation results.
+The separate `evaluate(definition, evidence, references?)` operation produces
 versioned technical findings or an invalid-input diagnostic envelope as
 documented in [evaluation](evaluation.md). No compatibility layer is promised
 for unshipped versions.

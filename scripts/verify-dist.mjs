@@ -13,6 +13,8 @@ assert.deepEqual(
     "ASSAY_EVALUATOR_VERSION",
     "computeDefinitionDigest",
     "createAssessmentDefinition",
+    "createEvidenceBundle",
+    "verifyEvidenceBundle",
     "createReferenceRecord",
     "verifyReferenceBundle",
     "verifyAssessmentDefinition",
@@ -93,9 +95,8 @@ assert.equal(sealed.ok, true, "The emitted ESM entry must seal a real definition
 const definition = sealed.value;
 const digest = definition.revisionDigest;
 assert.equal(entry.parseAssessmentDefinition(definition).ok, true);
-const observed = entry.evaluate(definition, {
-  schemaVersion: 1,
-  definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
+const prepared = entry.createEvidenceBundle(definition, {
+  schemaVersion: 2,
   observations: [
     {
       criterionId: "objective",
@@ -106,6 +107,9 @@ const observed = entry.evaluate(definition, {
     },
   ],
 });
+assert.equal(prepared.ok, true);
+const observed = entry.evaluate(definition, prepared.value);
+assert.equal(observed.evidenceDigest, prepared.value.evidenceDigest);
 assert.equal(observed.outcome, "pass", "Emitted ESM evaluator must compare a valid rubric");
 assert.equal(observed.findings[0].reasonCode, "MATCH");
 const tampered = { ...definition, policyVersion: "changed" };
@@ -118,40 +122,34 @@ assert.equal(
   true,
   "Output must match its public contract",
 );
-const pending = entry.collectObservations(
-  definition,
-  {
-    schemaVersion: 1,
+const empty = entry.createEvidenceBundle(definition, { schemaVersion: 2, observations: [] });
+assert.equal(empty.ok, true);
+const pending = entry.collectObservations(definition, empty.value, {
+  observe: async () => ({
+    schemaVersion: 2,
     definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
-    observations: [],
-  },
-  {
-    observe: async () => ({
-      schemaVersion: 1,
-      definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
-      provenance: {
-        adapterId: "fixture",
-        adapterVersion: "v1",
-        runRef: "local-run",
-        toolchainId: "node",
-        toolchainVersion: "v24",
-        capturedStdoutBytes: 2,
-        capturedStderrBytes: 0,
-        stdoutTruncated: false,
-        stderrTruncated: false,
+    provenance: {
+      adapterId: "fixture",
+      adapterVersion: "v1",
+      runRef: "local-run",
+      toolchainId: "node",
+      toolchainVersion: "v24",
+      capturedStdoutBytes: 2,
+      capturedStderrBytes: 0,
+      stdoutTruncated: false,
+      stderrTruncated: false,
+    },
+    observations: [
+      {
+        criterionId: "objective",
+        evidenceRef: "from-port",
+        completeness: "complete",
+        kind: "text",
+        value: "ok",
       },
-      observations: [
-        {
-          criterionId: "objective",
-          evidenceRef: "from-port",
-          completeness: "complete",
-          kind: "text",
-          value: "ok",
-        },
-      ],
-    }),
-  },
-);
+    ],
+  }),
+});
 const collected = await pending;
 assert.equal(collected.ok, true, "Emitted ESM must accept the optional port");
 assert.equal(

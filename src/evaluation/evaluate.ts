@@ -1,10 +1,8 @@
-import { ASSAY_SCHEMA_VERSION } from "../contracts/common";
 import type { ReferenceRecord } from "../contracts/reference";
 import type { CriterionFinding, EvaluationFailure, EvaluationResponse } from "../contracts/result";
 import { verifyAssessmentDefinition } from "../integrity/definition";
+import { verifyEvidenceForDefinition } from "../integrity/evidence";
 import { verifyReferencesForDefinition } from "../integrity/reference";
-import { inspectEvidenceCoverage } from "../validation/coverage";
-import { parseEvidenceBundle } from "../validation/evidence";
 import { aggregateRequired } from "./aggregate";
 import {
   type Comparison,
@@ -56,16 +54,12 @@ export function evaluate(
     }
     for (const record of checked.value.references) references.set(record.referenceId, record);
   }
-  const validatedEvidence = parseEvidenceBundle(evidenceInput);
+  const validatedEvidence = verifyEvidenceForDefinition(definition, evidenceInput);
   if (!validatedEvidence.ok) {
     return invalid("invalid_evidence", validatedEvidence.diagnostics);
   }
 
   const evidence = validatedEvidence.value;
-  const coverage = inspectEvidenceCoverage(definition, evidence);
-  if (!coverage.ok) {
-    return invalid("invalid_evidence", coverage.diagnostics);
-  }
 
   const observations = new Map(
     evidence.observations.map((observation) => [observation.criterionId, observation]),
@@ -112,7 +106,9 @@ export function evaluate(
   }
 
   return Object.freeze({
-    schemaVersion: ASSAY_SCHEMA_VERSION,
+    schemaVersion: 2,
+    evidenceDigest: evidence.evidenceDigest,
+    ...(evidence.artifactDigest === undefined ? {} : { artifactDigest: evidence.artifactDigest }),
     outcome: aggregateRequired(definition, comparisons),
     definition: Object.freeze({
       assessmentId: definition.assessmentId,

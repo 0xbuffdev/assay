@@ -18,6 +18,7 @@ import {
   evidence as fixtureEvidence,
   referenceOf,
   sealDefinition,
+  sealEvidenceFixture,
 } from "./fixtures/contracts";
 
 function caseOf(
@@ -27,11 +28,11 @@ function caseOf(
   const definition = sealDefinition({ ...fixtureDefinition(), criteria: [criterion] });
   return [
     definition,
-    {
+    sealEvidenceFixture({
       ...fixtureEvidence(),
       definition: referenceOf(definition),
       observations: observation ? [observation] : [],
-    },
+    }),
   ];
 }
 
@@ -358,14 +359,14 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
       { ...textCriterion("exact_text", "great"), id: "advice", mode: "advisory" },
     ];
     const definition = sealDefinition({ ...base, criteria });
-    const evidence: EvidenceBundle = {
+    const evidence = sealEvidenceFixture({
       ...fixtureEvidence(),
       definition: referenceOf(definition),
       observations: [
         complete("check", "text", "wrong"),
         { ...complete("advice", "text", "great"), evidenceRef: "obs2" },
       ],
-    };
+    });
     const r = resolved(evaluate(definition, evidence));
     expect(r.outcome).toBe("fail");
     expect(r.findings.map((f) => [f.criterionId, f.outcome, f.reasonCode])).toEqual([
@@ -414,7 +415,7 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
         { ...manual, mode: "required" as const },
       ],
     });
-    const payload: EvidenceBundle = {
+    const payload = sealEvidenceFixture({
       ...fixtureEvidence(),
       definition: referenceOf(requested),
       observations: [
@@ -434,7 +435,7 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
           artifactRefs: ["report1"],
         },
       ],
-    };
+    });
     const r = resolved(evaluate(requested, payload));
     expect(r.outcome).toBe("inconclusive");
     expect(r.findings.map((f) => f.reasonCode)).toEqual([
@@ -495,7 +496,9 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     };
     const [def, ev] = caseOf(required, complete("check", "text", "ok"));
     const configured = sealDefinition({ ...def, criteria: [required, advisory] });
-    const r = resolved(evaluate(configured, { ...ev, definition: referenceOf(configured) }));
+    const r = resolved(
+      evaluate(configured, sealEvidenceFixture({ ...ev, definition: referenceOf(configured) })),
+    );
     expect(r.outcome).toBe("pass");
     expect(r.warnings).toEqual(["ADVISORY_UNRESOLVED"]);
     expect(r.findings[1].outcome).toBe("inconclusive");
@@ -506,10 +509,13 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     expect(invalidDef.outcome).toBe("invalid_definition");
     expect("definition" in invalidDef).toBe(false);
     expect("findings" in invalidDef).toBe(false);
-    const invalidEvidence = evaluate(sealDefinition(fixtureDefinition()), {
-      ...fixtureEvidence(),
-      definition: { ...fixtureEvidence().definition, revisionDigest: digestB },
-    });
+    const invalidEvidence = evaluate(
+      sealDefinition(fixtureDefinition()),
+      sealEvidenceFixture({
+        ...fixtureEvidence(),
+        definition: { ...fixtureEvidence().definition, revisionDigest: digestB },
+      }),
+    );
     expect(invalidEvidence.outcome).toBe("invalid_evidence");
     expect("definition" in invalidEvidence).toBe(false);
     expect(JSON.stringify(invalidEvidence)).not.toContain("secret");
@@ -554,7 +560,10 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     expect(Object.isFrozen(a.findings[0].evidenceRefs)).toBe(true);
     expect(Object.isFrozen(a.warnings)).toBe(true);
     const revised = sealDefinition({ ...def, revision: "rev2" });
-    const changed = evaluate(revised, { ...ev, definition: referenceOf(revised) });
+    const changed = evaluate(
+      revised,
+      sealEvidenceFixture({ ...ev, definition: referenceOf(revised) }),
+    );
     expect(resolved(changed).definition.revisionDigest).not.toBe(a.definition.revisionDigest);
     expect(a.definition.revisionDigest).toBe(def.revisionDigest);
     expect(a.evaluator.version).toBe(ASSAY_EVALUATOR_VERSION);

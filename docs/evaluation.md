@@ -13,7 +13,9 @@ predicates, AI service, code runner or institutional grade writer.
 
 The accepted [versioned data contracts](contracts.md) are validated on every
 call. The definition content digest is recomputed before any evidence inspection
-or comparison; mismatch returns `invalid_definition`. Neither a valid content
+or comparison; mismatch returns `invalid_definition`. The evaluator also
+verifies the schema-2 evidence digest, origin scope and definition lineage
+before comparison; invalid evidence is never a learner mismatch. Neither a valid content
 digest nor an evidence reference
 authenticates a publisher, runner or learner; consumers that issue formal
 credit must enforce those requirements independently.
@@ -21,7 +23,7 @@ credit must enforce those requirements independently.
 ## Example
 
 ```ts
-import { createAssessmentDefinition, evaluate } from "@0xbuff/assay";
+import { createAssessmentDefinition, createEvidenceBundle, evaluate } from "@0xbuff/assay";
 
 const created = createAssessmentDefinition({
   schemaVersion: 1,
@@ -40,13 +42,8 @@ const created = createAssessmentDefinition({
 });
 if (!created.ok) throw new Error("Invalid authored definition");
 const definition = created.value;
-const evidence = {
-  schemaVersion: 1,
-  definition: {
-    assessmentId: definition.assessmentId,
-    revision: definition.revision,
-    revisionDigest: definition.revisionDigest,
-  },
+const prepared = createEvidenceBundle(definition, {
+  schemaVersion: 2,
   observations: [
     {
       criterionId: "stdout",
@@ -56,7 +53,9 @@ const evidence = {
       value: "ok\\n",
     },
   ],
-};
+});
+if (!prepared.ok) throw new Error("Invalid evidence");
+const evidence = prepared.value;
 
 const assessment = evaluate(definition, evidence);
 // assessment.outcome === "pass", a *technical finding* for this local literal rubric.
@@ -70,7 +69,8 @@ approved release.
 ## Return values
 
 For valid definitions and evidence, `evaluate` returns an immutable,
-versioned `EvaluationResult`: `outcome`, definition lineage, policy version,
+schema-2 `EvaluationResult`: `outcome`, definition lineage, evidenceDigest,
+optional artifactDigest, policy version,
 one finding per criterion in authored order, evaluator version, and bounded,
 value-free warnings. Findings use `pass`, `fail`, `inconclusive` or `error`
 and stable uppercase reason codes.
@@ -196,8 +196,8 @@ const publicView = projectPublicResult(definition, result);
 
 The authorized caller resolves and stores references outside Assay. The optional
 observation port receives neither the bundle nor expected values. This ticket
-changes only objective reference comparison; evidence identity and the broader
-result-union migration remain separate tickets.
+changes only objective reference comparison. AY-I15 adds content-bound
+evidence and result lineage; the broader result-union migration remains AY-I16.
 
 ## Verification
 

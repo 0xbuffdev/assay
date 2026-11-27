@@ -1,10 +1,11 @@
-import { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "../contracts/common";
+import { CONTRACT_LIMITS } from "../contracts/common";
 import type { EvaluationResult } from "../contracts/result";
 import type { ValidationResult } from "../contracts/validation";
 import {
   choice,
   type Diagnostics,
   definitionRef,
+  digest,
   finish,
   identifier,
   list,
@@ -24,6 +25,8 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
           "schemaVersion",
           "outcome",
           "definition",
+          "evidenceDigest",
+          "artifactDigest",
           "policyVersion",
           "findings",
           "evaluator",
@@ -33,6 +36,7 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
           "schemaVersion",
           "outcome",
           "definition",
+          "evidenceDigest",
           "policyVersion",
           "findings",
           "evaluator",
@@ -42,8 +46,7 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
       )
     )
       return;
-    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION)
-      issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     choice(
       data.outcome,
       [
@@ -58,6 +61,9 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
       issues,
     );
     definitionRef(data.definition, "$.definition", issues);
+    digest(data.evidenceDigest, "$.evidenceDigest", issues);
+    if (Object.hasOwn(data, "artifactDigest"))
+      digest(data.artifactDigest, "$.artifactDigest", issues);
     revision(data.policyVersion, "$.policyVersion", issues);
     if (object(data.evaluator, "$.evaluator", ["id", "version"], ["id", "version"], issues)) {
       identifier(data.evaluator.id, "$.evaluator.id", issues);

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import * as assay from "@0xbuff/assay";
 
 const digest = (letter) => `sha256:${letter.repeat(64)}`;
@@ -37,11 +38,22 @@ function define(criteria, revision) {
   assert.equal(sealed.ok, true, "Valid authored fixture must seal");
   return sealed.value;
 }
-const evidence = (observations, definition) => ({
-  schemaVersion: 1,
-  definition: lineage(definition),
-  observations,
-});
+// Independently seal synthetic inputs, including malformed negative fixtures.
+function evidence(observations, definition) {
+  const content = { schemaVersion: 2, definition: lineage(definition), observations };
+  const bytes = JSON.stringify(content, (_key, value) => {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, value[key]]),
+    );
+  });
+  return {
+    ...content,
+    evidenceDigest: `sha256:${createHash("sha256").update(`assay:evidence:v2\n${bytes}`, "utf8").digest("hex")}`,
+  };
+}
 function checked(criteria, observations, revision) {
   const definition = define(criteria, revision);
   return assay.evaluate(definition, evidence(observations, definition));
@@ -68,6 +80,8 @@ assert.deepEqual(
     "ASSAY_EVALUATOR_VERSION",
     "computeDefinitionDigest",
     "createAssessmentDefinition",
+    "createEvidenceBundle",
+    "verifyEvidenceBundle",
     "createReferenceRecord",
     "verifyReferenceBundle",
     "verifyAssessmentDefinition",
@@ -105,15 +119,17 @@ const separatelyComputed = assay.computeDefinitionDigest(unsigned);
 assert.equal(separatelyComputed.ok, true);
 assert.equal(sealed.revisionDigest, separatelyComputed.value);
 assert.equal(assay.verifyAssessmentDefinition(sealed).ok, true);
-const sealedEvidence = {
-  schemaVersion: 1,
-  definition: {
-    assessmentId: sealed.assessmentId,
-    revision: sealed.revision,
-    revisionDigest: sealed.revisionDigest,
-  },
+const sealedInput = assay.createEvidenceBundle(sealed, {
+  schemaVersion: 2,
   observations: [text("output", "ok")],
-};
+});
+assert.equal(sealedInput.ok, true);
+const sealedEvidence = sealedInput.value;
+assert.equal(
+  sealedEvidence.evidenceDigest,
+  evidence([text("output", "ok")], sealed).evidenceDigest,
+);
+assert.equal(assay.verifyEvidenceBundle(sealed, sealedEvidence).ok, true);
 assert.equal(assay.evaluate(sealed, sealedEvidence).outcome, "pass");
 
 const visibleProjection = assay.projectPublicResult(sealed, assay.evaluate(sealed, sealedEvidence));
@@ -141,13 +157,7 @@ const privateSealed = assay.createAssessmentDefinition({
   ],
 });
 assert.equal(privateSealed.ok, true);
-const privateEvidence = {
-  ...sealedEvidence,
-  definition: {
-    ...sealedEvidence.definition,
-    revisionDigest: privateSealed.value.revisionDigest,
-  },
-};
+const privateEvidence = evidence(sealedEvidence.observations, privateSealed.value);
 const privateTechnical = assay.evaluate(privateSealed.value, privateEvidence);
 assert.equal(privateTechnical.outcome, "inconclusive");
 const privateProjection = assay.projectPublicResult(privateSealed.value, privateTechnical);
@@ -377,7 +387,7 @@ const collected = await assay.collectObservations(portDefinition, evidence([], p
     assert.ok(!serialized.includes("hidden-output"));
     assert.ok(!serialized.includes("expected"));
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       definition: request.definition,
       provenance: {
         adapterId: "fixture-runner",
@@ -407,7 +417,7 @@ const portRejected = await assay.collectObservations(
   evidence([], publicDefinition),
   {
     observe: async (request) => ({
-      schemaVersion: 1,
+      schemaVersion: 2,
       definition: request.definition,
       provenance: {
         adapterId: "mock",
@@ -486,42 +496,18 @@ const changedReference = assay.verifyReferenceBundle(bound.value, {
 assert.equal(changedReference.ok, false);
 assert.equal(changedReference.domain, "invalid_reference");
 assert.ok(!JSON.stringify(changedReference).includes("PRIVATE_REFERENCE_CONTENT_CANARY"));
+const boundEvidence = evidence([text("output", "café\n", "reference-observation")], bound.value);
 assert.equal(
-  assay.evaluate(bound.value, {
-    schemaVersion: 1,
-    definition: bundle.definition,
-    observations: [
-      {
-        criterionId: "output",
-        evidenceRef: "reference-observation",
-        kind: "text",
-        completeness: "complete",
-        value: "café\n",
-      },
-    ],
-  }).outcome,
+  assay.evaluate(bound.value, boundEvidence).outcome,
   "inconclusive",
   "Omitted reference bundles remain inconclusive",
 );
 
-const boundEvidence = {
-  schemaVersion: 1,
-  definition: bundle.definition,
-  observations: [
-    {
-      criterionId: "output",
-      evidenceRef: "reference-observation",
-      kind: "text",
-      completeness: "complete",
-      value: "café\n",
-    },
-  ],
-};
 const protectedPass = valid(assay.evaluate(bound.value, boundEvidence, bundle), "pass");
 const protectedFail = valid(
   assay.evaluate(
     bound.value,
-    { ...boundEvidence, observations: [{ ...boundEvidence.observations[0], value: "wrong" }] },
+    evidence([{ ...boundEvidence.observations[0], value: "wrong" }], bound.value),
     bundle,
   ),
   "fail",
@@ -547,3 +533,55 @@ assert.equal(
   assay.evaluate(bound.value, boundEvidence, { ...bundle, references: [] }).outcome,
   "inconclusive",
 );
+
+assert.equal(protectedPass.evidenceDigest, boundEvidence.evidenceDigest);
+assert.notEqual(protectedPass.evidenceDigest, protectedFail.evidenceDigest);
+assert.ok(!JSON.stringify(projectedPass).includes(boundEvidence.evidenceDigest));
+const rejectedEvidence = assay.evaluate(
+  bound.value,
+  {
+    ...boundEvidence,
+    observations: [{ ...boundEvidence.observations[0], value: "PRIVATE_EVIDENCE_CANARY" }],
+  },
+  bundle,
+);
+assert.equal(rejectedEvidence.outcome, "invalid_evidence");
+assert.ok(!JSON.stringify(rejectedEvidence).includes("PRIVATE_EVIDENCE_CANARY"));
+const scoped = assay.createEvidenceBundle(sealed, {
+  schemaVersion: 2,
+  artifactDigest: digest("a"),
+  observations: [
+    {
+      ...text("output", "ok"),
+      origin: {
+        kind: "artifact",
+        sourceRef: "fixture",
+        runRef: "run1",
+        artifactDigest: digest("a"),
+      },
+    },
+  ],
+});
+assert.equal(scoped.ok, true);
+const scopedResult = valid(assay.evaluate(sealed, scoped.value), "pass");
+assert.equal(scopedResult.artifactDigest, digest("a"));
+assert.equal(scopedResult.evidenceDigest, scoped.value.evidenceDigest);
+assert.equal(
+  assay.createEvidenceBundle(sealed, {
+    schemaVersion: 2,
+    artifactDigest: digest("b"),
+    observations: scoped.value.observations,
+  }).ok,
+  false,
+);
+assert.equal(
+  assay.evaluate(sealed, {
+    schemaVersion: 1,
+    definition: lineage(sealed),
+    observations: [text("output", "ok")],
+  }).outcome,
+  "invalid_evidence",
+);
+assert.equal(collected.receipt.evidenceDigest, collected.evidence.evidenceDigest);
+assert.deepEqual(collected.receipt.evidenceRefs, ["stdout"]);
+assert.equal(collected.evidence.observations[0].origin.provenance.runRef, "mock-run");

@@ -1,6 +1,5 @@
-import type { ASSAY_SCHEMA_VERSION } from "./common";
 import type { DefinitionReference } from "./definition";
-import type { EvidenceBundle, Observation } from "./evidence";
+import type { EvidenceBundle, ObservationFact, ObservationPortProvenance } from "./evidence";
 import type { ValidationDiagnostic } from "./validation";
 
 /**
@@ -17,7 +16,7 @@ export type ObservationPortCriterion = Readonly<{
 }>;
 
 export interface ObservationPortRequest {
-  readonly schemaVersion: typeof ASSAY_SCHEMA_VERSION;
+  readonly schemaVersion: 2;
   readonly definition: DefinitionReference;
   readonly artifactDigest?: string;
   readonly criteria: readonly ObservationPortCriterion[];
@@ -33,29 +32,18 @@ export interface ObservationPort {
   observe(request: ObservationPortRequest): Promise<unknown>;
 }
 
-/** Bounded claimed provenance, not a trust certificate or signed attestation. */
-export interface ObservationPortProvenance {
-  readonly adapterId: string;
-  readonly adapterVersion: string;
-  readonly runRef: string;
-  readonly toolchainId: string;
-  readonly toolchainVersion: string;
-  readonly capturedStdoutBytes: number;
-  readonly capturedStderrBytes: number;
-  readonly stdoutTruncated: boolean;
-  readonly stderrTruncated: boolean;
-}
-
 export interface ObservationPortReport {
-  readonly schemaVersion: typeof ASSAY_SCHEMA_VERSION;
+  readonly schemaVersion: 2;
   readonly definition: DefinitionReference;
   readonly artifactDigest?: string;
   readonly provenance: ObservationPortProvenance;
-  readonly observations: readonly Observation[];
+  readonly observations: readonly ObservationFact[];
 }
 
 export interface ObservationPortReceipt {
   readonly definition: DefinitionReference;
+  readonly evidenceDigest: string;
+  readonly evidenceRefs: readonly string[];
   readonly artifactDigest?: string;
   readonly provenance: ObservationPortProvenance;
 }

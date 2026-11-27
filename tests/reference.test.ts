@@ -15,6 +15,7 @@ import {
   verifyAssessmentDefinition,
   verifyReferenceBundle,
 } from "../src/index";
+import { sealEvidenceFixture } from "./fixtures/contracts";
 
 const referenceDigest = "sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5";
 const definitionDigest = "sha256:a5105a469d8dec865417760e3516f52f5d0566f35bdeaa16803de7cf4c8e80a0";
@@ -197,19 +198,22 @@ describe("AY-I13 content-bound reference contracts", () => {
     expect(verifyReferenceBundle(f.definition, { ...f.bundle, references: [] }).ok).toBe(true);
 
     // Omitting separately supplied material still makes comparison unavailable.
-    const result = evaluate(f.definition, {
-      schemaVersion: 1,
-      definition: f.bundle.definition,
-      observations: [
-        {
-          criterionId: "output",
-          evidenceRef: "obs1",
-          kind: "text",
-          completeness: "complete",
-          value: referenceDraft.value,
-        },
-      ],
-    });
+    const result = evaluate(
+      f.definition,
+      sealEvidenceFixture({
+        schemaVersion: 2,
+        definition: f.bundle.definition,
+        observations: [
+          {
+            criterionId: "output",
+            evidenceRef: "obs1",
+            kind: "text",
+            completeness: "complete",
+            value: referenceDraft.value,
+          },
+        ],
+      }),
+    );
     expect(result).toMatchObject({
       outcome: "inconclusive",
       findings: [{ outcome: "inconclusive", reasonCode: "REFERENCE_UNAVAILABLE" }],
@@ -281,11 +285,7 @@ describe("AY-I13 content-bound reference contracts", () => {
       expect(checked.ok).toBe(valid);
       if (!valid) {
         expect(
-          evaluate(
-            definition,
-            { schemaVersion: 1, definition: bundle(definition, []).definition, observations: [] },
-            bundle(definition, [record]),
-          ),
+          evaluate(definition, observed(definition, []), bundle(definition, [record])),
         ).toMatchObject({ outcome: "invalid_reference" });
       }
       if (!valid) {
@@ -360,7 +360,11 @@ describe("AY-I13 content-bound reference contracts", () => {
 });
 
 function observed(definition: AssessmentDefinition, observations: readonly unknown[]) {
-  return { schemaVersion: 1, definition: bundle(definition, []).definition, observations };
+  return sealEvidenceFixture({
+    schemaVersion: 2,
+    definition: bundle(definition, []).definition,
+    observations,
+  });
 }
 
 function observation(id: string, data: Record<string, unknown>) {

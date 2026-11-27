@@ -19,13 +19,20 @@ export type {
   ReferenceVisibility,
   TextNormalization,
 } from "./contracts/definition";
-export type { EvidenceBundle, Observation, ObservationBase } from "./contracts/evidence";
+export type {
+  EvidenceBundle,
+  EvidenceBundleDraft,
+  Observation,
+  ObservationBase,
+  ObservationFact,
+  ObservationOrigin,
+  ObservationPortProvenance,
+} from "./contracts/evidence";
 export type {
   ObservationCollectionResult,
   ObservationPort,
   ObservationPortCriterion,
   ObservationPortKind,
-  ObservationPortProvenance,
   ObservationPortReceipt,
   ObservationPortReport,
   ObservationPortRequest,
@@ -59,6 +66,7 @@ export {
   createAssessmentDefinition,
   verifyAssessmentDefinition,
 } from "./integrity/definition";
+export { createEvidenceBundle, verifyEvidenceBundle } from "./integrity/evidence";
 export { createReferenceRecord, verifyReferenceBundle } from "./integrity/reference";
 export { collectObservations } from "./observation/collect";
 export { projectPublicResult } from "./projection/public";

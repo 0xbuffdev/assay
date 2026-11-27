@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   type AssessmentDefinition,
   type AssessmentDefinitionDraft,
@@ -106,8 +107,8 @@ export function definition(): AssessmentDefinition<1> {
 }
 
 export function evidence(): EvidenceBundle {
-  return {
-    schemaVersion: 1,
+  return sealEvidenceFixture({
+    schemaVersion: 2,
     definition: {
       assessmentId: "assay-demo",
       revision: "rev1",
@@ -137,12 +138,13 @@ export function evidence(): EvidenceBundle {
         assertions: [{ assertionId: "unit1", state: "unknown" }],
       },
     ],
-  };
+  });
 }
 
 export function result(): EvaluationResult {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    evidenceDigest: digestB,
     outcome: "inconclusive",
     definition: {
       assessmentId: "assay-demo",
@@ -163,4 +165,27 @@ export function result(): EvaluationResult {
     evaluator: { id: "assay", version: "v1" },
     warnings: ["REFERENCE_PENDING"],
   };
+}
+
+/** Independent fixture sealer for inert synthetic input, including negative cases. */
+export function sealEvidenceFixture(
+  input: Omit<EvidenceBundle, "observations" | "evidenceDigest"> & {
+    observations: readonly unknown[];
+    evidenceDigest?: string;
+  },
+): EvidenceBundle {
+  const { evidenceDigest: _previous, ...content } = input;
+  const bytes = JSON.stringify(content, (_key, value: unknown) => {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+    const object = value as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.keys(object)
+        .sort()
+        .map((key) => [key, object[key]]),
+    );
+  });
+  const evidenceDigest = `sha256:${createHash("sha256")
+    .update(`assay:evidence:v2\n${bytes}`, "utf8")
+    .digest("hex")}`;
+  return { ...content, evidenceDigest } as EvidenceBundle;
 }

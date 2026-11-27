@@ -1,4 +1,3 @@
-import type { ASSAY_SCHEMA_VERSION } from "./common";
 import type { DefinitionReference } from "./definition";
 import type { ValidationDiagnostic } from "./validation";
 
@@ -23,7 +22,9 @@ export interface CriterionFinding {
 }
 
 export interface EvaluationResult {
-  readonly schemaVersion: typeof ASSAY_SCHEMA_VERSION;
+  readonly schemaVersion: 2;
+  readonly evidenceDigest: string;
+  readonly artifactDigest?: string;
   readonly outcome: TechnicalOutcome;
   readonly definition: DefinitionReference;
   readonly policyVersion: string;

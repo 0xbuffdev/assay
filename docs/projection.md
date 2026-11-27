@@ -21,14 +21,19 @@ A successful call returns:
 
 - For **all-public** definitions, the `outcome` is the technical conjunction of all required criterion findings: `pass`, `fail`, `inconclusive`, or `evaluation_error`. Public findings retain **only** their criterion IDs and outcomes.
 - If the definition contains **any restricted criterion**, the overall outcome is **always `withheld`**, regardless of hidden passes, failures, missing evidence, errors, advisory warnings or the number of hidden checks. Visible public findings remain in their authored order. The projection does not report restricted counts.
-- **Never returned:** restricted criterion IDs, hidden assertion/reference IDs, evidence references (including public evidence references), reason codes, evaluator metadata, full definition/revision digests, policy versions, technical warnings, hidden aggregate outcome, submitted values or diagnostic paths.
+- **Never returned:** restricted criterion IDs, hidden assertion/reference IDs, evidence references (including public evidence references), reason codes, evaluator metadata, full definition/revision, evidence and artifact digests, policy versions, technical warnings, hidden aggregate outcome, submitted values or diagnostic paths.
 - Invalid inputs always return the same frozen, value-free error: `{ ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" }`. The output does not reveal which hidden criterion or field was invalid.
 - The projection only returns schema-valid immutable objects. All public result fields are explicitly constructed from the validated definition and technical findings; no unknown input fields are carried through.
 
 **Example:**
 
 ```ts
-import { createAssessmentDefinition, evaluate, projectPublicResult } from "@0xbuff/assay";
+import {
+  createAssessmentDefinition,
+  createEvidenceBundle,
+  evaluate,
+  projectPublicResult,
+} from "@0xbuff/assay";
 
 const drafted = createAssessmentDefinition({
   schemaVersion: 1,
@@ -48,13 +53,8 @@ const drafted = createAssessmentDefinition({
 if (!drafted.ok) throw new Error("Definition invalid");
 const definition = drafted.value;
 
-const technical = evaluate(definition, {
-  schemaVersion: 1,
-  definition: {
-    assessmentId: definition.assessmentId,
-    revision: definition.revision,
-    revisionDigest: definition.revisionDigest,
-  },
+const prepared = createEvidenceBundle(definition, {
+  schemaVersion: 2,
   observations: [
     {
       criterionId: "public-output",
@@ -65,6 +65,8 @@ const technical = evaluate(definition, {
     },
   ],
 });
+if (!prepared.ok) throw new Error("Invalid evidence");
+const technical = evaluate(definition, prepared.value);
 const response = projectPublicResult(definition, technical);
 // Only `response` may be considered for a learner API, after host authorization.
 // Never serialize `definition`, `technical`, or observation input to learners.
@@ -72,8 +74,8 @@ const response = projectPublicResult(definition, technical);
 
 ## Validation, source integrity and limits
 
-1. The definition **must** have a verifiable, schema-v1 canonical content digest. The function uses `verifyAssessmentDefinition` from AY-I06 before reading any findings. An attacker cannot change a restricted criterion to public while keeping the old digest.
-2. The complete result must pass `parseEvaluationResult` bounded shape checks, match the **exact** assessment ID, revision, digest and policy version, and have exactly one finding per criterion in its original order. Every finding must agree with the top-level evaluator identity/version.
+1. The definition **must** have a verifiable, supported schema canonical content digest. The function uses `verifyAssessmentDefinition` from AY-I06 before reading any findings. An attacker cannot change a restricted criterion to public while keeping the old digest.
+2. The complete result must pass `parseEvaluationResult` bounded shape checks, match the **exact** assessment ID, revision, digest and policy version, and have exactly one finding per criterion in its original order. Every finding must agree with the top-level evaluator identity/version. The result carries a mandatory evidence digest and optional artifact digest; projection checks their shape but has no evidence input with which to authenticate them. The host must retain and verify the exact evidence.
 3. The full technical aggregate must match the required-finding conjunction under Assay's existing fail-closed precedence. Forged `pass`, omitted/extra/reordered findings, mismatched lineage or unsupported fields are rejected with **one opaque error**.
 4. For public criteria, the function copies **only** `criterionId` and technical `outcome`; for restricted ones, it copies **nothing**. The full aggregate is never copied directly, and hidden/advisory warning flags are dropped.
 5. The function has no I/O, runtime dependencies, side-effectful callbacks, secret lookup or external execution. Inputs are copied/validated under the existing bounded, getter-safe contract validators.

@@ -1,4 +1,4 @@
-# Versioned definition and reference content integrity
+# Versioned definition, reference and evidence content integrity
 
 Assay has two explicit trust boundaries:
 
@@ -14,6 +14,7 @@ Author an **unsigned draft** (all fields except revisionDigest). Then call:
 ```ts
 import {
   createAssessmentDefinition,
+  createEvidenceBundle,
   verifyAssessmentDefinition,
   evaluate,
   collectObservations,
@@ -41,13 +42,8 @@ const definition = created.value;
 const checked = verifyAssessmentDefinition(definition);
 if (!checked.ok) throw new Error("Content digest mismatch");
 
-const evidence = {
-  schemaVersion: 1,
-  definition: {
-    assessmentId: definition.assessmentId,
-    revision: definition.revision,
-    revisionDigest: definition.revisionDigest,
-  },
+const prepared = createEvidenceBundle(definition, {
+  schemaVersion: 2,
   observations: [
     {
       criterionId: "output",
@@ -57,7 +53,9 @@ const evidence = {
       value: "ok",
     },
   ],
-};
+});
+if (!prepared.ok) throw new Error("Invalid evidence");
+const evidence = prepared.value;
 const outcome = evaluate(definition, evidence);
 // outcome is a technical result, NOT a formal grade
 ```
@@ -143,7 +141,7 @@ This vector is independently verified against the Node crypto implementation in 
 Schema-1 definition bytes remain exactly as documented above.
 `ASSAY_SCHEMA_VERSION` and `ASSAY_DEFINITION_DIGEST_VERSION` retain their
 original values for schema-1 records and profile v1. Definitions now also
-admit schema 2; evidence, results, and acquisition records retain schema 1.
+admit schema 2. AY-I15 migrates evidence, full technical results, and acquisition records to schema 2; the public projection remains schema 1.
 
 For schema-2 definitions use the domain `assay:definition:v2` followed by LF,
 then the same canonical JSON rules as v1. Exclude only the definition's
@@ -265,3 +263,44 @@ Additional reference vectors (same domain and LF; no trailing LF):
 | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | `{"kind":"number","referenceId":"quantity","schemaVersion":2,"unit":"m","value":10}`       | `sha256:9d9dd9e71c2daf11f25122ef06f982ca2fc3f30a5b02e83f7a3460996e133076` |
 | `{"itemType":"number","kind":"set","referenceId":"items","schemaVersion":2,"value":[1,2]}` | `sha256:1ea024bc6ce68a3e7e55a0b29f1a95dbb7f56228b3d736634fdde1a23165373a` |
+
+## Canonical evidence digest v2 (AY-I15)
+
+`createEvidenceBundle(definition, draft)` verifies the definition, accepts a
+closed draft with exactly schemaVersion (2), observations, and optional
+artifactDigest, derives definition lineage, validates the entire assembled
+bundle and criterion coverage, and seals it. Caller-supplied definition or
+evidenceDigest in the draft is rejected, not overwritten.
+`verifyEvidenceBundle(definition, evidence)` checks the sealed bundle,
+definition lineage and evidence digest. Evaluation and collection require
+this verification; legacy schema-1 or unsigned evidence is rejected.
+The existing definition profiles are unchanged.
+
+The hash covers every validated bundle field except the top-level
+evidenceDigest, including schemaVersion, definition lineage, optional artifact
+scope, observations in authored order, and each observation's optional origin
+and full provenance claim. Use the same UTF-16 sorted keys, JSON primitive
+serialization and UTF-8 encoding as the definition profile, preceded by
+`assay:evidence:v2` and a single LF, with no trailing LF. The digest is
+lowercase `sha256:` followed by 64 hex digits. Mismatch returns
+`invalid_evidence` with `EVIDENCE_DIGEST_MISMATCH` at `$.evidenceDigest`.
+
+Canonical JSON for the schema-1 definition golden vector above and a
+schema-2 artifact-scoped evidence bundle (the value contains an escaped LF):
+
+```text
+{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:e6382f984b711c58df762bcff7eba872246638a30a60ab07d807f6b7a9e35e8b"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\n"}],"schemaVersion":2}
+```
+
+Digest:
+
+```text
+sha256:af87dee83e1f9f559206a33d8251796767f001dd743676ae54ac7efe1b6128e3
+```
+
+The pinned digest is independently checked with Node crypto in source tests.
+Changing scope, values, completeness, origin, observation order or lineage
+changes the content identity. A content digest is not a signature, a claim
+of actual artifact bytes, or authorization to expose protected evidence.
+Keep full evidence and its digests in privileged storage. A corrected
+observation requires constructing a new bundle, never mutating the old one.

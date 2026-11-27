@@ -8,6 +8,7 @@ import {
   evaluate,
   projectPublicResult,
 } from "../src/index";
+import { sealEvidenceFixture } from "./fixtures/contracts";
 
 const visible: Criterion = {
   id: "visible",
@@ -40,8 +41,8 @@ function sealed(criteria: readonly Criterion[]): AssessmentDefinition {
 }
 
 function evidence(definition: AssessmentDefinition, output = "ok"): EvidenceBundle {
-  return {
-    schemaVersion: 1,
+  return sealEvidenceFixture({
+    schemaVersion: 2,
     definition: {
       assessmentId: definition.assessmentId,
       revision: definition.revision,
@@ -56,7 +57,7 @@ function evidence(definition: AssessmentDefinition, output = "ok"): EvidenceBund
         value: output,
       },
     ],
-  };
+  });
 }
 
 function technical(definition: AssessmentDefinition, output = "ok"): EvaluationResult {
@@ -99,7 +100,7 @@ describe("AY-I07 restricted technical finding projection", () => {
 
   it("supports inconclusive and evaluation_error without disclosing diagnostics", () => {
     const definition = sealed([visible]);
-    const noEvidence = { ...evidence(definition), observations: [] };
+    const noEvidence = sealEvidenceFixture({ ...evidence(definition), observations: [] });
     const pending = evaluate(definition, noEvidence);
     expect(projectPublicResult(definition, pending)).toMatchObject({
       ok: true,
@@ -120,7 +121,7 @@ describe("AY-I07 restricted technical finding projection", () => {
       },
     };
     const numerics = sealed([overflow]);
-    const measured: EvidenceBundle = {
+    const measured = sealEvidenceFixture({
       ...evidence(numerics),
       observations: [
         {
@@ -131,7 +132,7 @@ describe("AY-I07 restricted technical finding projection", () => {
           value: 1e308,
         },
       ],
-    };
+    });
     const error = evaluate(numerics, measured);
     expect(projectPublicResult(numerics, error)).toMatchObject({
       ok: true,
@@ -168,6 +169,8 @@ describe("AY-I07 restricted technical finding projection", () => {
       "SECRET_REASON_CANARY",
       "REFERENCE_UNAVAILABLE",
       "revisionDigest",
+      "evidenceDigest",
+      "artifactDigest",
       "warnings",
       "evidenceRefs",
     ]) {

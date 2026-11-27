@@ -6,6 +6,10 @@ import {
   ASSAY_DEFINITION_DIGEST_VERSION,
   ASSAY_SCHEMA_VERSION,
   createAssessmentDefinition,
+  createEvidenceBundle,
+  verifyEvidenceBundle,
+  type EvidenceBundleDraft,
+  type ObservationOrigin,
   createReferenceRecord,
   verifyReferenceBundle,
   type ReferenceRecordDraft,
@@ -44,16 +48,11 @@ const authoredDraft: AssessmentDefinitionDraft = {
 const boundedDefinition = createAssessmentDefinition(authoredDraft);
 if (boundedDefinition.ok) {
   const verified = verifyAssessmentDefinition(boundedDefinition.value);
-  const pure: EvaluationResponse = evaluate(boundedDefinition.value, {
-    schemaVersion: ASSAY_SCHEMA_VERSION,
-    definition: {
-      assessmentId: boundedDefinition.value.assessmentId,
-      revision: boundedDefinition.value.revision,
-      revisionDigest: boundedDefinition.value.revisionDigest,
-    },
-    observations: [],
-  });
-  void pure;
+  const prepared = createEvidenceBundle(boundedDefinition.value, { schemaVersion: 2, observations: [] });
+  if (prepared.ok) {
+    const pure: EvaluationResponse = evaluate(boundedDefinition.value, prepared.value);
+    void pure;
+  }
   void verified;
 }
 void version;
@@ -80,23 +79,17 @@ const constructed = createAssessmentDefinition({
 if (!constructed.ok) throw new Error("Invalid typed fixture");
 const definition: AssessmentDefinition = constructed.value;
 
-const evidence: EvidenceBundle = {
-  schemaVersion: ASSAY_SCHEMA_VERSION,
-  definition: {
-    assessmentId: definition.assessmentId,
-    revision: definition.revision,
-    revisionDigest: definition.revisionDigest,
-  },
+const evidenceDraft: EvidenceBundleDraft = {
+  schemaVersion: 2,
   observations: [
-    {
-      criterionId: "output",
-      evidenceRef: "output-1",
-      completeness: "complete",
-      kind: "text",
-      value: "ok",
-    },
+    { criterionId: "output", evidenceRef: "output-1", completeness: "complete", kind: "text", value: "ok" },
   ],
 };
+const preparedEvidence = createEvidenceBundle(definition, evidenceDraft);
+if (!preparedEvidence.ok) throw new Error("Invalid evidence fixture");
+const evidence: EvidenceBundle = preparedEvidence.value;
+const checkedEvidence: ValidationResult<EvidenceBundle> = verifyEvidenceBundle(definition, evidence);
+void checkedEvidence;
 
 const projected: PublicProjectionResponse = projectPublicResult(
   definition,
@@ -124,6 +117,10 @@ if ("diagnostics" in result) {
   const verdict: "pass" | "fail" | "inconclusive" | "evaluation_error" |
     "invalid_definition" | "invalid_evidence" = result.outcome;
   const reason: string | undefined = result.findings[0]?.reasonCode;
+  const evidenceDigest: string = result.evidenceDigest;
+  const artifactDigest: string | undefined = result.artifactDigest;
+  void evidenceDigest;
+  void artifactDigest;
   void verdict;
   void reason;
 }
@@ -135,7 +132,7 @@ const port: ObservationPort = {
     void ids;
     void max;
     return {
-      schemaVersion: ASSAY_SCHEMA_VERSION,
+      schemaVersion: 2,
       definition: request.definition,
       observations: [],
       provenance: {
@@ -243,7 +240,9 @@ if (referenceCreated.ok) {
       references: [reference],
     };
     const verified: ValidationResult<ReferenceBundle> = verifyReferenceBundle(sealed.value, bundle);
-    const evaluated: EvaluationResponse = evaluate(sealed.value, { ...evidence, definition: bundle.definition }, bundle);
+    const boundEvidence = createEvidenceBundle(sealed.value, { schemaVersion: 2, observations: [] });
+    if (!boundEvidence.ok) throw new Error("Invalid bound fixture");
+    const evaluated: EvaluationResponse = evaluate(sealed.value, boundEvidence.value, bundle);
     if ("diagnostics" in evaluated) {
       const failure: "invalid_definition" | "invalid_evidence" | "invalid_reference" = evaluated.outcome;
       void failure;
@@ -280,3 +279,19 @@ const typedV1Reference: import("@0xbuff/assay").Expected<string, 1> = {
 const rejectedV2Reference: import("@0xbuff/assay").Expected<string, 2> = typedV1Reference;
 void rejectedV1Reference;
 void rejectedV2Reference;
+
+ // @ts-expect-error schema 1 is not a sealed evidence bundle
+const legacyEvidence: EvidenceBundle = { schemaVersion: 1, definition: evidence.definition, observations: [] };
+// @ts-expect-error evidence digest is mandatory
+const unsealedEvidence: EvidenceBundle = { schemaVersion: 2, definition: evidence.definition, observations: [] };
+// @ts-expect-error independent origins cannot claim an artifact digest
+const mixedOrigin: ObservationOrigin = { kind: "independent", sourceRef: "fixture", artifactDigest: "sha256:" + "a".repeat(64) };
+// @ts-expect-error artifact-derived origins require an artifact digest
+const missingOriginDigest: ObservationOrigin = { kind: "artifact", sourceRef: "fixture" };
+// @ts-expect-error evidence digests are not exposed in learner views
+const hiddenEvidenceDigest: PublicTechnicalResult["evidenceDigest"] = "";
+void legacyEvidence;
+void unsealedEvidence;
+void mixedOrigin;
+void missingOriginDigest;
+void hiddenEvidenceDigest;

@@ -1,5 +1,5 @@
-import type { Criterion } from "../contracts/definition";
-import type { Observation } from "../contracts/evidence";
+import type { AssessmentDefinition, Criterion } from "../contracts/definition";
+import type { EvidenceBundle, Observation } from "../contracts/evidence";
 import type { EvidenceCoverage, ValidationResult } from "../contracts/validation";
 import { parseAssessmentDefinition } from "./definition";
 import { parseEvidenceBundle } from "./evidence";
@@ -17,9 +17,15 @@ export function inspectEvidenceCoverage(
   if (!definition.ok) return definition;
   const evidence = parseEvidenceBundle(evidenceInput);
   if (!evidence.ok) return evidence;
+  return inspectValidatedCoverage(definition.value, evidence.value);
+}
+
+/** Shared coverage checks on bounded structural snapshots. */
+export function inspectValidatedCoverage(
+  expected: AssessmentDefinition,
+  actual: EvidenceBundle,
+): ValidationResult<EvidenceCoverage> {
   const issues = new Diagnostics();
-  const expected = definition.value;
-  const actual = evidence.value;
 
   if (
     actual.definition.assessmentId !== expected.assessmentId ||
