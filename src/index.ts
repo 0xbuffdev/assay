@@ -20,9 +20,11 @@ export type {
   AssessmentDefinitionDraft,
   Criterion,
   CriterionBase,
+  CriterionComposition,
+  CriterionGroup,
+  CompositionChild,
   CriterionMode,
   DefinitionReference,
-  DefinitionSchemaVersion,
   Expected,
   PolicyVersion,
   ReferenceVisibility,
@@ -77,7 +79,6 @@ export type {
 } from "./contracts/validation";
 export { evaluate } from "./evaluation/evaluate";
 export {
-  ASSAY_DEFINITION_DIGEST_VERSION,
   computeDefinitionDigest,
   createAssessmentDefinition,
   verifyAssessmentDefinition,
