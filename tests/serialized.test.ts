@@ -53,12 +53,15 @@ describe("bounded serialized record decoding", () => {
 
   it("does not inspect executable or boxed string input", () => {
     let calls = 0;
-    const input = new Proxy({}, {
-      get() {
-        calls++;
-        throw new Error("canary");
+    const input = new Proxy(
+      {},
+      {
+        get() {
+          calls++;
+          throw new Error("canary");
+        },
       },
-    });
+    );
     expect(decodeSerializedRecord(input).ok).toBe(false);
     expect(calls).toBe(0);
   });
@@ -69,14 +72,14 @@ describe("bounded serialized record decoding", () => {
     const bytes = new TextEncoder().encode(json).byteLength;
     const exact = json + " ".repeat(cap - bytes);
     expect(decodeSerializedRecord(exact).ok).toBe(true);
-    expect(decodeSerializedRecord(exact + " ").ok).toBe(false);
-    expect(decodeSerializedRecord(" ".repeat(cap - 2) + "{}").ok).toBe(true);
-    expect(decodeSerializedRecord(" ".repeat(cap - 1) + "{}").ok).toBe(false);
+    expect(decodeSerializedRecord(`${exact} `).ok).toBe(false);
+    expect(decodeSerializedRecord(`${" ".repeat(cap - 2)}{}`).ok).toBe(true);
+    expect(decodeSerializedRecord(`${" ".repeat(cap - 1)}{}`).ok).toBe(false);
     expect(CONTRACT_LIMITS.maxCombinedSerializedBytes).toBe(3 * cap);
   });
 
   it("bounds decoded depth, nodes, string/key length and collection sizes", () => {
-    const deep = (depth: number) => '{"x":'.repeat(depth) + "0" + "}".repeat(depth);
+    const deep = (depth: number) => `${'{"x":'.repeat(depth)}0${"}".repeat(depth)}`;
     expect(decodeSerializedRecord(deep(12)).ok).toBe(true);
     expect(decodeSerializedRecord(deep(13)).ok).toBe(false);
     const array = (count: number) => JSON.stringify({ x: Array(count).fill(0) });

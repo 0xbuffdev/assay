@@ -188,22 +188,22 @@ authenticate evidence or award official credit.
 `CONTRACT_LIMITS` exposes and tests the exact bounds. They apply to each entire input record, including nested values; no implicit
 network or model access occurs.
 
-| Limit                                             |                  Maximum |
-| ------------------------------------------------- | -----------------------: |
-| Object/array depth                                |                       12 |
-| Visited nodes                                     |                    4,096 |
-| UTF-8 budget for input strings and property names |            262,144 bytes |
-| Individual string or property name length         | 16,384 UTF-16 code units |
-| Object fields                                     |                       32 |
-| Array elements                                    |                      128 |
-| Definition criteria                               |                       64 |
-| Evidence observations                             |                      128 |
-| Set elements                                      |                      128 |
-| Evidence references per finding                   |                       32 |
-| Returned structured diagnostics                   |                       32 |
-| Combined stdout/stderr capture per provenance     |             65,536 bytes |
-| Serialized JSON transport per record              |            262,144 bytes |
-| Combined transport (definition/evidence/references) |          786,432 bytes |
+| Limit                                               |                  Maximum |
+| --------------------------------------------------- | -----------------------: |
+| Object/array depth                                  |                       12 |
+| Visited nodes                                       |                    4,096 |
+| UTF-8 budget for input strings and property names   |            262,144 bytes |
+| Individual string or property name length           | 16,384 UTF-16 code units |
+| Object fields                                       |                       32 |
+| Array elements                                      |                      128 |
+| Definition criteria                                 |                       64 |
+| Evidence observations                               |                      128 |
+| Set elements                                        |                      128 |
+| Evidence references per finding                     |                       32 |
+| Returned structured diagnostics                     |                       32 |
+| Combined stdout/stderr capture per provenance       |             65,536 bytes |
+| Serialized JSON transport per record                |            262,144 bytes |
+| Combined transport (definition/evidence/references) |            786,432 bytes |
 
 The parser copies and freezes accepted data. It rejects cycles, sparse
 arrays, accessor properties, custom prototypes, non-finite numbers, functions,
@@ -249,7 +249,6 @@ outside the portable library.
 
 `decodeSerializedRecord(text: unknown): SerializedRecordResult` is an explicit
 transport decoder; it does not authenticate, seal or validate any contract.
-
 
 `parseAssessmentDefinition(input: unknown)`,
 `parseEvidenceBundle(input: unknown)`,

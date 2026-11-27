@@ -214,7 +214,9 @@ export function snapshot(input: unknown, issues: Diagnostics): unknown | typeof 
         if (
           keys.length !== length + 1 ||
           keys.some(
-            (key) => typeof key !== "string" || (key !== "length" && (key.length > 3 || !/^(0|[1-9]\d*)$/.test(key))),
+            (key) =>
+              typeof key !== "string" ||
+              (key !== "length" && (key.length > 3 || !/^(0|[1-9]\d*)$/.test(key))),
           )
         ) {
           issues.add(path, "UNSAFE_OBJECT");
