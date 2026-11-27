@@ -10,7 +10,7 @@ import {
   projectPublicResult,
   verifyReferenceBundle,
 } from "../src/index";
-import { createAllDefinition } from "./fixtures/contracts";
+import { authorAll, createAllDefinition } from "./fixtures/contracts";
 
 const base = { id: "check", mode: "required", visibility: "public" } as const;
 const literal = (value: unknown) => ({ type: "literal", value });
@@ -244,7 +244,7 @@ describe("AY-I17 integration regressions", () => {
         const value = Object.defineProperty({}, name, { value: true, enumerable });
         const authored = draft("json_equality", { expected: literal(value) });
         const parsed = parseAssessmentDefinition({
-          ...authored,
+          ...authorAll(authored),
           revisionDigest: definition.value.revisionDigest,
         });
         const sealed = createAllDefinition(authored);

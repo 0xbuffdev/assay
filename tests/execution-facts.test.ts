@@ -373,7 +373,7 @@ describe("typed execution facts", () => {
   it("matches independent canonical definition and evidence vectors", () => {
     const rubric = definition([stdout]);
     expect(rubric.revisionDigest).toBe(
-      "sha256:198b7fa36aafa00a8bfc98768d81673d38d1decbfcf1a65e8162235f868368a3",
+      "sha256:4a14c1d05f85cfb9e78a1f0779702dc0cef28a1d084c0e475b21963b6764dc78",
     );
     const evidence = createEvidenceBundle(rubric, {
       schemaVersion: 3,
@@ -381,7 +381,7 @@ describe("typed execution facts", () => {
     });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
     expect(evidence.value.evidenceDigest).toBe(
-      "sha256:c23760b6496a44fc6d185165ab7f8015f60b47a15b7a6c78bc8358ddb1bb9d27",
+      "sha256:16625d5433f8726c15a707050e098eede00a82f99d0403f26480e5cac9535591",
     );
   });
 
