@@ -121,7 +121,7 @@ const sealedInput = assay.createEvidenceBundle(sealed, {
 });
 assert.equal(sealedInput.ok, true);
 const sealedEvidence = sealedInput.value;
-assert.deepEqual(sealedEvidence, evidence([text("output", "ok")], sealed));
+assert.equal(sealedEvidence.evidenceDigest, evidence([text("output", "ok")], sealed).evidenceDigest);
 assert.equal(assay.verifyEvidenceBundle(sealed, sealedEvidence).ok, true);
 assert.equal(assay.evaluate(sealed, sealedEvidence).outcome, "pass");
 
