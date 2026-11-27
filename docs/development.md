@@ -71,16 +71,16 @@ canonical hashes; fixed authored byte/hash vectors in the existing integrity
 suites remain the compatibility anchors. Generated corpora are deterministic:
 no random seed, clock, network, provider service or new dependency is needed.
 
-| Requirement | Verification in the mandatory Vitest/foundation/package gates |
-| --- | --- |
-| ASY-27, ASY-38 | `adversarial.test.ts`, `serialized.test.ts`, `resources.test.ts`: malformed transport mutations, decoded duplicate keys, hostile objects, bounded resource limits, redacted failures |
-| ASY-28–31 | `conformance.test.ts`, existing evaluator and execution-fact suites: independent comparator outcomes, replay, closed results, required/advisory precedence, missing and truncated evidence |
-| ASY-32 | Foundation module/export checks and isolated packed consumer; no source layout or API changes |
-| ASY-33 | Conditional qualitative observations remain deferred; existing manual/unverified review paths remain non-authoritative |
-| ASY-34–36 | `adversarial.test.ts`, `observation.test.ts`: stream-specific truncation permutations, empty/unsolicited reports, scoped origins, cancellation and late settlement |
-| ASY-37 | `adversarial.test.ts`, `projection.test.ts`: repeated protected probes, criterion order and advisory/required permutations, opaque rejection, fixed public bytes across hidden outcomes |
-| ASY-39 | `conformance.test.ts`, existing fixed integrity vectors and generated metadata gate: independent hashes, version identity, unsupported versions |
-| ASY-40 | All preceding checks plus exact installed ESM/TypeScript and archive verification; realistic additional standalone assessment integration is AY-I25 |
+| Requirement    | Verification in the mandatory Vitest/foundation/package gates                                                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ASY-27, ASY-38 | `adversarial.test.ts`, `serialized.test.ts`, `resources.test.ts`: malformed transport mutations, decoded duplicate keys, hostile objects, bounded resource limits, redacted failures       |
+| ASY-28–31      | `conformance.test.ts`, existing evaluator and execution-fact suites: independent comparator outcomes, replay, closed results, required/advisory precedence, missing and truncated evidence |
+| ASY-32         | Foundation module/export checks and isolated packed consumer; no source layout or API changes                                                                                              |
+| ASY-33         | Conditional qualitative observations remain deferred; existing manual/unverified review paths remain non-authoritative                                                                     |
+| ASY-34–36      | `adversarial.test.ts`, `observation.test.ts`: stream-specific truncation permutations, empty/unsolicited reports, scoped origins, cancellation and late settlement                         |
+| ASY-37         | `adversarial.test.ts`, `projection.test.ts`: repeated protected probes, criterion order and advisory/required permutations, opaque rejection, fixed public bytes across hidden outcomes    |
+| ASY-39         | `conformance.test.ts`, existing fixed integrity vectors and generated metadata gate: independent hashes, version identity, unsupported versions                                            |
+| ASY-40         | All preceding checks plus exact installed ESM/TypeScript and archive verification; realistic additional standalone assessment integration is AY-I25                                        |
 
 Run the new suites independently, or use the full quality gate:
 
