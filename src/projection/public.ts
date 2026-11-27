@@ -1,38 +1,13 @@
-import {
-  ASSAY_SCHEMA_VERSION,
-  type AssessmentDefinition,
-  type CriterionFinding,
-  type FindingOutcome,
-  type PublicCriterionFinding,
-  type PublicProjectionResponse,
-  type PublicTechnicalOutcome,
-} from "./contracts";
-import { verifyAssessmentDefinition } from "./integrity";
-import { parseEvaluationResult } from "./validation";
+import { ASSAY_SCHEMA_VERSION } from "../contracts/common";
+import type { PublicCriterionFinding, PublicProjectionResponse } from "../contracts/projection";
+import { aggregateRequired } from "../evaluation/aggregate";
+import { verifyAssessmentDefinition } from "../integrity/definition";
+import { parseEvaluationResult } from "../validation/result";
 
 const REJECTED: PublicProjectionResponse = Object.freeze({
   ok: false,
   reasonCode: "PUBLIC_PROJECTION_REJECTED",
 });
-
-/**
- * Recalculate the technical conjunction from its per-criterion outcomes.
- * This is not a new grading policy: it mirrors the evaluator's required
- * precedence and rules out a caller-forged aggregate in a supplied result.
- */
-function aggregate(
-  definition: AssessmentDefinition,
-  findings: readonly CriterionFinding[],
-): Exclude<PublicTechnicalOutcome, "withheld"> {
-  const required: FindingOutcome[] = [];
-  for (const [index, criterion] of definition.criteria.entries()) {
-    if (criterion.mode === "required") required.push(findings[index].outcome);
-  }
-  if (required.includes("fail")) return "fail";
-  if (required.includes("error")) return "evaluation_error";
-  if (required.some((outcome) => outcome !== "pass")) return "inconclusive";
-  return "pass";
-}
 
 /**
  * Produce a narrowly scoped learner-safe view of an authorized technical
@@ -81,7 +56,10 @@ export function projectPublicResult(
       return REJECTED;
     }
   }
-  const expectedOutcome = aggregate(definition, result.findings);
+  const findingsByCriterion = new Map(
+    result.findings.map((finding) => [finding.criterionId, finding]),
+  );
+  const expectedOutcome = aggregateRequired(definition, findingsByCriterion);
   if (result.outcome !== expectedOutcome) return REJECTED;
 
   const publicFindings: PublicCriterionFinding[] = [];

@@ -5,25 +5,21 @@
  * authenticate evidence, or contact any external service.
  */
 
+export type { Completeness, SetItemType, SetScalar } from "./contracts/common";
+export { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "./contracts/common";
 export type {
   AssessmentDefinition,
   AssessmentDefinitionDraft,
-  Completeness,
   Criterion,
   CriterionBase,
-  CriterionFinding,
   CriterionMode,
   DefinitionReference,
-  DiagnosticCode,
-  EvaluationFailure,
-  EvaluationResponse,
-  EvaluationResult,
-  EvidenceBundle,
-  EvidenceCoverage,
   Expected,
-  FindingOutcome,
-  Observation,
-  ObservationBase,
+  ReferenceVisibility,
+  TextNormalization,
+} from "./contracts/definition";
+export type { EvidenceBundle, Observation, ObservationBase } from "./contracts/evidence";
+export type {
   ObservationCollectionResult,
   ObservationPort,
   ObservationPortCriterion,
@@ -32,39 +28,41 @@ export type {
   ObservationPortReceipt,
   ObservationPortReport,
   ObservationPortRequest,
+} from "./contracts/observation";
+export type {
   PublicCriterionFinding,
   PublicProjectionResponse,
   PublicTechnicalOutcome,
   PublicTechnicalResult,
-  ReferenceVisibility,
-  SetItemType,
-  SetScalar,
+} from "./contracts/projection";
+export type {
+  CriterionFinding,
+  EvaluationFailure,
+  EvaluationResponse,
+  EvaluationResult,
+  FindingOutcome,
   TechnicalOutcome,
-  TextNormalization,
+} from "./contracts/result";
+export type {
+  DiagnosticCode,
+  EvidenceCoverage,
   ValidationDiagnostic,
   ValidationDomain,
   ValidationResult,
-} from "./contracts";
-export {
-  ASSAY_SCHEMA_VERSION,
-  CONTRACT_LIMITS,
-} from "./contracts";
-export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluate";
+} from "./contracts/validation";
+export { ASSAY_EVALUATOR_VERSION, evaluate } from "./evaluation/evaluate";
+export { evaluateVerified } from "./evaluation/verified";
 export {
   ASSAY_DEFINITION_DIGEST_VERSION,
-  collectVerifiedObservations,
   computeDefinitionDigest,
   createAssessmentDefinition,
-  evaluateVerified,
   verifyAssessmentDefinition,
-} from "./integrity";
-export { collectObservations } from "./observation";
-export { projectPublicResult } from "./projection";
-export {
-  inspectEvidenceCoverage,
-  parseAssessmentDefinition,
-  parseAssessmentDefinitionDraft,
-  parseEvaluationResult,
-  parseEvidenceBundle,
-  parseObservationPortReport,
-} from "./validation";
+} from "./integrity/definition";
+export { collectObservations } from "./observation/collect";
+export { collectVerifiedObservations } from "./observation/verified";
+export { projectPublicResult } from "./projection/public";
+export { inspectEvidenceCoverage } from "./validation/coverage";
+export { parseAssessmentDefinition, parseAssessmentDefinitionDraft } from "./validation/definition";
+export { parseEvidenceBundle } from "./validation/evidence";
+export { parseObservationPortReport } from "./validation/observation";
+export { parseEvaluationResult } from "./validation/result";

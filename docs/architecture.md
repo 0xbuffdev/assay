@@ -22,6 +22,57 @@ The target findings distinguish `pass`, `fail`, `inconclusive`, `invalid_definit
 
 The source exposes versioned parsing/coverage from [contracts](contracts.md), pure `evaluate` from [evaluation](evaluation.md), and an optional async [observation port](observations.md). It does **not** authenticate evidence or issue academic credit; unresolved references and unverified execution never pass.
 
+## Source organization
+
+AY-I11 separates internal responsibilities without changing the current schema,
+digest profile, outcome semantics or package-root exports. The accepted
+[organization requirement ASY-32](https://github.com/0xbuffdev/context/blob/main/repos/assay/specs/0003-evaluation-semantics.md)
+governs this structure.
+
+| Module             | Responsibility                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `src/index.ts`     | Explicit public exports; no implementation logic                                                 |
+| `src/contracts/`   | Versioned definitions, evidence, results, observation ports, projection and validation contracts |
+| `src/validation/`  | Bounded snapshots and shared diagnostics, per-contract validators, evidence coverage             |
+| `src/evaluation/`  | Pure orchestration, focused comparators and one required-outcome aggregation owner               |
+| `src/integrity/`   | Canonical bytes, SHA-256 and definition integrity                                                |
+| `src/observation/` | Optional injected acquisition and its verified entry point                                       |
+| `src/projection/`  | Privileged result checks and public-safe projection                                              |
+
+```mermaid
+flowchart TD
+    API["Package root"] --> E["Evaluation"]
+    API --> O["Observation acquisition"]
+    API --> P["Public projection"]
+    API --> I["Definition integrity"]
+    E --> C["Comparators"]
+    E --> A["Required aggregation"]
+    P --> A
+    E --> V["Validation and coverage"]
+    O --> V
+    P --> V
+    P --> I
+    I --> V
+    V --> S["Contracts"]
+    C --> S
+    A --> S
+    E -. verified entry .-> I
+    O -. verified entry .-> I
+```
+
+Contracts have no dependency on evaluation, integrity, acquisition or
+projection. Validation depends only on contracts and shared validators.
+Integrity does not import evaluation or acquisition; the verified entry points
+compose integrity with those operations. Projection uses the same internal
+required aggregation as evaluation after checking result correspondence.
+The package root is never an internal dependency.
+
+The existing unchecked and verified public functions remain unchanged in
+AY-I11. AY-I12 owns the separately planned mandatory-integrity API migration.
+The foundation gate checks the source module allowlist, permitted dependency
+directions and absence of cycles; existing public export and packed-consumer
+checks remain intact.
+
 ## Implementation boundaries
 
 - **AY-I01:** implemented versioned definition/evidence contracts, bounded validation and structured diagnostics.
