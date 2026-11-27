@@ -53,7 +53,10 @@ export function validateObservations(
   if (!list(observations, "$.observations", issues, CONTRACT_LIMITS.maxObservations)) return;
   const ids: unknown[] = [];
   const refs: unknown[] = [];
-  const runs = new Map<string, Record<string, unknown>>();
+  const runs = new Map<
+    string,
+    { claim: Record<string, unknown>; truncated: boolean; completePaths: string[] }
+  >();
   for (const [i, obs] of observations.entries()) {
     const p = `$.observations[${i}]`;
     if (
@@ -87,13 +90,14 @@ export function validateObservations(
     if (report) {
       if (Object.hasOwn(obs, "origin")) issues.add(`${p}.origin`, "UNEXPECTED_FIELD");
     } else {
-      validateOrigin(obs, artifactDigest, p, issues);
+      const truncated = validateOrigin(obs, artifactDigest, p, issues);
       const origin = obs.origin;
       if (origin && typeof origin === "object" && !Array.isArray(origin)) {
         const claim = origin as Record<string, unknown>;
         if (typeof claim.sourceRef === "string" && typeof claim.runRef === "string") {
           const key = JSON.stringify([claim.sourceRef, claim.runRef]);
-          const prior = runs.get(key);
+          const run = runs.get(key);
+          const prior = run?.claim;
           if (
             prior &&
             (prior.kind !== claim.kind ||
@@ -104,7 +108,17 @@ export function validateObservations(
           ) {
             issues.add(`${p}.origin`, "MISMATCHED_ORIGIN");
           }
-          if (!prior || prior.provenance === undefined) runs.set(key, claim);
+          if (run) {
+            if (prior?.provenance === undefined) run.claim = claim;
+            run.truncated ||= truncated;
+            if (obs.completeness === "complete") run.completePaths.push(`${p}.completeness`);
+          } else {
+            runs.set(key, {
+              claim,
+              truncated,
+              completePaths: obs.completeness === "complete" ? [`${p}.completeness`] : [],
+            });
+          }
         }
       }
     }
@@ -172,6 +186,14 @@ export function validateObservations(
       unique(obs.artifactRefs, `${p}.artifactRefs`, issues);
     } else issues.add(`${p}.kind`, "INVALID_VALUE");
   }
+  // The complete bundle determines known truncation for a source/run pair.
+  // No stream attribution is available, so even facts omitting provenance
+  // cannot claim completeness for a run known to have truncated output.
+  for (const run of runs.values()) {
+    if (run.truncated) {
+      for (const path of run.completePaths) issues.add(path, "MISMATCHED_ORIGIN");
+    }
+  }
   unique(ids, "$.observations", issues);
   unique(refs, "$.observations", issues);
 }
@@ -181,16 +203,16 @@ function validateOrigin(
   artifactDigest: unknown,
   path: string,
   issues: Diagnostics,
-): void {
+): boolean {
   const p = `${path}.origin`;
   if (!Object.hasOwn(observation, "origin")) {
     if (artifactDigest !== undefined) issues.add(p, "MISSING_FIELD");
-    return;
+    return false;
   }
   const origin = observation.origin;
   const required = ["kind", "sourceRef"];
   if (!object(origin, p, [...required, "artifactDigest", "runRef", "provenance"], required, issues))
-    return;
+    return false;
   identifier(origin.sourceRef, `${p}.sourceRef`, issues);
   choice(origin.kind, ["artifact", "independent"], `${p}.kind`, issues);
   if (origin.kind === "artifact") {
@@ -208,13 +230,10 @@ function validateOrigin(
     if (validateProvenance(provenance, `${p}.provenance`, issues)) {
       if (origin.sourceRef !== provenance.adapterId || origin.runRef !== provenance.runRef)
         issues.add(p, "MISMATCHED_ORIGIN");
-      if (
-        (provenance.stdoutTruncated === true || provenance.stderrTruncated === true) &&
-        observation.completeness !== "truncated"
-      )
-        issues.add(`${path}.completeness`, "MISMATCHED_ORIGIN");
+      return provenance.stdoutTruncated === true || provenance.stderrTruncated === true;
     }
   }
+  return false;
 }
 
 /** Same capture and provenance bounds for receipts and embedded origin claims. */

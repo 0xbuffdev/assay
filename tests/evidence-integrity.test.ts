@@ -30,14 +30,14 @@ const criterion = {
   parameters: { expected: { type: "literal", value: "café\n" } },
 } as const;
 
-function definition(two = false) {
+function definition(two = false, secondMode: "required" | "advisory" = "required") {
   return unwrap(
     createAssessmentDefinition({
       schemaVersion: 1,
       assessmentId: "vector",
       revision: "rev1",
       policyVersion: "policy1",
-      criteria: two ? [criterion, { ...criterion, id: "second" }] : [criterion],
+      criteria: two ? [criterion, { ...criterion, id: "second", mode: secondMode }] : [criterion],
     }),
   );
 }
@@ -276,5 +276,104 @@ describe("AY-I15 evidence identity and scoped claims", () => {
         observations: [{ ...truncated[0], origin: { ...origin, runRef: "conflict" } }],
       }).ok,
     ).toBe(false);
+  });
+
+  it("rejects a complete same-run fact without provenance in either observation order", () => {
+    const rubric = definition(true, "advisory");
+    for (const flag of ["stdoutTruncated", "stderrTruncated"] as const) {
+      const origin = { ...artifactOrigin, sourceRef: "runner", runRef: "run2" };
+      const required = { ...fact, origin };
+      const advisory = {
+        ...fact,
+        criterionId: "second",
+        evidenceRef: "obs2",
+        completeness: "truncated",
+        origin: { ...origin, provenance: { ...provenance, [flag]: true } },
+      };
+      for (const observations of [
+        [required, advisory],
+        [advisory, required],
+      ]) {
+        const input = { ...draft, observations };
+        const diagnostic = {
+          path: `$.observations[${observations.indexOf(required)}].completeness`,
+          code: "MISMATCHED_ORIGIN",
+        };
+        const sealed = sealEvidenceFixture({ ...input, definition: referenceOf(rubric) });
+        expect(createEvidenceBundle(rubric, input)).toMatchObject({
+          ok: false,
+          diagnostics: [diagnostic],
+        });
+        expect(verifyEvidenceBundle(rubric, sealed)).toMatchObject({
+          ok: false,
+          diagnostics: [diagnostic],
+        });
+        expect(evaluate(rubric, sealed)).toEqual({
+          outcome: "invalid_evidence",
+          diagnostics: [diagnostic],
+        });
+      }
+
+      // Distinct source/run pairs must not inherit one another's truncation.
+      for (const independentOrigin of [
+        { ...origin, sourceRef: "another-source" },
+        { ...origin, runRef: "another-run" },
+        { kind: "independent", sourceRef: "local" },
+      ]) {
+        const sealed = unwrap(
+          createEvidenceBundle(rubric, {
+            ...draft,
+            observations: [{ ...required, origin: independentOrigin }, advisory],
+          }),
+        );
+        expect(evaluate(rubric, sealed).outcome).toBe("pass");
+      }
+
+      const completeRun = unwrap(
+        createEvidenceBundle(rubric, {
+          ...draft,
+          observations: [
+            required,
+            { ...advisory, origin: { ...origin, provenance } },
+          ],
+        }),
+      );
+      expect(evaluate(rubric, completeRun).outcome).toBe("pass");
+      const truncatedRun = unwrap(
+        createEvidenceBundle(rubric, {
+          ...draft,
+          observations: [{ ...required, completeness: "truncated" }, advisory],
+        }),
+      );
+      expect(evaluate(rubric, truncatedRun).outcome).toBe("inconclusive");
+    }
+  });
+
+  it("rejects a merge revealing truncation of an existing complete same-run fact", async () => {
+    const rubric = definition(true, "advisory");
+    const origin = { ...artifactOrigin, sourceRef: "runner", runRef: "run2" };
+    const initial = unwrap(
+      createEvidenceBundle(rubric, { ...draft, observations: [{ ...fact, origin }] }),
+    );
+    expect(evaluate(rubric, initial).outcome).toBe("pass");
+    const snapshot = structuredClone(initial);
+    for (const flag of ["stdoutTruncated", "stderrTruncated"] as const) {
+      const observe = vi.fn(async () => ({
+        schemaVersion: 2,
+        definition: referenceOf(rubric),
+        artifactDigest: digestA,
+        provenance: { ...provenance, [flag]: true },
+        observations: [{ ...fact, criterionId: "second", evidenceRef: "obs2" }],
+      }));
+      const collected = await collectObservations(rubric, initial, { observe });
+      expect(observe).toHaveBeenCalledOnce();
+      expect(collected).toEqual({
+        ok: false,
+        outcome: "invalid_evidence",
+        diagnostics: [{ path: "$.observations[0].completeness", code: "MISMATCHED_ORIGIN" }],
+      });
+      expect(initial).toEqual(snapshot);
+      expect(initial.observations[0].completeness).toBe("complete");
+    }
   });
 });

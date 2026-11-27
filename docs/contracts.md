@@ -136,7 +136,10 @@ scoped bundle requires every observation to declare its origin. Unscoped
 observations may omit origin, but cannot claim an artifact. Execution run
 references must match any stated origin. Claims for the same source/run
 cannot conflict in scope or provenance. A supplied provenance record must
-match source/run; truncated captured output cannot be complete. A correction
+match source/run. Known output truncation applies to every observation
+claiming the same source/run pair, including observations that omit their
+own provenance. Without stream attribution, complete claims for that run
+are rejected; distinct source/run pairs retain their own completeness. A correction
 creates a new sealed evidence bundle. See [integrity](integrity.md#canonical-evidence-digest-v2-ay-i15).
 
 **Absent observations and truncated data are structurally valid.** A caller can

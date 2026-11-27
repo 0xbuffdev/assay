@@ -163,7 +163,11 @@ reports are rejected rather than silently replaced.
 
 The collector attaches the report scope and complete bounded provenance only
 to newly returned facts. Existing observations keep their own origin and
-completeness. If either output truncation flag is true, all returned observations are
+completeness. If the report reveals truncation of a run also claimed by an
+existing complete observation, the shared evidence validator rejects the
+combined bundle rather than mutating or relabeling earlier evidence. Omitting
+provenance on the existing fact does not avoid this check. If either output
+truncation flag is true, all returned observations are
 marked `completeness: "truncated"` before evaluation. An incomplete stdout
 capture cannot satisfy an exact-text required criterion. An empty report
 is legal but cannot satisfy missing required evidence.
