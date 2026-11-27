@@ -72,7 +72,7 @@ function complete(definition, observed, references, outcome, findings) {
   assert.equal(result.schemaVersion, 2);
   assert.equal(result.evaluator.version, ASSAY_EVALUATOR_VERSION);
   assert.equal(result.evidenceDigest, observed.evidenceDigest);
-  assert.deepEqual(result.definition, observed.definition);
+  assert.deepEqual(result.definition, { ...observed.definition });
   assert.equal(result.artifactDigest, observed.artifactDigest);
   assert.deepEqual(
     result.findings.map(({ criterionId, outcome, reasonCode }) => ({
@@ -182,9 +182,12 @@ const reference = unwrap(
   }),
 );
 const inventory = seal("inventory-summary", [
-  criterion("summary", "exact_text", { expected: literal(publicOutput) }, {
-    executionFact: "stdout",
-  }),
+  criterion(
+    "summary",
+    "exact_text",
+    { expected: literal(publicOutput) },
+    { executionFact: "stdout" },
+  ),
   criterion(
     "exit",
     "number_with_tolerance",
@@ -252,7 +255,7 @@ const requested = [
 
 function mockReport(request, { truncated = false, unavailable = false, output = publicOutput } = {}) {
   assert.deepEqual(request.criteria, requested);
-  assert.deepEqual(request.definition, starting.definition);
+  assert.deepEqual(request.definition, { ...starting.definition });
   assert.equal(request.artifactDigest, artifactDigest);
   // Definition/artifact identity is deliberately present in the scoped
   // request. No hidden criterion, expected content or reference digest is.
@@ -307,7 +310,10 @@ async function acquire(existing, options) {
 
 const collected = await acquire(starting);
 const publicMatches = [finding("summary", "pass", "MATCH"), finding("exit", "pass", "MATCH")];
-const publicFeedback = [publicFinding("summary", "pass", "match"), publicFinding("exit", "pass", "match")];
+const publicFeedback = [
+  publicFinding("summary", "pass", "match"),
+  publicFinding("exit", "pass", "match"),
+];
 const pass = complete(inventory, collected, references, "pass", [
   ...publicMatches,
   finding(hiddenId, "pass", "MATCH"),
@@ -357,7 +363,10 @@ invalid(
 );
 invalid(
   inventory,
-  evaluate(inventory, collected, { ...references, definition: { ...references.definition, revision: "rev2" } }),
+  evaluate(inventory, collected, {
+    ...references,
+    definition: { ...references.definition, revision: "rev2" },
+  }),
   "invalid_reference",
   "MISMATCHED_DEFINITION",
   canaries,
@@ -427,8 +436,5 @@ publicView(inventory, publicFail, "withheld", [
   publicFinding("summary", "fail", "mismatch"),
   publicFinding("exit", "pass", "match"),
 ]);
-assert.deepEqual(
-  projectPublicResult(inventory, { ...pass, outcome: "fail" }),
-  opaque,
-);
+assert.deepEqual(projectPublicResult(inventory, { ...pass, outcome: "fail" }), opaque);
 console.log("AY-I25 installed standalone assessment scenarios passed (synthetic facts only)");
