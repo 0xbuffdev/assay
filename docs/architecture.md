@@ -69,23 +69,7 @@ shares the numeric comparator's relative-bound calculation to reject impossible
 numeric decisions without inspecting evidence or reference values.
 The package root is never an internal dependency.
 
-AY-I12 makes definition integrity mandatory for `evaluate` and
-`collectObservations`, removes the redundant verified aliases and retains the
-schema-1 digest profile. Projection already verifies the definition. Structural
-parsers and coverage inspection remain non-evaluating operations.
-AY-I13 adds schema-2 objective reference declarations and independently sealed
-reference records and bundles. Definition and reference integrity remain
-separate from comparison; AY-I14 validates supplied bundles at the evaluation
-boundary and passes their typed expected values to the same objective comparators. The
-schema-1 definition canonical profile is retained. AY-I15 introduces sealed
-schema-2 evidence, scoped origins and schema-2 technical results and provider
-records. Evaluation and collection verify evidence before comparing or
-invoking providers; collection seals combined evidence without changing
-existing origins. Public projection remains schema 1 and omits evidence and
-artifact digests.
-The foundation gate checks the source module allowlist, permitted dependency
-directions and absence of cycles; existing public export and packed-consumer
-checks remain intact.
+AY-I23 replaces all earlier runtime schema generations with generation 3. Definition validation owns the bounded composition tree; the existing aggregation owner evaluates required leaf findings through the tree for both evaluation and projection. Reference, evidence, result, provider and public projection contracts all use the current generated version. No legacy adapter or duplicate aggregation path is retained. Structural parsers and coverage remain non-evaluating operations. The foundation gate preserves the module allowlist, permitted dependency directions and absence of cycles.
 
 ## Implementation boundaries
 
@@ -98,11 +82,10 @@ checks remain intact.
 
 No compatibility promise, execution engine or private host API is created by this foundation.
 
-AY-I16 closes the result, reason, warning and binding policy contracts. Definition
-validation admits only `all-required-v1`. Evaluation and projection share required
+AY-I16 closes the result, reason, warning and binding policy contracts. The initial all-required policy is superseded by `composed-required-v1` in AY-I23. Evaluation and projection share required
 aggregation and advisory warning semantics; public disclosure remains unchanged.
 
-AY-I17 extends the schema-2 objective kinds with boolean equality, finite
+AY-I17 extends the objective kinds with boolean equality, finite
 numeric ranges and bounded structured JSON equality. The existing validated
 reference, evidence and coverage boundaries govern all new facts. Pure
 comparators reuse the existing reason taxonomy, aggregation and disclosure.

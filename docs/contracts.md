@@ -17,10 +17,14 @@ import {
 } from "@0xbuff/assay";
 
 const created = createAssessmentDefinition({
-  schemaVersion: 1,
+  schemaVersion: 3,
   assessmentId: "sample",
   revision: "rev1",
-  policyVersion: "all-required-v1",
+  policyVersion: "composed-required-v1",
+  composition: {
+    rootGroupId: "root",
+    groups: [{ id: "root", operator: "all", children: [{ kind: "criterion", id: "output" }] }],
+  },
   criteria: [
     {
       id: "output",
@@ -35,7 +39,7 @@ if (!created.ok) throw new Error("Invalid authored definition");
 const definition = created.value;
 
 const prepared = createEvidenceBundle(definition, {
-  schemaVersion: 2,
+  schemaVersion: 3,
   observations: [],
 });
 if (!prepared.ok) throw new Error("Invalid evidence");
@@ -63,13 +67,12 @@ the import shown represents the future package entry.
 
 ## Definition rules
 
-- A definition has `schemaVersion: 1` or `2`, `assessmentId`, immutable
-  `revision` and `revisionDigest`, `policyVersion` and 1–64 criteria.
+- A definition has `schemaVersion: 3`, `assessmentId`, immutable
+  `revision` and `revisionDigest`, `policyVersion` an explicit `composition`, and 1–64 criteria.
 - At least one criterion must be `required`. IDs must be distinct; the
   sentinel revision `latest` is not a stable identity.
 - The digest syntax is lowercase `sha256:` followed by 64 hex digits.
-  **Schema version 1 is permanently bound to digest profile v1**; a new
-  canonicalization profile requires a new schema version. Structural parsing
+  **Generation 3 uses digest profile v3**; all older runtime schemas are rejected. A new canonicalization profile requires a new schema version. Structural parsing
   checks digest **format only**; the integrity-checking APIs check
   content correctness. Neither authenticates a publisher or signs a definition.
 - Each criterion declares `mode`, `visibility`, `kind` and closed
@@ -84,7 +87,7 @@ the import shown represents the future package entry.
   endpoint inclusion. Neither coerces strings to numbers. For both kinds, numeric
   observations carry the criterion's exact optional `unit` identifier, including
   deliberate absence. A mismatch returns `invalid_evidence` before comparison,
-  without unit conversion. See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-2).
+  without unit conversion. See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-3).
 - Set criteria declare element type, ordering and duplicate policy.
 - Execution criteria declare assertion and reference IDs, **not** an embedded
   command or code runner.
@@ -97,36 +100,40 @@ These are **validated shapes** consumed by the AY-I02
 with bounded claimed provenance and protected-reference redaction. Verified
 execution trust and protected answer resolution remain host responsibilities.
 
+## Criterion composition (AY-I23)
+
+The sole policy is `composed-required-v1`. The required `composition` object contains `rootGroupId` and an authored array of groups, each with an ID, operator `all` or `any`, and nonempty children. Each child has exactly `kind: "criterion" | "group"` and `id`. IDs are disjoint and unique across groups and criteria; root has no parent, every other group exactly one, all are reachable, and cycles and sharing are forbidden. Every required criterion must appear once; advisory criteria cannot be included. Ordinary conjunction is one explicit all group.
+
+The composition is bounded to 64 groups, 64 children per group, eight group levels and 127 child edges. All ordinary snapshot limits still apply. Authored order participates in the definition digest. See [aggregation semantics](evaluation.md#required-versus-advisory-decisions).
+
 ## Content-bound reference contracts (AY-I13)
 
-Use `createReferenceRecord` to construct a frozen, privileged schema-2 reference
+Use `createReferenceRecord` to construct a frozen, privileged schema-3 reference
 record and `verifyReferenceBundle` to validate separately supplied records
-against a verified schema-2 definition. The bundle names the exact assessment,
+against a verified schema-3 definition. The bundle names the exact assessment,
 revision and revision digest; each record has an ID, kind, typed value and
 content digest. Number and range records carry the criterion's exact optional
 unit; set records declare a matching item type. Unknown, duplicate, malformed,
 wrong-kind, wrong-unit or tampered references are invalid input, not learner
-failure. Definitions cannot repeat an objective reference ID in schema 2.
+failure. Definitions cannot repeat an objective reference ID in schema 3.
 An empty or partial bundle is permitted, not a completeness claim.
 
 AY-I14 adds optional reference bundles to `evaluate(definition, evidence, references?)`.
 Valid supplied records use the same objective comparator as literals; missing
 records are inconclusive, and malformed material returns an `invalid_reference`
-failure envelope. Schema-1 ID-only expectations remain unavailable. Execution assertions
-retain their schema-1-style ID-only metadata and remain non-authoritative;
+failure envelope. Execution assertions retain ID-only metadata and remain non-authoritative;
 AY-I18 owns their replacement with typed execution facts. See
-[the canonical profiles](integrity.md#canonical-digest-algorithm-v2-ay-i13).
+[the canonical profiles](integrity.md#current-generation-reference-integrity).
 
 ## Evidence rules
 
-`parseEvidenceBundle` accepts `schemaVersion: 2`, an assessment identity,
+`parseEvidenceBundle` accepts `schemaVersion: 3`, an assessment identity,
 a required evidenceDigest, an optional artifact digest, and observations tagged `text`, `number`,
 `set`, `boolean`, `json`, `execution` or `manual`. Each observation declares a criterion
 ID, unique evidence reference and completeness (`complete` or `truncated`).
 Use `createEvidenceBundle(definition, draft)` to derive definition lineage and
 seal content. A structural parse checks digest syntax, not integrity;
-`verifyEvidenceBundle`, evaluation and acquisition recompute it. Schema-1
-unsigned bundles are rejected. Unknown fields, bogus `trusted` claims, duplicate observation IDs, unsupported
+`verifyEvidenceBundle`, evaluation and acquisition recompute it. Unsigned or superseded-generation bundles are rejected. Unknown fields, bogus `trusted` claims, duplicate observation IDs, unsupported
 values and malformed data are rejected.
 
 An optional origin claims `kind: "independent" | "artifact"`, sourceRef,
@@ -140,12 +147,12 @@ match source/run. Known output truncation applies to every observation
 claiming the same source/run pair, including observations that omit their
 own provenance. Without stream attribution, complete claims for that run
 are rejected; distinct source/run pairs retain their own completeness. A correction
-creates a new sealed evidence bundle. See [integrity](integrity.md#canonical-evidence-digest-v2-ay-i15).
+creates a new sealed evidence bundle. See [integrity](integrity.md#current-generation-evidence-integrity).
 
 **Absent observations and truncated data are structurally valid.** A caller can
 use `inspectEvidenceCoverage` to identify missing or incomplete _required_
-criteria (including truncated output, missing execution assertions and empty manual artifacts) and reject mismatched definition identities, unknown criterion IDs or
-incompatible observation kinds. This helper does not compare observations
+leaves (including unselected alternatives, truncated output, missing execution assertions and empty manual artifacts) and reject mismatched definition identities, unknown criterion IDs or
+incompatible observation kinds. Coverage is an inventory, not the composed aggregate. This helper does not compare observations
 against expected values or conclude `pass`/`fail`; `evaluate` performs
 local literal and content-bound reference comparisons under the documented conditions.
 
@@ -162,9 +169,9 @@ reason codes, warnings and aggregate conclusions. Use the explicit
 approval. The projection does not authenticate a purported result.
 
 `parseEvaluationResult` validates the shape of a typed, versioned technical
-schema-2 finding record, with evidenceDigest, optional artifactDigest,
+schema-3 finding record, with evidenceDigest, optional artifactDigest,
 criterion outcomes, reason codes, evidence references,
-evaluator identity and warnings. Only `all-required-v1` is supported, and
+evaluator identity and warnings. Only `composed-required-v1` is supported, and
 complete records cannot carry invalid-input outcomes. The built-in
 `ReasonCode` and `WarningCode` unions are closed; finding outcomes must match
 their reasons, and evaluator identity/version must match the supported semantics.
@@ -197,6 +204,10 @@ network or model access occurs.
 | Object fields                                       |                       32 |
 | Array elements                                      |                      128 |
 | Definition criteria                                 |                       64 |
+| Composition groups                                  |                       64 |
+| Children per group                                  |                       64 |
+| Group depth (root = 1)                              |                        8 |
+| Total child edges                                   |                      127 |
 | Evidence observations                               |                      128 |
 | Set elements                                        |                      128 |
 | Evidence references per finding                     |                       32 |
@@ -267,14 +278,14 @@ Run `pnpm check` to validate the frozen dependency tree, TypeScript, Biome,
 Vitest and the tsdown ESM/type-declaration build. No package release is
 authorized by this milestone.
 
-AY-I17 adds schema-2-only `boolean_equality`, `number_range`, and
+AY-I17 adds current `boolean_equality`, `number_range`, and
 `json_equality` criteria, with matching typed observation/reference contracts.
 The shared snapshot bounds apply to the entire definition, reference bundle,
 or evidence bundle, including nested JSON values; prohibited keys, non-finite
 numbers, cycles and accessors are rejected. The separate AY-I21 decoder handles raw JSON text.
-See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-2).
+See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-3).
 
-AY-I18 adds an optional schema-2 criterion `executionFact` and matching
+AY-I18 adds an optional schema-3 criterion `executionFact` and matching
 selected observation with a required scoped run origin and termination.
-See the [closed selector and completeness contract](evaluation.md#ay-i18-typed-execution-facts-schema-2).
+See the [closed selector and completeness contract](evaluation.md#ay-i18-typed-execution-facts-schema-3).
 Assertion-only execution and manual artifacts remain non-authoritative.

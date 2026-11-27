@@ -333,6 +333,9 @@ export function parseAssessmentDefinitionDraft(
   ) {
     return issues.result("invalid_definition", undefined as unknown as AssessmentDefinitionDraft);
   }
+  if (data.schemaVersion !== ASSAY_SCHEMA_VERSION) {
+    issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+  }
   if (issues.entries.length > 0) {
     return issues.result("invalid_definition", undefined as unknown as AssessmentDefinitionDraft);
   }

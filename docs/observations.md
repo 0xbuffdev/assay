@@ -52,10 +52,14 @@ import {
 } from "@0xbuff/assay";
 
 const created = createAssessmentDefinition({
-  schemaVersion: 1,
+  schemaVersion: 3,
   assessmentId: "public-demo",
   revision: "rev1",
-  policyVersion: "all-required-v1",
+  policyVersion: "composed-required-v1",
+  composition: {
+    rootGroupId: "root",
+    groups: [{ id: "root", operator: "all", children: [{ kind: "criterion", id: "stdout" }] }],
+  },
   criteria: [
     {
       id: "stdout",
@@ -70,7 +74,7 @@ if (!created.ok) throw new Error("Invalid authored definition");
 const definition = created.value;
 
 const prepared = createEvidenceBundle(definition, {
-  schemaVersion: 2,
+  schemaVersion: 3,
   observations: [],
 });
 if (!prepared.ok) throw new Error("Invalid evidence");
@@ -80,7 +84,7 @@ const mockPort = {
   async observe(request) {
     // request lists only public IDs, expected fact kinds and resource limits.
     return {
-      schemaVersion: 2,
+      schemaVersion: 3,
       definition: request.definition,
       provenance: {
         adapterId: "fixture",
@@ -126,7 +130,7 @@ hash or proof of publisher identity.
 `ObservationPort<S>.observe(request: ObservationPortRequest, signal?: S): Promise<unknown>`
 is supplied **only** by the host. Its request is immutable and includes:
 
-- `schemaVersion: 2`, `definition` ID/revision/digest, optional caller
+- `schemaVersion: 3`, `definition` ID/revision/digest, optional caller
   `artifactDigest`, and `limits.maxCapturedBytes: 65536`.
 - A list of **missing public** criterion IDs and expected observation kinds
   (`text`, `number`, `set`, `boolean`, `json`, or `execution`). Public numeric criteria
@@ -258,3 +262,5 @@ ignores late resolution and consumes late rejection. No retries or default
 timeout are applied. The host must arrange actual execution termination,
 isolation and resource limits; an aborted collector does not prove the
 provider stopped.
+
+Composition changes neither eligibility nor provenance: the collector requests all eligible missing public objective/execution facts in authored order, never group structure or protected IDs. It validates the generation-3 report and reseals generation-3 evidence. A leaf in an alternative is not skipped solely because another branch is decisive.
