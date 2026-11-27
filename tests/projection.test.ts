@@ -8,8 +8,8 @@ import {
   type EvaluationResult,
   type EvidenceBundle,
   evaluate,
-  projectPublicResult,
   type PublicReason,
+  projectPublicResult,
 } from "../src/index";
 import { sealEvidenceFixture } from "./fixtures/contracts";
 
