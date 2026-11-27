@@ -8,15 +8,13 @@ import {
   type ObservationPort,
   parseEvidenceBundle,
 } from "../src/index";
-
-const revisionDigest = `sha256:${"a".repeat(64)}`;
+import { referenceOf, sealDefinition } from "./fixtures/contracts";
 
 function definition(unit?: string): AssessmentDefinition {
-  return {
+  return sealDefinition({
     schemaVersion: 1,
     assessmentId: "unit-integrity",
     revision: "rev1",
-    revisionDigest,
     policyVersion: "policy1",
     criteria: [
       {
@@ -31,17 +29,13 @@ function definition(unit?: string): AssessmentDefinition {
         },
       },
     ],
-  };
+  });
 }
 
-function evidence(unit?: string): EvidenceBundle {
+function evidence(unit?: string, rubric = definition(unit)): EvidenceBundle {
   return {
     schemaVersion: 1,
-    definition: {
-      assessmentId: "unit-integrity",
-      revision: "rev1",
-      revisionDigest,
-    },
+    definition: referenceOf(rubric),
     observations: [
       {
         criterionId: "distance",
@@ -78,7 +72,8 @@ describe("AY-I05 numeric evidence unit integrity", () => {
     ["m", undefined],
     [undefined, "m"],
   ])("rejects mismatched/missing units: criterion %s and observation %s", (expected, actual) => {
-    const result = evaluate(definition(expected), evidence(actual));
+    const rubric = definition(expected);
+    const result = evaluate(rubric, evidence(actual, rubric));
     expect(result.outcome).toBe("invalid_evidence");
     if ("diagnostics" in result) {
       expect(result.diagnostics).toContainEqual({
@@ -146,7 +141,7 @@ describe("AY-I05 numeric evidence unit integrity", () => {
         };
       },
     };
-    const empty: EvidenceBundle = { ...evidence(), observations: [] };
+    const empty: EvidenceBundle = { ...evidence("m"), observations: [] };
     const result = await collectObservations(definition("m"), empty, port);
     expect(result.ok).toBe(false);
     if (!result.ok && "diagnostics" in result) {
@@ -158,7 +153,11 @@ describe("AY-I05 numeric evidence unit integrity", () => {
   });
 
   it("does not normalize or automatically convert units", () => {
-    expect(evaluate(definition("cm"), evidence("m")).outcome).toBe("invalid_evidence");
-    expect(evaluate(definition("m"), evidence("M")).outcome).toBe("invalid_evidence");
+    expect(evaluate(definition("cm"), evidence("m", definition("cm"))).outcome).toBe(
+      "invalid_evidence",
+    );
+    expect(evaluate(definition("m"), evidence("M", definition("m"))).outcome).toBe(
+      "invalid_evidence",
+    );
   });
 });

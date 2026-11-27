@@ -3,11 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ASSAY_DEFINITION_DIGEST_VERSION,
   ASSAY_SCHEMA_VERSION,
-  collectVerifiedObservations,
+  collectObservations,
   computeDefinitionDigest,
   createAssessmentDefinition,
   evaluate,
-  evaluateVerified,
   parseAssessmentDefinitionDraft,
   verifyAssessmentDefinition,
 } from "../src/index";
@@ -93,7 +92,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     expect(verified.ok).toBe(true);
     if (!verified.ok) return;
     expect(verified.value.revisionDigest).toBe(expected);
-    expect(evaluateVerified(verified.value, observed(expected)).outcome).toBe("pass");
+    expect(evaluate(verified.value, observed(expected)).outcome).toBe("pass");
 
     // Even a valid v1 digest must not be checked as if schema 2 used v1.
     // Future profile updates require a schema bump, not reinterpretation.
@@ -224,23 +223,27 @@ describe("AY-I06 versioned canonical definition integrity", () => {
       diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
     });
     expect(JSON.stringify(integrity)).not.toContain("PRIVATE_MARKER");
-    const forged = evaluateVerified(tampered, observed(good.revisionDigest, "PRIVATE_MARKER"));
+    const forged = evaluate(tampered, observed(good.revisionDigest, "PRIVATE_MARKER"));
     expect(forged.outcome).toBe("invalid_definition");
     expect("findings" in forged).toBe(false);
-    // The deliberately unverified low-level comparator still accepts caller
-    // claims: this is why the explicit verified API must be selected.
-    expect(evaluate(tampered, observed(good.revisionDigest, "PRIVATE_MARKER")).outcome).toBe(
-      "pass",
-    );
+    expect(forged).toEqual({
+      outcome: "invalid_definition",
+      diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
+    });
+    expect(JSON.stringify(forged)).not.toContain("PRIVATE_MARKER");
+
+    // A forged definition is rejected before the evidence boundary is touched.
+    const ownKeys = vi.fn(() => []);
+    const hostileEvidence = new Proxy({}, { ownKeys });
+    expect(evaluate(tampered, hostileEvidence)).toEqual(forged);
+    expect(ownKeys).not.toHaveBeenCalled();
   });
 
   it("evaluates a genuine content-bound definition using matching evidence", () => {
     const signed = seal(vector);
-    expect(evaluateVerified(signed, observed(signed.revisionDigest)).outcome).toBe("pass");
-    expect(evaluateVerified(signed, observed(signed.revisionDigest, "wrong")).outcome).toBe("fail");
-    expect(evaluateVerified(signed, observed(`sha256:${"b".repeat(64)}`)).outcome).toBe(
-      "invalid_evidence",
-    );
+    expect(evaluate(signed, observed(signed.revisionDigest)).outcome).toBe("pass");
+    expect(evaluate(signed, observed(signed.revisionDigest, "wrong")).outcome).toBe("fail");
+    expect(evaluate(signed, observed(`sha256:${"b".repeat(64)}`)).outcome).toBe("invalid_evidence");
   });
 
   it("rejects untrusted or malformed unsigned drafts without invoking getters", () => {
@@ -279,13 +282,20 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     const good = seal(vector);
     const poisoned = { ...good, policyVersion: "newPolicy" };
     const port = { observe: vi.fn(async () => ({ ignored: true })) };
-    const result = await collectVerifiedObservations(
+    const result = await collectObservations(
       poisoned,
       { ...observed(good.revisionDigest), observations: [] },
       port,
     );
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.outcome).toBe("invalid_definition");
+    expect(result).toEqual({
+      ok: false,
+      outcome: "invalid_definition",
+      diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
+    });
+    const ownKeys = vi.fn(() => []);
+    const hostileEvidence = new Proxy({}, { ownKeys });
+    expect(await collectObservations(poisoned, hostileEvidence, port)).toEqual(result);
+    expect(ownKeys).not.toHaveBeenCalled();
     expect(port.observe).not.toHaveBeenCalled();
   });
 
@@ -326,7 +336,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
         };
       }),
     };
-    const result = await collectVerifiedObservations(
+    const result = await collectObservations(
       sealed,
       { ...observed(sealed.revisionDigest), observations: [] },
       port,
@@ -334,7 +344,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     expect(port.observe).toHaveBeenCalledOnce();
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(evaluateVerified(sealed, result.evidence).outcome).toBe("pass");
+      expect(evaluate(sealed, result.evidence).outcome).toBe("pass");
     }
   });
 

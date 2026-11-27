@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import * as assay from "@0xbuff/assay";
 
 const digest = (letter) => `sha256:${letter.repeat(64)}`;
-const lineage = (revision = "rev1", revisionDigest = digest("a")) => ({
-  assessmentId: "external-consumer",
-  revision,
-  revisionDigest,
+const lineage = (definition) => ({
+  assessmentId: definition.assessmentId,
+  revision: definition.revision,
+  revisionDigest: definition.revisionDigest,
 });
 const required = (id, kind, parameters, visibility = "public") => ({
   id,
@@ -25,22 +25,30 @@ const text = (criterionId, value, evidenceRef = criterionId) => ({
   kind: "text",
   value,
 });
-const define = (criteria, revision = "rev1", revisionDigest = digest("a")) => ({
+const draft = (criteria, revision = "rev1") => ({
   schemaVersion: 1,
-  ...lineage(revision, revisionDigest),
+  assessmentId: "external-consumer",
+  revision,
   policyVersion: "policy1",
   criteria,
 });
-const evidence = (observations, revision = "rev1", revisionDigest = digest("a")) => ({
+function define(criteria, revision) {
+  const sealed = assay.createAssessmentDefinition(draft(criteria, revision));
+  assert.equal(sealed.ok, true, "Valid authored fixture must seal");
+  return sealed.value;
+}
+const evidence = (observations, definition) => ({
   schemaVersion: 1,
-  definition: lineage(revision, revisionDigest),
+  definition: lineage(definition),
   observations,
 });
-function checked(criteria, observations, revision, revisionDigest) {
-  return assay.evaluate(
-    define(criteria, revision, revisionDigest),
-    evidence(observations, revision, revisionDigest),
-  );
+function checked(criteria, observations, revision) {
+  const definition = define(criteria, revision);
+  return assay.evaluate(definition, evidence(observations, definition));
+}
+function invalidDefinition(criteria, revision) {
+  const definition = { ...draft(criteria, revision), revisionDigest: digest("a") };
+  return assay.evaluate(definition, evidence([], definition));
 }
 function valid(result, outcome) {
   assert.equal(result.outcome, outcome);
@@ -58,10 +66,8 @@ assert.deepEqual(
   [
     "ASSAY_DEFINITION_DIGEST_VERSION",
     "ASSAY_EVALUATOR_VERSION",
-    "collectVerifiedObservations",
     "computeDefinitionDigest",
     "createAssessmentDefinition",
-    "evaluateVerified",
     "verifyAssessmentDefinition",
     "parseAssessmentDefinitionDraft",
     "ASSAY_SCHEMA_VERSION",
@@ -106,12 +112,9 @@ const sealedEvidence = {
   },
   observations: [text("output", "ok")],
 };
-assert.equal(assay.evaluateVerified(sealed, sealedEvidence).outcome, "pass");
+assert.equal(assay.evaluate(sealed, sealedEvidence).outcome, "pass");
 
-const visibleProjection = assay.projectPublicResult(
-  sealed,
-  assay.evaluateVerified(sealed, sealedEvidence),
-);
+const visibleProjection = assay.projectPublicResult(sealed, assay.evaluate(sealed, sealedEvidence));
 assert.deepEqual(visibleProjection, {
   ok: true,
   value: {
@@ -143,7 +146,7 @@ const privateEvidence = {
     revisionDigest: privateSealed.value.revisionDigest,
   },
 };
-const privateTechnical = assay.evaluateVerified(privateSealed.value, privateEvidence);
+const privateTechnical = assay.evaluate(privateSealed.value, privateEvidence);
 assert.equal(privateTechnical.outcome, "inconclusive");
 const privateProjection = assay.projectPublicResult(privateSealed.value, privateTechnical);
 assert.deepEqual(privateProjection, {
@@ -185,7 +188,23 @@ const changedBody = {
 assert.deepEqual(assay.verifyAssessmentDefinition(changedBody).diagnostics, [
   { path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" },
 ]);
-assert.equal(assay.evaluateVerified(changedBody, sealedEvidence).outcome, "invalid_definition");
+assert.deepEqual(assay.evaluate(changedBody, sealedEvidence), {
+  outcome: "invalid_definition",
+  diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
+});
+let tamperedProviderCalled = false;
+const tamperedCollection = await assay.collectObservations(changedBody, evidence([], sealed), {
+  observe: async () => {
+    tamperedProviderCalled = true;
+    return {};
+  },
+});
+assert.deepEqual(tamperedCollection, {
+  ok: false,
+  outcome: "invalid_definition",
+  diagnostics: [{ path: "$.revisionDigest", code: "DEFINITION_DIGEST_MISMATCH" }],
+});
+assert.equal(tamperedProviderCalled, false);
 assert.equal(
   assay.createAssessmentDefinition({ ...unsigned, revisionDigest: sealed.revisionDigest }).ok,
   false,
@@ -269,17 +288,17 @@ valid(
   checked([exact, positiveAdvice], [text("stdout", "incorrect"), text("hint", "nice")]),
   "fail",
 );
-assert.equal(checked([], []).outcome, "invalid_definition");
-assert.equal(checked([positiveAdvice], [text("hint", "nice")]).outcome, "invalid_definition");
-const changed = checked([exact], [text("stdout", "ok\n")], "rev2", digest("b"));
+assert.equal(invalidDefinition([]).outcome, "invalid_definition");
+assert.equal(invalidDefinition([positiveAdvice]).outcome, "invalid_definition");
+const changed = checked([exact], [text("stdout", "ok\n")], "rev2");
 assert.notEqual(changed.definition.revisionDigest, perfect.definition.revisionDigest);
-assert.equal(checked([exact], [text("stdout", "ok\n")], "latest").outcome, "invalid_definition");
+assert.equal(invalidDefinition([exact], "latest").outcome, "invalid_definition");
 assert.equal(
-  assay.evaluate(define([exact]), { ...evidence([]), extraGrade: "100%" }).outcome,
+  assay.evaluate(define([exact]), { ...evidence([], define([exact])), extraGrade: "100%" }).outcome,
   "invalid_evidence",
 );
 assert.equal(
-  assay.evaluate(define([exact]), evidence([], "rev2", digest("b"))).outcome,
+  assay.evaluate(define([exact]), evidence([], define([exact], "rev2"))).outcome,
   "invalid_evidence",
 );
 
@@ -327,7 +346,7 @@ assert.equal(
 );
 
 let getterCalled = false;
-const getter = { ...evidence([]) };
+const getter = { ...evidence([], define([exact])) };
 Object.defineProperty(getter, "observations", {
   enumerable: true,
   get: () => {
@@ -347,7 +366,7 @@ assert.ok(!JSON.stringify(hostileResult).includes("onerror"));
 
 const portDefinition = define([exact, hidden]);
 let requested = false;
-const collected = await assay.collectObservations(portDefinition, evidence([]), {
+const collected = await assay.collectObservations(portDefinition, evidence([], portDefinition), {
   observe: async (request) => {
     requested = true;
     assert.deepEqual(request.criteria, [{ criterionId: "stdout", kind: "text" }]);
@@ -380,25 +399,30 @@ if (collected.ok) {
   valid(assay.evaluate(portDefinition, collected.evidence), "inconclusive");
   assert.equal("trusted" in collected.receipt, false);
 }
-const portRejected = await assay.collectObservations(define([exact]), evidence([]), {
-  observe: async (request) => ({
-    schemaVersion: 1,
-    definition: request.definition,
-    provenance: {
-      adapterId: "mock",
-      adapterVersion: "v1",
-      runRef: "fake",
-      toolchainId: "none",
-      toolchainVersion: "v1",
-      capturedStdoutBytes: 0,
-      capturedStderrBytes: 0,
-      stdoutTruncated: false,
-      stderrTruncated: false,
-      trusted: true,
-    },
-    observations: [text("stdout", "ok\n")],
-  }),
-});
+const publicDefinition = define([exact]);
+const portRejected = await assay.collectObservations(
+  publicDefinition,
+  evidence([], publicDefinition),
+  {
+    observe: async (request) => ({
+      schemaVersion: 1,
+      definition: request.definition,
+      provenance: {
+        adapterId: "mock",
+        adapterVersion: "v1",
+        runRef: "fake",
+        toolchainId: "none",
+        toolchainVersion: "v1",
+        capturedStdoutBytes: 0,
+        capturedStderrBytes: 0,
+        stdoutTruncated: false,
+        stderrTruncated: false,
+        trusted: true,
+      },
+      observations: [text("stdout", "ok\n")],
+    }),
+  },
+);
 assert.equal(portRejected.outcome, "invalid_evidence");
 assert.ok(!JSON.stringify(portRejected).includes("trusted"));
 

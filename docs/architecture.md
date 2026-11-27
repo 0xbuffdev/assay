@@ -24,7 +24,7 @@ The source exposes versioned parsing/coverage from [contracts](contracts.md), pu
 
 ## Source organization
 
-AY-I11 separates internal responsibilities without changing the current schema,
+AY-I11 separated internal responsibilities without changing the schema,
 digest profile, outcome semantics or package-root exports. The accepted
 [organization requirement ASY-32](https://github.com/0xbuffdev/context/blob/main/repos/assay/specs/0003-evaluation-semantics.md)
 governs this structure.
@@ -56,19 +56,21 @@ flowchart TD
     V --> S["Contracts"]
     C --> S
     A --> S
-    E -. verified entry .-> I
-    O -. verified entry .-> I
+    E --> I
+    O --> I
 ```
 
 Contracts have no dependency on evaluation, integrity, acquisition or
 projection. Validation depends only on contracts and shared validators.
-Integrity does not import evaluation or acquisition; the verified entry points
-compose integrity with those operations. Projection uses the same internal
+Integrity does not import evaluation or acquisition; both operations verify
+definition integrity before inspecting evidence. Projection uses the same internal
 required aggregation as evaluation after checking result correspondence.
 The package root is never an internal dependency.
 
-The existing unchecked and verified public functions remain unchanged in
-AY-I11. AY-I12 owns the separately planned mandatory-integrity API migration.
+AY-I12 makes definition integrity mandatory for `evaluate` and
+`collectObservations`, removes the redundant verified aliases and retains the
+schema-1 digest profile. Projection already verifies the definition. Structural
+parsers and coverage inspection remain non-evaluating operations.
 The foundation gate checks the source module allowlist, permitted dependency
 directions and absence of cycles; existing public export and packed-consumer
 checks remain intact.

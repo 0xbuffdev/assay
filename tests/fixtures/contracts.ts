@@ -1,4 +1,31 @@
-import type { AssessmentDefinition, EvaluationResult, EvidenceBundle } from "../../src/index";
+import {
+  type AssessmentDefinition,
+  type AssessmentDefinitionDraft,
+  createAssessmentDefinition,
+  type DefinitionReference,
+  type EvaluationResult,
+  type EvidenceBundle,
+} from "../../src/index";
+
+export function sealDefinition(draft: AssessmentDefinitionDraft): AssessmentDefinition {
+  const checked = createAssessmentDefinition({
+    schemaVersion: draft.schemaVersion,
+    assessmentId: draft.assessmentId,
+    revision: draft.revision,
+    policyVersion: draft.policyVersion,
+    criteria: draft.criteria,
+  });
+  if (!checked.ok) throw new Error("Invalid authored test fixture");
+  return checked.value;
+}
+
+export function referenceOf(definition: AssessmentDefinition): DefinitionReference {
+  return {
+    assessmentId: definition.assessmentId,
+    revision: definition.revision,
+    revisionDigest: definition.revisionDigest,
+  };
+}
 
 export const digestA = `sha256:${"a".repeat(64)}`;
 export const digestB = `sha256:${"b".repeat(64)}`;

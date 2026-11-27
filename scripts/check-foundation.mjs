@@ -52,13 +52,11 @@ const sourcePaths = new Set([
   "src/evaluation/comparators/text.ts",
   "src/evaluation/compare.ts",
   "src/evaluation/evaluate.ts",
-  "src/evaluation/verified.ts",
   "src/index.ts",
   "src/integrity/canonical.ts",
   "src/integrity/definition.ts",
   "src/integrity/sha256.ts",
   "src/observation/collect.ts",
-  "src/observation/verified.ts",
   "src/projection/public.ts",
   "src/validation/coverage.ts",
   "src/validation/definition.ts",
@@ -115,7 +113,8 @@ assert.match(entry, /parseAssessmentDefinition/, "AY-I01 must expose contract va
 assert.match(entry, /parseEvidenceBundle/, "AY-I01 must expose evidence validation");
 assert.match(entry, /evaluate/, "AY-I02 must expose deterministic comparison");
 assert.match(entry, /collectObservations/, "AY-I03 must expose optional observation collection");
-assert.match(entry, /evaluateVerified/, "AY-I06 must expose verified definition evaluation");
+assert.match(entry, /verifyAssessmentDefinition/, "Expose definition integrity verification");
+assert.doesNotMatch(entry, /evaluateVerified|collectVerifiedObservations/, "No redundant aliases");
 assert.match(entry, /projectPublicResult/, "AY-I07 must expose restricted-safe projections");
 
 // Prevent extensionful .js specifiers in all authored TypeScript modules.
@@ -211,10 +210,10 @@ for (const file of sourcePaths) {
         assert.equal(target, "src/evaluation/aggregate.ts");
       }
       if (layer === "evaluation" && targetLayer === "integrity") {
-        assert.equal(file, "src/evaluation/verified.ts");
+        assert.equal(file, "src/evaluation/evaluate.ts");
       }
       if (layer === "observation" && targetLayer === "integrity") {
-        assert.equal(file, "src/observation/verified.ts");
+        assert.equal(file, "src/observation/collect.ts");
       }
     }
     dependencies.push(target);

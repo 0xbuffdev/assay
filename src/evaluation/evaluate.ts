@@ -1,7 +1,7 @@
 import { ASSAY_SCHEMA_VERSION } from "../contracts/common";
 import type { CriterionFinding, EvaluationFailure, EvaluationResponse } from "../contracts/result";
+import { verifyAssessmentDefinition } from "../integrity/definition";
 import { inspectEvidenceCoverage } from "../validation/coverage";
-import { parseAssessmentDefinition } from "../validation/definition";
 import { parseEvidenceBundle } from "../validation/evidence";
 import { aggregateRequired } from "./aggregate";
 import {
@@ -24,15 +24,16 @@ function invalid(
 }
 
 /**
- * Pure deterministic technical comparison against a caller-authorized rubric.
+ * Pure deterministic technical comparison against a content-verified rubric.
  *
+ * Definition integrity is checked before inspecting evidence or comparing values.
  * Malformed definition/evidence returns a bounded, value-free failure envelope,
  * not a forged revision identifier. Valid inputs return a full EvaluationResult.
  * This function does not attest origins, resolve hidden references, execute
  * code, grade a learner or issue formal credit.
  */
 export function evaluate(definitionInput: unknown, evidenceInput: unknown): EvaluationResponse {
-  const validatedDefinition = parseAssessmentDefinition(definitionInput);
+  const validatedDefinition = verifyAssessmentDefinition(definitionInput);
   if (!validatedDefinition.ok) {
     return invalid("invalid_definition", validatedDefinition.diagnostics);
   }

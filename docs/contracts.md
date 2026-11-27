@@ -9,16 +9,16 @@ through `evaluate` as described in [evaluation](evaluation.md); it still does
 
 ```ts
 import {
+  createAssessmentDefinition,
   parseAssessmentDefinition,
   parseEvidenceBundle,
   inspectEvidenceCoverage,
 } from "@0xbuff/assay";
 
-const definition = {
+const created = createAssessmentDefinition({
   schemaVersion: 1,
   assessmentId: "sample",
   revision: "rev1",
-  revisionDigest: "sha256:" + "a".repeat(64),
   policyVersion: "v1",
   criteria: [
     {
@@ -29,14 +29,16 @@ const definition = {
       parameters: { expected: { type: "literal", value: "ok" } },
     },
   ],
-};
+});
+if (!created.ok) throw new Error("Invalid authored definition");
+const definition = created.value;
 
 const observed = {
   schemaVersion: 1,
   definition: {
     assessmentId: "sample",
     revision: "rev1",
-    revisionDigest: "sha256:" + "a".repeat(64),
+    revisionDigest: definition.revisionDigest,
   },
   observations: [],
 };
@@ -49,15 +51,14 @@ const coverage = inspectEvidenceCoverage(definition, observed);
 ```
 
 For new definitions, use [canonical content integrity](integrity.md) to create a
-validated, content-bound digest from an unsigned draft. `evaluateVerified` checks
+validated, content-bound digest from an unsigned draft. `evaluate` checks
 this integrity before comparing evidence; the structural APIs shown here do
 not independently authenticate or verify a publisher.
 
-The example's digest is a syntactically valid **placeholder**, not proof that
-the source was hashed, signed or approved. For production content integrity,
-use Assay's `computeDefinitionDigest` or `createAssessmentDefinition` to derive
-the canonical hash, then `verifyAssessmentDefinition` or `evaluateVerified` to
-check it. **The host** must authenticate the publisher and independently decide
+Use Assay's `computeDefinitionDigest` or `createAssessmentDefinition` to derive
+the canonical hash. Evaluation, acquisition and public projection verify it
+automatically; `verifyAssessmentDefinition` is available for explicit checks.
+**The host** must authenticate the publisher and independently decide
 whether that definition or digest is authorized; a matching hash alone cannot
 establish origin or grading authority. The source package remains unreleased;
 the import shown represents the future package entry.
@@ -71,7 +72,7 @@ the import shown represents the future package entry.
 - The digest syntax is lowercase `sha256:` followed by 64 hex digits.
   **Schema version 1 is permanently bound to digest profile v1**; a new
   canonicalization profile requires a new schema version. Structural parsing
-  checks digest **format only**; the explicit AY-I06 verified APIs check
+  checks digest **format only**; the integrity-checking APIs check
   content correctness. Neither authenticates a publisher or signs a definition.
 - Each criterion declares `mode`, `visibility`, `kind` and closed
   `parameters`. There are no executable callback predicates, implicit

@@ -13,20 +13,25 @@ import {
   type TextNormalization,
 } from "../src/index";
 import {
-  digestA,
   digestB,
   definition as fixtureDefinition,
   evidence as fixtureEvidence,
+  referenceOf,
+  sealDefinition,
 } from "./fixtures/contracts";
 
 function caseOf(
   criterion: Criterion,
   observation?: Observation,
 ): [AssessmentDefinition, EvidenceBundle] {
-  const original = fixtureDefinition();
+  const definition = sealDefinition({ ...fixtureDefinition(), criteria: [criterion] });
   return [
-    { ...original, criteria: [criterion] },
-    { ...fixtureEvidence(), observations: observation ? [observation] : [] },
+    definition,
+    {
+      ...fixtureEvidence(),
+      definition: referenceOf(definition),
+      observations: observation ? [observation] : [],
+    },
   ];
 }
 
@@ -352,9 +357,10 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
       { ...numberCriterion(10, 0, 0), id: "missing" },
       { ...textCriterion("exact_text", "great"), id: "advice", mode: "advisory" },
     ];
-    const definition: AssessmentDefinition = { ...base, criteria };
+    const definition = sealDefinition({ ...base, criteria });
     const evidence: EvidenceBundle = {
       ...fixtureEvidence(),
+      definition: referenceOf(definition),
       observations: [
         complete("check", "text", "wrong"),
         { ...complete("advice", "text", "great"), evidenceRef: "obs2" },
@@ -401,15 +407,16 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     const execution = base.criteria.find((c) => c.kind === "observed_execution");
     const manual = base.criteria.find((c) => c.kind === "manual_evidence");
     if (!execution || !manual) throw new Error("fixture");
-    const requested = {
+    const requested = sealDefinition({
       ...base,
       criteria: [
         { ...execution, mode: "required" as const },
         { ...manual, mode: "required" as const },
       ],
-    };
+    });
     const payload: EvidenceBundle = {
       ...fixtureEvidence(),
+      definition: referenceOf(requested),
       observations: [
         {
           criterionId: "program",
@@ -487,7 +494,8 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
       mode: "advisory",
     };
     const [def, ev] = caseOf(required, complete("check", "text", "ok"));
-    const r = resolved(evaluate({ ...def, criteria: [required, advisory] }, ev));
+    const configured = sealDefinition({ ...def, criteria: [required, advisory] });
+    const r = resolved(evaluate(configured, { ...ev, definition: referenceOf(configured) }));
     expect(r.outcome).toBe("pass");
     expect(r.warnings).toEqual(["ADVISORY_UNRESOLVED"]);
     expect(r.findings[1].outcome).toBe("inconclusive");
@@ -498,7 +506,7 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     expect(invalidDef.outcome).toBe("invalid_definition");
     expect("definition" in invalidDef).toBe(false);
     expect("findings" in invalidDef).toBe(false);
-    const invalidEvidence = evaluate(fixtureDefinition(), {
+    const invalidEvidence = evaluate(sealDefinition(fixtureDefinition()), {
       ...fixtureEvidence(),
       definition: { ...fixtureEvidence().definition, revisionDigest: digestB },
     });
@@ -545,12 +553,10 @@ describe("AY-I02 fail-closed aggregation and authority", () => {
     expect(Object.isFrozen(a.findings[0])).toBe(true);
     expect(Object.isFrozen(a.findings[0].evidenceRefs)).toBe(true);
     expect(Object.isFrozen(a.warnings)).toBe(true);
-    const changed = evaluate(
-      { ...def, revision: "rev2", revisionDigest: digestB },
-      { ...ev, definition: { ...ev.definition, revision: "rev2", revisionDigest: digestB } },
-    );
+    const revised = sealDefinition({ ...def, revision: "rev2" });
+    const changed = evaluate(revised, { ...ev, definition: referenceOf(revised) });
     expect(resolved(changed).definition.revisionDigest).not.toBe(a.definition.revisionDigest);
-    expect(a.definition.revisionDigest).toBe(digestA);
+    expect(a.definition.revisionDigest).toBe(def.revisionDigest);
     expect(a.evaluator.version).toBe(ASSAY_EVALUATOR_VERSION);
   });
 });

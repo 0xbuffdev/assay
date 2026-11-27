@@ -15,6 +15,8 @@ import {
   digestB,
   definition as exampleDefinition,
   evidence as exampleEvidence,
+  referenceOf,
+  sealDefinition,
 } from "./fixtures/contracts";
 
 const outputCriterion = {
@@ -27,18 +29,23 @@ const outputCriterion = {
 
 function definition(): AssessmentDefinition {
   const original = exampleDefinition();
-  return { ...original, criteria: [outputCriterion] };
+  return sealDefinition({ ...original, criteria: [outputCriterion] });
 }
 
-function evidence(): EvidenceBundle {
+function evidence(rubric = definition()): EvidenceBundle {
   const original = exampleEvidence();
-  return { ...original, observations: [], artifactDigest: digestA };
+  return {
+    ...original,
+    definition: referenceOf(rubric),
+    observations: [],
+    artifactDigest: digestA,
+  };
 }
 
 function report(overrides: Partial<ObservationPortReport> = {}): ObservationPortReport {
   return {
     schemaVersion: 1,
-    definition: { assessmentId: "assay-demo", revision: "rev1", revisionDigest: digestA },
+    definition: referenceOf(definition()),
     artifactDigest: digestA,
     provenance: {
       adapterId: "mock-runner",
@@ -85,7 +92,7 @@ function provider(value: unknown): ObservationPort {
 describe("AY-I03 optional injected observation port", () => {
   it("passes only public requested facts to a mock port without references or expected answers", async () => {
     const original = exampleDefinition();
-    const input = {
+    const input = sealDefinition({
       ...original,
       criteria: [
         ...original.criteria,
@@ -97,8 +104,12 @@ describe("AY-I03 optional injected observation port", () => {
           parameters: { assertions: [{ id: "secretAssertion", referenceId: "PRIVATE_TEST_REF" }] },
         },
       ],
+    });
+    const observed: EvidenceBundle = {
+      ...exampleEvidence(),
+      definition: referenceOf(input),
+      artifactDigest: digestA,
     };
-    const observed: EvidenceBundle = { ...exampleEvidence(), artifactDigest: digestA };
     const callback = vi.fn(async (request: unknown) => {
       const serialized = JSON.stringify(request);
       expect(serialized).not.toContain("PRIVATE_TEST_REF");
@@ -110,13 +121,14 @@ describe("AY-I03 optional injected observation port", () => {
       expect(serialized).not.toContain("trusted");
       expect(request).toMatchObject({
         schemaVersion: 1,
-        definition: { assessmentId: "assay-demo", revision: "rev1", revisionDigest: digestA },
+        definition: referenceOf(input),
         artifactDigest: digestA,
         criteria: [{ criterionId: "members", kind: "set" }],
         limits: { maxCapturedBytes: CONTRACT_LIMITS.maxCapturedBytes },
       });
       expect(Object.isFrozen(request)).toBe(true);
       return report({
+        definition: referenceOf(input),
         observations: [
           {
             criterionId: "members",
@@ -132,7 +144,7 @@ describe("AY-I03 optional injected observation port", () => {
     const result = successful(await collectObservations(input, observed, { observe: callback }));
     expect(callback).toHaveBeenCalledTimes(1);
     expect(result.evidence.observations).toHaveLength(4);
-    expect(result.receipt?.definition.revisionDigest).toBe(digestA);
+    expect(result.receipt?.definition.revisionDigest).toBe(input.revisionDigest);
     expect(result.receipt?.provenance).toMatchObject({ adapterId: "mock-runner", runRef: "run1" });
     expect("trusted" in (result.receipt?.provenance ?? {})).toBe(false);
   });
@@ -155,13 +167,14 @@ describe("AY-I03 optional injected observation port", () => {
     );
     if (selected?.kind !== "observed_execution") throw new Error("fixture");
     const chosen = { ...selected, mode: "required" as const, visibility: "public" as const };
-    const requestedDefinition = { ...definition(), criteria: [chosen] };
+    const requestedDefinition = sealDefinition({ ...definition(), criteria: [chosen] });
     const seen = vi.fn(async (request: unknown) => {
       expect(request).toMatchObject({
         criteria: [{ criterionId: "program", kind: "execution", assertionIds: ["unit1"] }],
       });
       expect(JSON.stringify(request)).not.toContain("verified-unit1");
       return report({
+        definition: referenceOf(requestedDefinition),
         observations: [
           {
             criterionId: "program",
@@ -175,7 +188,9 @@ describe("AY-I03 optional injected observation port", () => {
       });
     });
     const collected = successful(
-      await collectObservations(requestedDefinition, evidence(), { observe: seen }),
+      await collectObservations(requestedDefinition, evidence(requestedDefinition), {
+        observe: seen,
+      }),
     );
     const outcome = evaluate(requestedDefinition, collected.evidence);
     expect(outcome.outcome).toBe("inconclusive");
@@ -188,14 +203,16 @@ describe("AY-I03 optional injected observation port", () => {
     const restricted = root.criteria.find((item) => item.kind === "normalized_text");
     const manual = root.criteria.find((item) => item.kind === "manual_evidence");
     if (!restricted || !manual) throw new Error("fixture");
-    const configured: AssessmentDefinition = {
+    const configured = sealDefinition({
       ...root,
       criteria: [{ ...restricted, mode: "required" }, manual],
-    };
+    });
     const observe = vi.fn(async () => {
       throw new Error("SHOULD_NOT_RUN");
     });
-    const response = successful(await collectObservations(configured, evidence(), { observe }));
+    const response = successful(
+      await collectObservations(configured, evidence(configured), { observe }),
+    );
     expect(observe).not.toHaveBeenCalled();
     expect(response.receipt).toBeNull();
     expect(response.evidence.observations).toEqual([]);
@@ -300,10 +317,10 @@ describe("AY-I03 optional injected observation port", () => {
       (item) => item.kind === "observed_execution",
     );
     if (selected?.kind !== "observed_execution") throw new Error("fixture");
-    const configured = {
+    const configured = sealDefinition({
       ...definition(),
-      criteria: [{ ...selected, visibility: "public" as const, mode: "required" as const }],
-    };
+      criteria: [{ ...selected, visibility: "public", mode: "required" }],
+    });
     const observation = {
       criterionId: "program",
       evidenceRef: "exec1",
@@ -314,15 +331,16 @@ describe("AY-I03 optional injected observation port", () => {
     };
     const wrongRun = await collectObservations(
       configured,
-      evidence(),
-      provider(report({ observations: [observation] })),
+      evidence(configured),
+      provider(report({ definition: referenceOf(configured), observations: [observation] })),
     );
     expect(failed(wrongRun).outcome).toBe("invalid_evidence");
     const wrongAssertion = await collectObservations(
       configured,
-      evidence(),
+      evidence(configured),
       provider(
         report({
+          definition: referenceOf(configured),
           observations: [
             {
               ...observation,
@@ -356,14 +374,19 @@ describe("AY-I03 optional injected observation port", () => {
     );
     expect(failed(incompatible).outcome).toBe("invalid_evidence");
 
-    const root = exampleDefinition();
-    const base: EvidenceBundle = { ...exampleEvidence(), artifactDigest: digestA };
+    const root = sealDefinition(exampleDefinition());
+    const base: EvidenceBundle = {
+      ...exampleEvidence(),
+      definition: referenceOf(root),
+      artifactDigest: digestA,
+    };
     // "members" is missing, while ev-output is already used by the base bundle.
     const reused = await collectObservations(
       root,
       base,
       provider(
         report({
+          definition: referenceOf(root),
           observations: [
             {
               criterionId: "members",
