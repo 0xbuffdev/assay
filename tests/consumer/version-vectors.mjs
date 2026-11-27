@@ -84,7 +84,11 @@ for (const schemaVersion of [1, 3, "2"]) {
   unsupported(assay.parseEvidenceBundle({ ...evidence, schemaVersion }));
   unsupported(assay.parseEvaluationResult({ ...result, schemaVersion }));
   unsupported(
-    assay.verifyReferenceBundle(v2, { schemaVersion, definition: content.definition, references: [] }),
+    assay.verifyReferenceBundle(v2, {
+      schemaVersion,
+      definition: content.definition,
+      references: [],
+    }),
   );
 }
 assert.equal(assay.verifyAssessmentDefinition({ ...v1, schemaVersion: 2 }).ok, false);
@@ -103,4 +107,6 @@ assert.equal(
   assay.createAssessmentDefinition({ ...JSON.parse(definitionV2), policyVersion: "future" }).ok,
   false,
 );
-console.log("AY-I22 independent canonical profiles, version rejection and exact semantics verified");
+console.log(
+  "AY-I22 independent canonical profiles, version rejection and exact semantics verified",
+);
