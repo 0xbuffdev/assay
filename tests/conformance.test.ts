@@ -259,4 +259,113 @@ describe("AY-I24 independent conformance, evaluator v0.0.3", () => {
       }
     }
   });
+
+  it("checks boolean truth tables and explicit text normalization transformations", () => {
+    for (const expected of [true, false]) {
+      for (const value of [true, false]) {
+        compare(
+          {
+            ...base,
+            kind: "boolean_equality",
+            parameters: { expected: { type: "literal", value: expected } },
+          },
+          { ...observation, kind: "boolean", value },
+          expected === value,
+        );
+      }
+    }
+    for (const word of ["CAFÉ", "ÉTÉ", "ÅNGSTRÖM"]) {
+      const expected = word.toLowerCase();
+      const value = `  ${word.normalize("NFD")}\r\n `;
+      compare(
+        {
+          ...base,
+          kind: "normalized_text",
+          parameters: {
+            expected: { type: "literal", value: expected },
+            normalization: {
+              lineEndings: "lf",
+              unicode: "NFC",
+              case: "fold",
+              whitespace: "collapse",
+              trim: "both",
+            },
+          },
+        },
+        { ...observation, kind: "text", value },
+        true,
+      );
+      compare(
+        {
+          ...base,
+          kind: "exact_text",
+          parameters: { expected: { type: "literal", value: expected } },
+        },
+        { ...observation, kind: "text", value },
+        false,
+      );
+    }
+  });
+
+  it("checks the binding outcome and advisory isolation against an authored truth table", () => {
+    const states = ["pass", "fail", "inconclusive", "error"] as const;
+    const table = [
+      ["pass", "fail", "inconclusive", "evaluation_error"],
+      ["fail", "fail", "fail", "fail"],
+      ["inconclusive", "fail", "inconclusive", "evaluation_error"],
+      ["evaluation_error", "fail", "evaluation_error", "evaluation_error"],
+    ];
+    for (const [row, first] of states.entries()) {
+      for (const [column, second] of states.entries()) {
+        for (const advisory of states) {
+          const decisions = [first, second, advisory];
+          const criteria = decisions.map((state, i) => ({
+            id: `fact-${i}`,
+            mode: i === 2 ? "advisory" : "required",
+            visibility: "public",
+            ...(state === "error"
+              ? {
+                  kind: "number_with_tolerance",
+                  parameters: {
+                    expected: { type: "literal", value: Number.MAX_VALUE },
+                    tolerance: { absolute: 0, relative: 2 },
+                  },
+                }
+              : {
+                  kind: "exact_text",
+                  parameters: { expected: { type: "literal", value: "ok" } },
+                }),
+          }));
+          const observations = decisions.flatMap((state, i) => {
+            if (state === "inconclusive") return [];
+            return [
+              {
+                criterionId: `fact-${i}`,
+                evidenceRef: `obs-${i}`,
+                completeness: "complete",
+                ...(state === "error"
+                  ? { kind: "number", value: Number.MAX_VALUE }
+                  : { kind: "text", value: state === "pass" ? "ok" : "wrong" }),
+              },
+            ];
+          });
+          const definition = unwrap(createAssessmentDefinition(draft(criteria)));
+          const evidence = unwrap(
+            createEvidenceBundle(definition, { schemaVersion: 2, observations }),
+          );
+          const result = evaluate(definition, evidence);
+          expect(result).toMatchObject({
+            outcome: table[row][column],
+            findings: decisions.map((outcome, i) => ({ criterionId: `fact-${i}`, outcome })),
+            warnings:
+              advisory === "error" || advisory === "inconclusive" ? ["ADVISORY_UNRESOLVED"] : [],
+          });
+          expect(projectPublicResult(definition, result)).toMatchObject({
+            ok: true,
+            value: { outcome: table[row][column] },
+          });
+        }
+      }
+    }
+  });
 });
