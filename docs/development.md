@@ -60,3 +60,52 @@ build verification reject stale generated metadata without rewriting it.
 The package manifest remains the public package-version authority, while the
 existing evaluator export and technical result identify evaluator semantics.
 See [version compatibility](integrity.md#version-compatibility-ay-i22).
+
+## Conformance and adversarial verification (AY-I24)
+
+The conformance suite targets evaluator semantics `v0.0.3`, schema-1 and
+schema-2 definition profiles, and schema-2 reference/evidence profiles.
+It uses only synthetic records and the public source entry point. Node's
+`crypto` and an independent property-list JSON serializer check generated
+canonical hashes; fixed authored byte/hash vectors in the existing integrity
+suites remain the compatibility anchors. Generated corpora are deterministic:
+no random seed, clock, network, provider service or new dependency is needed.
+
+| Requirement | Verification in the mandatory Vitest/foundation/package gates |
+| --- | --- |
+| ASY-27, ASY-38 | `adversarial.test.ts`, `serialized.test.ts`, `resources.test.ts`: malformed transport mutations, decoded duplicate keys, hostile objects, bounded resource limits, redacted failures |
+| ASY-28–31 | `conformance.test.ts`, existing evaluator and execution-fact suites: independent comparator outcomes, replay, closed results, required/advisory precedence, missing and truncated evidence |
+| ASY-32 | Foundation module/export checks and isolated packed consumer; no source layout or API changes |
+| ASY-33 | Conditional qualitative observations remain deferred; existing manual/unverified review paths remain non-authoritative |
+| ASY-34–36 | `adversarial.test.ts`, `observation.test.ts`: stream-specific truncation permutations, empty/unsolicited reports, scoped origins, cancellation and late settlement |
+| ASY-37 | `adversarial.test.ts`, `projection.test.ts`: repeated protected probes, criterion order and advisory/required permutations, opaque rejection, fixed public bytes across hidden outcomes |
+| ASY-39 | `conformance.test.ts`, existing fixed integrity vectors and generated metadata gate: independent hashes, version identity, unsupported versions |
+| ASY-40 | All preceding checks plus exact installed ESM/TypeScript and archive verification; realistic additional standalone assessment integration is AY-I25 |
+
+Run the new suites independently, or use the full quality gate:
+
+```sh
+git rev-parse HEAD
+node --version
+pnpm --version
+pnpm exec vitest run tests/conformance.test.ts tests/adversarial.test.ts tests/resources.test.ts
+pnpm check
+```
+
+The resource suite samples each fixed workload five times after one warm-up.
+Workloads cover the exact serialized byte/node cap with multibyte text,
+escape-heavy maximum-length strings, maximum depth, and 64 large criteria
+with corresponding evidence, including sealing, evaluation and projection.
+Adjacent invalid inputs must reject; machine-dependent time and memory are
+observations, not pass/fail thresholds. Logs report the Node version, platform,
+architecture, OS release, CI checkout SHA (for pull requests this may be the
+test-merge commit), elapsed times, heap/RSS deltas and cumulative process
+maximum RSS. Local runs must record the checked-out SHA separately. Heap/RSS
+deltas can be negative due to garbage collection; cumulative maximum RSS is
+not an isolated per-workload peak. These are reproducible boundary workloads,
+not a proof of worst-case complexity, a memory ceiling or host isolation.
+
+Preserve the actual CI run and reviewed-head/tree identity when reporting
+acceptance, including any failed or unexecuted commands. Source review does
+not establish execution evidence, and the resource samples do not authorize
+publication. AY-I08 and AY-I23 remain conditional and excluded.
