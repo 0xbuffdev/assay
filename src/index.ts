@@ -5,7 +5,13 @@
  * authenticate evidence, or contact any external service.
  */
 
-export type { Completeness, JsonValue, NumericRange, SetItemType, SetScalar } from "./contracts/common";
+export type {
+  Completeness,
+  JsonValue,
+  NumericRange,
+  SetItemType,
+  SetScalar,
+} from "./contracts/common";
 export { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "./contracts/common";
 export type {
   AssessmentDefinition,

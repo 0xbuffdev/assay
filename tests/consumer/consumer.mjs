@@ -616,7 +616,10 @@ const objectiveDefinition = assay.createAssessmentDefinition({
   ...draft([
     required("boolean", "boolean_equality", { expected: { type: "literal", value: false } }),
     required("range", "number_range", {
-      expected: { type: "literal", value: { min: -1, max: 1, minInclusive: true, maxInclusive: false } },
+      expected: {
+        type: "literal",
+        value: { min: -1, max: 1, minInclusive: true, maxInclusive: false },
+      },
     }),
     required("json", "json_equality", {
       expected: { type: "literal", value: { a: [null, false], b: 0 } },
@@ -625,9 +628,12 @@ const objectiveDefinition = assay.createAssessmentDefinition({
   schemaVersion: 2,
 });
 assert.equal(objectiveDefinition.ok, true);
-const objectiveEvidence = evidence([
-  { ...text("boolean", false), kind: "boolean" },
-  { ...text("range", 0), kind: "number" },
-  { ...text("json", { b: -0, a: [null, false] }), kind: "json" },
-], objectiveDefinition.value);
+const objectiveEvidence = evidence(
+  [
+    { ...text("boolean", false), kind: "boolean" },
+    { ...text("range", 0), kind: "number" },
+    { ...text("json", { b: -0, a: [null, false] }), kind: "json" },
+  ],
+  objectiveDefinition.value,
+);
 valid(assay.evaluate(objectiveDefinition.value, objectiveEvidence), "pass");

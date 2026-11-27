@@ -135,8 +135,20 @@ describe("schema-2 objective comparators", () => {
 
   it("compares sealed restricted references without disclosing their values", () => {
     const cases = [
-      { kind: "boolean_equality", refKind: "boolean", expected: false, factKind: "boolean", actual: false },
-      { kind: "number_range", refKind: "range", expected: interval(-1, 1), factKind: "number", actual: 0 },
+      {
+        kind: "boolean_equality",
+        refKind: "boolean",
+        expected: false,
+        factKind: "boolean",
+        actual: false,
+      },
+      {
+        kind: "number_range",
+        refKind: "range",
+        expected: interval(-1, 1),
+        factKind: "number",
+        actual: 0,
+      },
       { kind: "json_equality", refKind: "json", expected: null, factKind: "json", actual: null },
       {
         kind: "json_equality",
@@ -185,7 +197,9 @@ describe("schema-2 objective comparators", () => {
         ...bundle,
         references: [{ ...reference.value, referenceDigest: `sha256:${"0".repeat(64)}` }],
       };
-      expect(evaluate(definition.value, evidence.value, tampered).outcome).toBe("invalid_reference");
+      expect(evaluate(definition.value, evidence.value, tampered).outcome).toBe(
+        "invalid_reference",
+      );
       expect(projectPublicResult(definition.value, result)).toEqual({
         ok: true,
         value: { schemaVersion: 1, outcome: "withheld", findings: [] },
