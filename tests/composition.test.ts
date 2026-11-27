@@ -10,10 +10,12 @@ import {
   evaluate,
   type FindingOutcome,
   inspectEvidenceCoverage,
+  parseEvaluationResult,
   projectPublicResult,
   type TechnicalOutcome,
   verifyAssessmentDefinition,
 } from "../src/index";
+import { referenceOf, sealEvidenceFixture } from "./fixtures/contracts";
 
 const outcomes = ["pass", "fail", "inconclusive", "error"] as const;
 const all = [
@@ -211,6 +213,108 @@ describe("AY-I23 composition", () => {
     ).toBe(false);
   });
 
+  it("rejects malformed nondecisive and advisory inputs at evaluation before comparison", () => {
+    const reference = unwrap(
+      createReferenceRecord({
+        schemaVersion: 3,
+        referenceId: "alternative-reference",
+        kind: "number",
+        value: 42,
+      }),
+    );
+    const alternative: Criterion = {
+      id: "second",
+      mode: "required",
+      visibility: "public",
+      kind: "number_with_tolerance",
+      parameters: {
+        expected: {
+          type: "reference",
+          referenceId: reference.referenceId,
+          referenceDigest: reference.referenceDigest,
+        },
+        tolerance: { absolute: 0, relative: 0 },
+      },
+    };
+    const definition = unwrap(
+      createAssessmentDefinition(
+        draft(
+          [criterion("first"), alternative, { ...criterion("advice"), mode: "advisory" }],
+          flat("any"),
+        ),
+      ),
+    );
+    const valid = unwrap(
+      createEvidenceBundle(definition, { schemaVersion: 3, observations: [observation("first")] }),
+    );
+    const references = {
+      schemaVersion: 3,
+      definition: referenceOf(definition),
+      references: [reference],
+    };
+    expect(evaluate(definition, valid, references).outcome).toBe("pass");
+    const invalidReferences = {
+      ...references,
+      references: [{ ...reference, value: 43 }],
+    };
+    expect(evaluate(definition, valid, invalidReferences)).toMatchObject({
+      outcome: "invalid_reference",
+    });
+    for (const malformed of [
+      { ...observation("second"), value: "invalid" },
+      { ...observation("second"), kind: "text", value: "42" },
+      { ...observation("second"), unit: "ms" },
+      { ...observation("advice"), value: "invalid" },
+    ]) {
+      // Seal the malformed bytes independently, not through the validating constructor.
+      const evidence = sealEvidenceFixture({
+        ...valid,
+        observations: [observation("first"), malformed],
+      });
+      const rejected = evaluate(definition, evidence, references);
+      expect(rejected.outcome).toBe("invalid_evidence");
+      expect(rejected).not.toHaveProperty("findings");
+      expect(evaluate(definition, evidence, invalidReferences).outcome).toBe("invalid_reference");
+      expect(
+        evaluate({ ...definition, policyVersion: "all-required-v1" }, evidence, invalidReferences)
+          .outcome,
+      ).toBe("invalid_definition");
+    }
+  });
+
+  it("requires composition and rejects unknown keys at every group-tree level", () => {
+    const authored = draft([criterion("first"), criterion("second")], flat("any"));
+    const { composition, ...omitted } = authored;
+    expect(createAssessmentDefinition(omitted)).toMatchObject({
+      ok: false,
+      domain: "invalid_definition",
+      diagnostics: [{ path: "$.composition", code: "MISSING_FIELD" }],
+    });
+    const [root] = composition.groups;
+    const dangling = { ...root, children: [leaf("first"), leaf("second"), group("absent")] };
+    expect(
+      createAssessmentDefinition({ ...authored, composition: { ...composition, groups: [dangling] } })
+        .ok,
+    ).toBe(false);
+    const mutations = [
+      { ...composition, extra: "private-canary" },
+      { ...composition, groups: [{ ...root, extra: "private-canary" }] },
+      {
+        ...composition,
+        groups: [{ ...root, children: [{ ...leaf("first"), extra: "private-canary" }, leaf("second")] }],
+      },
+    ];
+    for (const invalid of mutations) {
+      const rejected = createAssessmentDefinition({ ...authored, composition: invalid });
+      expect(rejected).toMatchObject({
+        ok: false,
+        domain: "invalid_definition",
+        diagnostics: expect.arrayContaining([expect.objectContaining({ code: "UNEXPECTED_FIELD" })]),
+      });
+      expect(JSON.stringify(rejected)).not.toContain("private-canary");
+    }
+  });
+
   it("rejects incomplete, ambiguous, cyclic and advisory membership", () => {
     const criteria = [
       criterion("first"),
@@ -277,6 +381,17 @@ describe("AY-I23 composition", () => {
       ],
     };
     expect(createAssessmentDefinition(draft(criteria, maximum)).ok).toBe(true);
+    const overEdges = {
+      ...maximum,
+      groups: maximum.groups.map((entry) =>
+        entry.id === "g-c0" ? { ...entry, children: [leaf("c0"), leaf("c0")] } : entry,
+      ),
+    };
+    expect(createAssessmentDefinition(draft(criteria, overEdges))).toEqual({
+      ok: false,
+      domain: "invalid_definition",
+      diagnostics: [{ path: "$.composition", code: "TOO_MANY_ITEMS" }],
+    });
     expect(createAssessmentDefinition(draft(criteria, flat("all", [...ids, "c0"]))).ok).toBe(false);
     expect(
       createAssessmentDefinition({
@@ -320,8 +435,8 @@ describe("AY-I23 composition", () => {
     );
   });
 
-  it("withholds the aggregate and rejects incoherent composed results", () => {
-    const reference = unwrap(
+  it("withholds every hidden any-branch outcome and rejects forged roots", () => {
+    const normal = unwrap(
       createReferenceRecord({
         schemaVersion: 3,
         referenceId: "private-canary",
@@ -329,56 +444,131 @@ describe("AY-I23 composition", () => {
         value: 42,
       }),
     );
-    const hidden = {
-      id: "hidden-canary",
-      mode: "required",
-      visibility: "restricted",
-      kind: "number_with_tolerance",
-      parameters: {
-        expected: {
-          type: "reference",
-          referenceId: reference.referenceId,
-          referenceDigest: reference.referenceDigest,
-        },
-        tolerance: { absolute: 0, relative: 0 },
-      },
-    } as const;
-    const definition = unwrap(
-      createAssessmentDefinition(
-        draft([criterion("first"), hidden], flat("any", ["first", "hidden-canary"])),
-      ),
+    const overflow = unwrap(
+      createReferenceRecord({
+        schemaVersion: 3,
+        referenceId: "private-canary",
+        kind: "number",
+        value: 1e308,
+      }),
     );
-    const refs = {
-      schemaVersion: 3,
-      definition: {
-        assessmentId: definition.assessmentId,
-        revision: definition.revision,
-        revisionDigest: definition.revisionDigest,
-      },
-      references: [reference],
+    const composition: CriterionComposition = {
+      rootGroupId: "group-canary",
+      groups: [
+        {
+          id: "group-canary",
+          operator: "any",
+          children: [leaf("first"), leaf("hidden-canary")],
+        },
+      ],
     };
-    const projections = [];
-    for (const outcome of ["pass", "fail", "inconclusive"] as const) {
-      const evidence = unwrap(
-        createEvidenceBundle(definition, {
+    const cases = [
+      { reference: normal, observed: observation("hidden-canary"), reason: "MATCH", leaf: "pass" },
+      {
+        reference: normal,
+        observed: { ...observation("hidden-canary"), value: 200 },
+        reason: "VALUE_MISMATCH",
+        leaf: "fail",
+      },
+      {
+        reference: normal,
+        observed: observation("hidden-canary", "inconclusive"),
+        reason: "EVIDENCE_TRUNCATED",
+        leaf: "inconclusive",
+      },
+      { reference: normal, observed: null, reason: "EVIDENCE_MISSING", leaf: "inconclusive" },
+      {
+        reference: normal,
+        observed: observation("hidden-canary"),
+        omitReference: true,
+        reason: "REFERENCE_UNAVAILABLE",
+        leaf: "inconclusive",
+      },
+      {
+        reference: overflow,
+        observed: observation("hidden-canary"),
+        reason: "NUMERIC_OVERFLOW",
+        leaf: "error",
+      },
+    ] as const;
+    for (const publicOutcome of ["pass", "fail"] as const) {
+      const projections: string[] = [];
+      for (const fixture of cases) {
+        const hidden: Criterion = {
+          id: "hidden-canary",
+          mode: "required",
+          visibility: "restricted",
+          kind: "number_with_tolerance",
+          parameters: {
+            expected: {
+              type: "reference",
+              referenceId: fixture.reference.referenceId,
+              referenceDigest: fixture.reference.referenceDigest,
+            },
+            tolerance: { absolute: 0, relative: 2 },
+          },
+        };
+        const definition = unwrap(
+          createAssessmentDefinition(draft([criterion("first"), hidden], composition)),
+        );
+        const refs = {
           schemaVersion: 3,
-          observations: [observation("first", "fail"), observation("hidden-canary", outcome)],
-        }),
-      );
-      const result = evaluate(definition, evidence, refs);
-      if (!("findings" in result)) throw new Error("Expected complete result");
-      const projection = projectPublicResult(definition, result);
-      expect(projection).toMatchObject({ ok: true, value: { outcome: "withheld" } });
-      expect(JSON.stringify(projection)).not.toContain("canary");
-      projections.push(projection);
-      expect(
-        projectPublicResult(definition, {
-          ...result,
-          outcome: result.outcome === "pass" ? "fail" : "pass",
-        }).ok,
-      ).toBe(false);
+          definition: referenceOf(definition),
+          references: "omitReference" in fixture ? [] : [fixture.reference],
+        };
+        const evidence = unwrap(
+          createEvidenceBundle(definition, {
+            schemaVersion: 3,
+            observations: [
+              observation("first", publicOutcome),
+              ...(fixture.observed === null ? [] : [fixture.observed]),
+            ],
+          }),
+        );
+        const result = evaluate(definition, evidence, refs);
+        if (!("findings" in result)) throw new Error("Expected complete result");
+        const expectedRoot =
+          publicOutcome === "pass"
+            ? "pass"
+            : fixture.leaf === "error"
+              ? "evaluation_error"
+              : fixture.leaf;
+        expect(result.outcome).toBe(expectedRoot);
+        expect(result.findings).toMatchObject([
+          { criterionId: "first", outcome: publicOutcome },
+          { criterionId: "hidden-canary", outcome: fixture.leaf, reasonCode: fixture.reason },
+        ]);
+        const projection = projectPublicResult(definition, result);
+        expect(projection).toEqual({
+          ok: true,
+          value: {
+            schemaVersion: 3,
+            outcome: "withheld",
+            findings: [
+              {
+                criterionId: "first",
+                outcome: publicOutcome,
+                reason: publicOutcome === "pass" ? "match" : "mismatch",
+              },
+            ],
+          },
+        });
+        const bytes = JSON.stringify(projection);
+        expect(bytes).not.toContain("canary");
+        projections.push(bytes);
+        const rejected = { ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" };
+        expect(
+          projectPublicResult(definition, {
+            ...result,
+            outcome: result.outcome === "pass" ? "fail" : "pass",
+          }),
+        ).toEqual(rejected);
+        const obsolete = { ...result, policyVersion: "all-required-v1" };
+        expect(parseEvaluationResult(result).ok).toBe(true);
+        expect(parseEvaluationResult(obsolete).ok).toBe(false);
+        expect(projectPublicResult(definition, obsolete)).toEqual(rejected);
+      }
+      expect(new Set(projections).size).toBe(1);
     }
-    expect(projections[0]).toEqual(projections[1]);
-    expect(projections[1]).toEqual(projections[2]);
   });
 });
