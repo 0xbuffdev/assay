@@ -263,6 +263,14 @@ evidence, including when it omits provenance. Truncation of stderr does not
 invalidate selected stdout and vice versa; exit status is independent of
 stream truncation. For boolean properties and unselected facts whose
 stream attribution is unknown, either stream's truncation is conservative.
+For a single source/run pair, complete observations of the same selected
+stdout, stderr, exit status or structured stream must agree on their raw
+value. JSON equality ignores object key order and distinguishes array order;
+text is compared exactly before criterion normalization and numbers exactly
+before tolerance. Boolean property identity is the criterion ID, so separate
+properties may differ. Repeated equal facts and distinct runs are permitted.
+Conflicting complete values are invalid evidence, never learner mismatch.
+
 Conflicting termination claims are invalid; a complete observation cannot
 omit termination for a run known to have timed out or crashed. An exited run or zero exit
 status alone is not proof of other required output or properties.

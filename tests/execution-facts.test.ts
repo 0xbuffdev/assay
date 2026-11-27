@@ -270,6 +270,88 @@ describe("typed execution facts", () => {
     );
   });
 
+  it("rejects conflicting complete singleton facts for the same run in either order", () => {
+    const cases = [
+      [exit, status, 1],
+      [stdout, out, "different-output"],
+      [stderr, err, "different-error"],
+      [json, structured, { result: [false, null] }],
+      [
+        { ...json, executionFact: "structured_stderr" },
+        { ...structured, executionFact: "structured_stderr" },
+        { result: [false, null] },
+      ],
+    ] as const;
+    for (const [check, observation, otherValue] of cases) {
+      const second = { ...check, id: "second", parameters: { ...check.parameters, expected: literal(otherValue) } };
+      const other = { ...observation, criterionId: "second", evidenceRef: "fact-second", value: otherValue };
+      for (const observations of [[observation, other], [other, observation]]) {
+        expect(run([check, second], observations).outcome).toBe("invalid_evidence");
+      }
+      expect(
+        run(
+          [check, second],
+          [observation, { ...other, origin: { ...origin, runRef: "run2" } }],
+        ).outcome,
+      ).toBe("pass");
+      expect(
+        run(
+          [check, { ...check, id: "second" }],
+          [observation, { ...other, value: observation.value }],
+        ).outcome,
+      ).toBe("pass");
+    }
+  });
+
+  it("uses exact raw equality and shared JSON semantics for repeated run facts", () => {
+    const value = { a: [null, -0], b: false };
+    const reordered = { b: false, a: [null, 0] };
+    const check = { ...json, parameters: { expected: literal(value) } };
+    const other = { ...check, id: "second" };
+    expect(
+      run(
+        [check, other],
+        [
+          { ...structured, value },
+          { ...structured, criterionId: "second", evidenceRef: "fact-second", value: reordered },
+        ],
+      ).outcome,
+    ).toBe("pass");
+    const normalized = {
+      ...stdout,
+      id: "second",
+      kind: "normalized_text",
+      parameters: {
+        expected: literal("ok"),
+        normalization: {
+          lineEndings: "preserve",
+          unicode: "none",
+          case: "sensitive",
+          whitespace: "preserve",
+          trim: "both",
+        },
+      },
+    };
+    expect(
+      run(
+        [stdout, normalized],
+        [out, { ...out, criterionId: "second", evidenceRef: "fact-second", value: " ok " }],
+      ).outcome,
+    ).toBe("invalid_evidence");
+    expect(
+      run(
+        [property, { ...property, id: "second", parameters: { expected: literal(true) } }],
+        [prop, { ...prop, criterionId: "second", evidenceRef: "fact-second", value: true }],
+      ).outcome,
+    ).toBe("pass");
+    expect(
+      run(
+        [exit, { ...exit, id: "second" }],
+        [status, { ...status, criterionId: "second", evidenceRef: "fact-second", completeness: "truncated", value: 1 }],
+      ).outcome,
+    ).toBe("inconclusive");
+  });
+
   it("matches independent canonical definition and evidence vectors", () => {
     const rubric = definition([stdout]);
     expect(rubric.revisionDigest).toBe(

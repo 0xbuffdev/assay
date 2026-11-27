@@ -33,6 +33,13 @@ type ExecutionSelection<
   F extends ExecutionFact = never,
 > = Readonly<{ executionFact?: V extends 2 ? F : never }>;
 
+type NumericExecutionSelection<V extends DefinitionSchemaVersion, P> =
+  | Readonly<{ executionFact?: never; parameters: Readonly<P & { unit?: string }> }>
+  | Readonly<{
+      executionFact: V extends 2 ? "exit_status" : never;
+      parameters: Readonly<P & { unit?: never }>;
+    }>;
+
 export type Criterion<V extends DefinitionSchemaVersion = DefinitionSchemaVersion> =
   | (CriterionBase &
       ExecutionSelection<V, "stdout" | "stderr"> &
@@ -47,15 +54,14 @@ export type Criterion<V extends DefinitionSchemaVersion = DefinitionSchemaVersio
         parameters: Readonly<{ expected: Expected<string, V>; normalization: TextNormalization }>;
       }>)
   | (CriterionBase &
-      ExecutionSelection<V, "exit_status"> &
-      Readonly<{
-        kind: "number_with_tolerance";
-        parameters: Readonly<{
+      Readonly<{ kind: "number_with_tolerance" }> &
+      NumericExecutionSelection<
+        V,
+        {
           expected: Expected<number, V>;
           tolerance: Readonly<{ absolute: number; relative: number }>;
-          unit?: string;
-        }>;
-      }>)
+        }
+      >)
   | (CriterionBase &
       ExecutionSelection<V, never> &
       Readonly<{
@@ -114,11 +120,8 @@ type AdditionalObjectiveCriterion =
         parameters: Readonly<{ expected: Expected<boolean, 2> }>;
       }>)
   | (CriterionBase &
-      ExecutionSelection<2, "exit_status"> &
-      Readonly<{
-        kind: "number_range";
-        parameters: Readonly<{ expected: Expected<NumericRange, 2>; unit?: string }>;
-      }>)
+      Readonly<{ kind: "number_range" }> &
+      NumericExecutionSelection<2, { expected: Expected<NumericRange, 2> }>)
   | (CriterionBase &
       ExecutionSelection<2, "structured_stdout" | "structured_stderr"> &
       Readonly<{

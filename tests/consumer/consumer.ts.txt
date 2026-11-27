@@ -359,3 +359,37 @@ void selectedLegacy;
 void selectedFact;
 void missingRun;
 void wrongSelector;
+
+const selectedExit: Criterion<2> = {
+  id: "exit", mode: "required", visibility: "public", kind: "number_with_tolerance",
+  executionFact: "exit_status", parameters: { expected: { type: "literal", value: 0 }, tolerance: { absolute: 0, relative: 0 } },
+};
+const selectedRange: Criterion<2> = {
+  id: "range-exit", mode: "required", visibility: "public", kind: "number_range",
+  executionFact: "exit_status", parameters: { expected: { type: "literal", value: { min: 0, max: 1, minInclusive: true, maxInclusive: true } } },
+};
+const ordinaryQuantity: Criterion<2> = {
+  id: "quantity", mode: "required", visibility: "public", kind: "number_with_tolerance",
+  parameters: { expected: { type: "literal", value: 0 }, tolerance: { absolute: 0, relative: 0 }, unit: "ms" },
+};
+const ordinaryQuantityFact: import("@0xbuff/assay").Observation = {
+  criterionId: "quantity", evidenceRef: "quantity-fact", completeness: "complete", kind: "number", value: 0, unit: "ms",
+};
+const selectedExitFact: import("@0xbuff/assay").Observation = {
+  criterionId: "exit", evidenceRef: "exit-fact", completeness: "complete", kind: "number", value: 0, executionFact: "exit_status",
+  origin: { kind: "independent", sourceRef: "fixture", runRef: "run1", termination: "exited" },
+};
+// @ts-expect-error exit status cannot carry a unit
+const unitExit: Criterion<2> = { ...selectedExit, parameters: { ...selectedExit.parameters, unit: "ms" } };
+// @ts-expect-error an exit status range cannot carry a unit either
+const unitRange: Criterion<2> = { ...selectedRange, parameters: { ...selectedRange.parameters, unit: "ms" } };
+// @ts-expect-error selected exit observations cannot carry a unit
+const unitExitFact: import("@0xbuff/assay").Observation = { ...selectedExitFact, unit: "ms" };
+// @ts-expect-error termination requires a run reference
+const missingTerminationRun: ObservationOrigin = { kind: "independent", sourceRef: "fixture", termination: "timeout" };
+void ordinaryQuantity;
+void ordinaryQuantityFact;
+void unitExit;
+void unitRange;
+void unitExitFact;
+void missingTerminationRun;

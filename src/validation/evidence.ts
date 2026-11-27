@@ -1,4 +1,4 @@
-import { CONTRACT_LIMITS, EXECUTION_FACT_KINDS } from "../contracts/common";
+import { CONTRACT_LIMITS, equalJsonValue, EXECUTION_FACT_KINDS } from "../contracts/common";
 import type { EvidenceBundle, EvidenceBundleDraft } from "../contracts/evidence";
 import type { ValidationResult } from "../contracts/validation";
 import {
@@ -62,6 +62,7 @@ export function validateObservations(
       stderrTruncated: boolean;
       termination: unknown;
       completePaths: { path: string; fact: unknown; termination: unknown }[];
+      completeValues: Map<string, unknown>;
     }
   >();
   for (const [i, obs] of observations.entries()) {
@@ -133,6 +134,23 @@ export function validateObservations(
           const key = JSON.stringify([claim.sourceRef, claim.runRef]);
           const run = runs.get(key);
           const prior = run?.claim;
+          const completeValues = run?.completeValues ?? new Map<string, unknown>();
+          const selector = obs.executionFact;
+          // A run has one complete value per selected singleton fact. Boolean
+          // properties are distinct authored criteria, not a shared run value.
+          if (
+            obs.completeness === "complete" &&
+            typeof selector === "string" &&
+            selector !== "boolean_property" &&
+            Object.hasOwn(EXECUTION_FACT_KINDS, selector)
+          ) {
+            if (completeValues.has(selector)) {
+              if (!equalJsonValue(completeValues.get(selector), obs.value))
+                issues.add(`${p}.value`, "MISMATCHED_ORIGIN");
+            } else {
+              completeValues.set(selector, obs.value);
+            }
+          }
           const completePath = {
             path: `${p}.completeness`,
             fact: obs.executionFact,
@@ -167,6 +185,7 @@ export function validateObservations(
               ...capture,
               termination: claim.termination,
               completePaths: obs.completeness === "complete" ? [completePath] : [],
+              completeValues,
             });
           }
         }

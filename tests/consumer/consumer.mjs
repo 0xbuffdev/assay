@@ -668,3 +668,28 @@ assert.equal(
   }).ok,
   false,
 );
+
+const repeatedExecutionDefinition = assay.createAssessmentDefinition({
+  ...draft([
+    {
+      ...required("out", "exact_text", { expected: { type: "literal", value: "ok" } }),
+      executionFact: "stdout",
+    },
+    {
+      ...required("second", "exact_text", { expected: { type: "literal", value: "other" } }),
+      executionFact: "stdout",
+    },
+  ]),
+  schemaVersion: 2,
+});
+assert.equal(repeatedExecutionDefinition.ok, true);
+const secondOutput = { ...outputFact, criterionId: "second", evidenceRef: "second", value: "other" };
+for (const observations of [[outputFact, secondOutput], [secondOutput, outputFact]]) {
+  assert.equal(
+    assay.evaluate(
+      repeatedExecutionDefinition.value,
+      evidence(observations, repeatedExecutionDefinition.value),
+    ).outcome,
+    "invalid_evidence",
+  );
+}

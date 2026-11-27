@@ -61,10 +61,12 @@ export interface ObservationPortProvenance {
 
 type OriginSource = Readonly<{
   sourceRef: string;
-  runRef?: string;
-  termination?: ExecutionTermination;
   provenance?: ObservationPortProvenance;
-}>;
+}> &
+  (
+    | Readonly<{ runRef?: string; termination?: never }>
+    | Readonly<{ runRef: string; termination: ExecutionTermination }>
+  );
 
 /** A scoped origin claim; independent observations cannot be relabeled as artifact facts. */
 export type ObservationOrigin = OriginSource &
@@ -77,6 +79,7 @@ type ExecutionValueKind = "text" | "number" | "boolean" | "json";
 
 type ExecutionObservation = {
   [K in ExecutionValueKind]: Extract<ObservationFact, { kind: K }> &
+    (K extends "number" ? Readonly<{ unit?: never }> : unknown) &
     Readonly<{
       executionFact: ExecutionFactFor<K>;
       origin: ObservationOrigin & Readonly<{ runRef: string; termination: ExecutionTermination }>;
