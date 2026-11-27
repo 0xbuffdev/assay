@@ -1,3 +1,4 @@
+import type { SCHEMA_VERSION } from "./version";
 import type { JsonValue, NumericRange } from "./common";
 import type { DefinitionReference } from "./definition";
 
@@ -13,7 +14,7 @@ type ReferenceValue =
 
 /** Privileged expected content, never an observation or an authenticated claim. */
 export type ReferenceRecordDraft = Readonly<{
-  schemaVersion: 2;
+  schemaVersion: typeof SCHEMA_VERSION;
   referenceId: string;
 }> &
   ReferenceValue;
@@ -21,7 +22,7 @@ export type ReferenceRecordDraft = Readonly<{
 export type ReferenceRecord = ReferenceRecordDraft & Readonly<{ referenceDigest: string }>;
 
 export interface ReferenceBundle {
-  readonly schemaVersion: 2;
+  readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly definition: DefinitionReference;
   readonly references: readonly ReferenceRecord[];
 }
