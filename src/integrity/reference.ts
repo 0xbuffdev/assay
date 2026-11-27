@@ -30,7 +30,7 @@ export function createReferenceRecord(input: unknown): ValidationResult<Referenc
 }
 
 type ObjectiveCriterion = Extract<
-  Criterion<2>,
+  Criterion,
   {
     kind:
       | "exact_text"
@@ -80,10 +80,6 @@ export function verifyReferencesForDefinition(
   bundleInput: unknown,
 ): ValidationResult<ReferenceBundle> {
   const issues = new Diagnostics();
-  if (definition.schemaVersion !== 2) {
-    issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
-    return issues.result("invalid_definition", undefined as unknown as ReferenceBundle);
-  }
   const checked = parseReferenceBundle(bundleInput);
   if (!checked.ok) return checked;
   const bundle = checked.value;
