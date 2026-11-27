@@ -113,6 +113,7 @@ for (const file of [
   "docs/observations.md",
   "tests/foundation.test.ts",
   "tests/aggregation.test.ts",
+  "tests/qualitative.test.ts",
   "tests/objective-comparators.test.ts",
   "scripts/version-metadata.mjs",
   "tests/consumer/version-vectors.mjs",

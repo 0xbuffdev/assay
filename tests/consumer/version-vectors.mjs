@@ -194,3 +194,90 @@ assert.deepEqual(assay.projectPublicResult(execution, retiredPolicy), {
 console.log(
   "AY-I22 independent canonical profiles, version rejection and exact semantics verified",
 );
+
+// AY-I08: exercise the installed generation-4 review contract without a provider.
+const qualitativeDraft = {
+  ...JSON.parse(literalVector),
+  criteria: [
+    ...JSON.parse(literalVector).criteria,
+    {
+      id: "review",
+      kind: "qualitative_review",
+      mode: "advisory",
+      visibility: "public",
+      parameters: { reviewPolicyId: "design", reviewPolicyVersion: "rev1" },
+    },
+  ],
+};
+const qualitative = unwrap(assay.createAssessmentDefinition(qualitativeDraft));
+const artifactDigest = `sha256:${"a".repeat(64)}`;
+const review = {
+  criterionId: "review",
+  evidenceRef: "AYI08_PRIVATE_REVIEW_REF",
+  kind: "qualitative_review",
+  completeness: "complete",
+  origin: { kind: "artifact", artifactDigest, sourceRef: "AYI08_PRIVATE_SOURCE" },
+  reviewPolicyId: "design",
+  reviewPolicyVersion: "rev1",
+  reviewer: {
+    kind: "model",
+    providerId: "AYI08_PRIVATE_PROVIDER",
+    modelId: "model",
+    modelVersion: "rev1",
+    promptId: "prompt",
+    promptVersion: "rev1",
+  },
+  uncertainty: "unknown",
+  feedback: "AYI08_PRIVATE_FEEDBACK",
+  citations: [{ artifactRef: "AYI08_PRIVATE_CITATION", startByte: 0, endByte: 1 }],
+};
+const reviewEvidence = unwrap(
+  assay.createEvidenceBundle(qualitative, {
+    schemaVersion: 4,
+    artifactDigest,
+    observations: [
+      {
+        criterionId: "output",
+        evidenceRef: "output",
+        kind: "text",
+        completeness: "complete",
+        value: "café\n",
+        origin: { kind: "independent", sourceRef: "fixture" },
+      },
+      review,
+    ],
+  }),
+);
+const reviewResult = assay.evaluate(qualitative, reviewEvidence);
+assert.equal(reviewResult.outcome, "pass");
+assert.equal(reviewResult.findings[1].outcome, "inconclusive");
+assert.equal(reviewResult.findings[1].reasonCode, "REVIEW_REQUIRED");
+const view = unwrap(assay.projectPublicResult(qualitative, reviewResult));
+assert.deepEqual(view.findings[1], {
+  criterionId: "review",
+  outcome: "inconclusive",
+  reason: "review_needed",
+});
+assert.ok(!JSON.stringify(view).includes("AYI08_PRIVATE_"));
+assert.ok(!JSON.stringify(reviewResult).includes("AYI08_PRIVATE_FEEDBACK"));
+assert.equal(
+  assay.createEvidenceBundle(qualitative, {
+    schemaVersion: 4,
+    artifactDigest,
+    observations: [{ ...review, verdict: "pass" }],
+  }).ok,
+  false,
+);
+assert.equal(assay.parseObservationPortReport({ ...report, observations: [review] }).ok, false);
+let reviewPortCalls = 0;
+const noRequest = await assay.collectObservations(qualitative, reviewEvidence, {
+  async observe() {
+    reviewPortCalls++;
+    throw new Error("Unexpected provider request");
+  },
+});
+assert.equal(reviewPortCalls, 0);
+assert.equal(noRequest.ok, true);
+assert.equal(noRequest.receipt, null);
+assert.deepEqual(noRequest.evidence, reviewEvidence);
+console.log("AY-I08 installed qualitative review contract verified");

@@ -462,3 +462,39 @@ if (decodedRecord.ok) {
   const data: Readonly<Record<string, import("@0xbuff/assay").JsonValue>> = decodedRecord.value;
   void data;
 }
+
+// AY-I08: installed type surface is advisory-only and the port stays fact-only.
+const qualitativeCriterion: Criterion = {
+  kind: "qualitative_review",
+  id: "review",
+  mode: "advisory",
+  visibility: "public",
+  parameters: { reviewPolicyId: "design", reviewPolicyVersion: "rev1" },
+};
+// @ts-expect-error a qualitative review cannot become a required criterion
+const requiredQualitative: Criterion = { ...qualitativeCriterion, mode: "required" };
+const typedReview: import("@0xbuff/assay").QualitativeObservation = {
+  kind: "qualitative_review",
+  criterionId: "review",
+  evidenceRef: "review1",
+  completeness: "complete",
+  origin: { kind: "artifact", artifactDigest: "sha256:" + "a".repeat(64), sourceRef: "fixture" },
+  reviewPolicyId: "design",
+  reviewPolicyVersion: "rev1",
+  reviewer: { kind: "human", reviewerId: "reviewer", reviewerVersion: "rev1" },
+  uncertainty: "unknown",
+  feedback: "Review feedback",
+  citations: [{ artifactRef: "file", startByte: 0, endByte: 1 }],
+};
+const reviewEvidenceDraft: EvidenceBundleDraft = { schemaVersion: 4, artifactDigest: typedReview.origin.artifactDigest, observations: [typedReview] };
+// @ts-expect-error qualitative observations require an artifact origin
+const independentReview: import("@0xbuff/assay").QualitativeObservation = { ...typedReview, origin: { kind: "independent", sourceRef: "fixture" } };
+// @ts-expect-error review observations are excluded from the fact-only port
+const portReview: import("@0xbuff/assay").ObservationPortReport["observations"][number] = typedReview;
+// @ts-expect-error generation 3 has been replaced
+const oldDraft: AssessmentDefinitionDraft = { ...authoredDraft, schemaVersion: 3 };
+void requiredQualitative;
+void reviewEvidenceDraft;
+void independentReview;
+void portReview;
+void oldDraft;
