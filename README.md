@@ -4,7 +4,7 @@
 
 Assay is a standalone TypeScript library for checking technical observations against versioned assessment definitions. It produces reproducible criterion-level findings, distinguishes missing evidence from incorrect results, and can construct a deliberately restricted public-facing view.
 
-Assay evaluates evidence; it does **not** execute learner code, authenticate a submitted observation, resolve protected reference answers, issue grades or award credentials. Those responsibilities stay with the application using it.
+Assay evaluates evidence; it does **not** execute learner code, authenticate a submitted observation, fetch protected reference answers, issue grades or award credentials. Those responsibilities stay with the application using it.
 
 **Availability:** The Apache-2.0 source is public. The npm package is **not published**; its source version remains 0.0.0 with the private publication guard enabled. There is no supported npm install command yet.
 
@@ -82,7 +82,7 @@ flowchart TD
     Pass --> Result
 ```
 
-The `evaluate` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. There is no unchecked public evaluation path. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
+The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. Optional schema-2 reference bundles are verified before comparison; invalid reference material produces a value-free `invalid_reference` failure, not a learner mismatch. There is no unchecked public evaluation path. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
 
 ### Optional observation acquisition
 
@@ -135,7 +135,7 @@ flowchart TD
 
 Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence references, reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
 
-See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Planned mandatory integrity, protected reference comparisons and expanded evidence contracts are not shown as implemented APIs.
+See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory integrity and content-bound protected reference comparison are implemented; expanded evidence contracts remain ticket-gated.
 
 ## Develop from source
 

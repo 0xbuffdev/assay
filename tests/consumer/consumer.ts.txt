@@ -243,6 +243,13 @@ if (referenceCreated.ok) {
       references: [reference],
     };
     const verified: ValidationResult<ReferenceBundle> = verifyReferenceBundle(sealed.value, bundle);
+    const evaluated: EvaluationResponse = evaluate(sealed.value, { ...evidence, definition: bundle.definition }, bundle);
+    if ("diagnostics" in evaluated) {
+      const failure: "invalid_definition" | "invalid_evidence" | "invalid_reference" = evaluated.outcome;
+      void failure;
+      // @ts-expect-error a failure envelope never contains technical findings
+      void evaluated.findings;
+    }
     void verified;
   }
 }

@@ -43,9 +43,11 @@ function matchesSet(
 export function compareSet(
   criterion: Extract<Criterion, { kind: "set_equivalence" }>,
   observation: Observation,
+  referenceValue?: readonly SetScalar[],
 ): Comparison {
   if (observation.kind !== "set") return finding("error", "COMPARATOR_ERROR");
   const { expected, order, duplicates } = criterion.parameters;
-  if (expected.type === "reference") return REFERENCE_UNAVAILABLE;
-  return matchesSet(observation.items, expected.value, order, duplicates) ? PASSED : FAILED;
+  const value = expected.type === "literal" ? expected.value : referenceValue;
+  if (value === undefined) return REFERENCE_UNAVAILABLE;
+  return matchesSet(observation.items, value, order, duplicates) ? PASSED : FAILED;
 }

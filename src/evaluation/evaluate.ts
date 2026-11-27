@@ -1,6 +1,8 @@
 import { ASSAY_SCHEMA_VERSION } from "../contracts/common";
+import type { ReferenceRecord } from "../contracts/reference";
 import type { CriterionFinding, EvaluationFailure, EvaluationResponse } from "../contracts/result";
 import { verifyAssessmentDefinition } from "../integrity/definition";
+import { verifyReferencesForDefinition } from "../integrity/reference";
 import { inspectEvidenceCoverage } from "../validation/coverage";
 import { parseEvidenceBundle } from "../validation/evidence";
 import { aggregateRequired } from "./aggregate";
@@ -27,22 +29,38 @@ function invalid(
  * Pure deterministic technical comparison against a content-verified rubric.
  *
  * Definition integrity is checked before inspecting evidence or comparing values.
- * Malformed definition/evidence returns a bounded, value-free failure envelope,
+ * Malformed definition, reference or evidence returns a bounded, value-free failure envelope,
  * not a forged revision identifier. Valid inputs return a full EvaluationResult.
- * This function does not attest origins, resolve hidden references, execute
- * code, grade a learner or issue formal credit.
+ * Only caller-supplied, content-bound references may supply expected values.
+ * This function does not attest origins, fetch references, execute code,
+ * grade a learner or issue formal credit.
  */
-export function evaluate(definitionInput: unknown, evidenceInput: unknown): EvaluationResponse {
+export function evaluate(
+  definitionInput: unknown,
+  evidenceInput: unknown,
+  referenceInput?: unknown,
+): EvaluationResponse {
   const validatedDefinition = verifyAssessmentDefinition(definitionInput);
   if (!validatedDefinition.ok) {
     return invalid("invalid_definition", validatedDefinition.diagnostics);
+  }
+  const definition = validatedDefinition.value;
+  const references = new Map<string, ReferenceRecord>();
+  if (referenceInput !== undefined) {
+    const checked = verifyReferencesForDefinition(definition, referenceInput);
+    if (!checked.ok) {
+      return invalid(
+        checked.domain === "invalid_definition" ? "invalid_definition" : "invalid_reference",
+        checked.diagnostics,
+      );
+    }
+    for (const record of checked.value.references) references.set(record.referenceId, record);
   }
   const validatedEvidence = parseEvidenceBundle(evidenceInput);
   if (!validatedEvidence.ok) {
     return invalid("invalid_evidence", validatedEvidence.diagnostics);
   }
 
-  const definition = validatedDefinition.value;
   const evidence = validatedEvidence.value;
   const coverage = inspectEvidenceCoverage(definition, evidence);
   if (!coverage.ok) {
@@ -62,7 +80,7 @@ export function evaluate(definitionInput: unknown, evidenceInput: unknown): Eval
     else if (observation.completeness === "truncated") comparison = TRUNCATED_EVIDENCE;
     else {
       try {
-        comparison = compare(criterion, observation);
+        comparison = compare(criterion, observation, references);
       } catch {
         // Never leak runtime exception text, submitted evidence or references.
         comparison = finding("error", "COMPARATOR_ERROR");

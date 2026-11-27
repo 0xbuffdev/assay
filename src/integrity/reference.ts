@@ -1,4 +1,4 @@
-import type { Criterion } from "../contracts/definition";
+import type { AssessmentDefinition, Criterion } from "../contracts/definition";
 import type {
   ReferenceBundle,
   ReferenceRecord,
@@ -55,7 +55,14 @@ export function verifyReferenceBundle(
 ): ValidationResult<ReferenceBundle> {
   const checkedDefinition = verifyAssessmentDefinition(definitionInput);
   if (!checkedDefinition.ok) return checkedDefinition;
-  const definition = checkedDefinition.value;
+  return verifyReferencesForDefinition(checkedDefinition.value, bundleInput);
+}
+
+/** Internal boundary: the definition must already be content-verified and frozen. */
+export function verifyReferencesForDefinition(
+  definition: AssessmentDefinition,
+  bundleInput: unknown,
+): ValidationResult<ReferenceBundle> {
   const issues = new Diagnostics();
   if (definition.schemaVersion !== 2) {
     issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");

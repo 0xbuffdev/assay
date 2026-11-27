@@ -21,23 +21,26 @@ function normalizeText(value: string, policy: TextNormalization): string {
 export function compareExactText(
   criterion: Extract<Criterion, { kind: "exact_text" }>,
   observation: Observation,
+  referenceValue?: string,
 ): Comparison {
   if (observation.kind !== "text") return finding("error", "COMPARATOR_ERROR");
   const { expected } = criterion.parameters;
-  if (expected.type === "reference") return REFERENCE_UNAVAILABLE;
+  const value = expected.type === "literal" ? expected.value : referenceValue;
+  if (value === undefined) return REFERENCE_UNAVAILABLE;
   // Exact equality is UTF-16 code-unit equality, without normalization.
-  return observation.value === expected.value ? PASSED : FAILED;
+  return observation.value === value ? PASSED : FAILED;
 }
 
 export function compareNormalizedText(
   criterion: Extract<Criterion, { kind: "normalized_text" }>,
   observation: Observation,
+  referenceValue?: string,
 ): Comparison {
   if (observation.kind !== "text") return finding("error", "COMPARATOR_ERROR");
   const { expected, normalization } = criterion.parameters;
-  if (expected.type === "reference") return REFERENCE_UNAVAILABLE;
-  return normalizeText(observation.value, normalization) ===
-    normalizeText(expected.value, normalization)
+  const value = expected.type === "literal" ? expected.value : referenceValue;
+  if (value === undefined) return REFERENCE_UNAVAILABLE;
+  return normalizeText(observation.value, normalization) === normalizeText(value, normalization)
     ? PASSED
     : FAILED;
 }
