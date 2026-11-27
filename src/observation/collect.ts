@@ -13,6 +13,7 @@ import type {
 import type { DiagnosticCode } from "../contracts/validation";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { createEvidenceBundle, verifyEvidenceForDefinition } from "../integrity/evidence";
+import { validateEmptyReportOrigin } from "../validation/evidence";
 import { parseObservationPortReport } from "../validation/observation";
 
 function requestedCriterion(
@@ -69,15 +70,21 @@ function acquire<S extends ObservationAbortSignal>(
   signal: S | undefined,
 ): Promise<Acquisition> {
   return new Promise((resolve) => {
+    // A private dependent native signal cannot be suppressed by another
+    // listener on the host signal. The provider still receives the original.
+    const subscription = signal instanceof AbortSignal ? AbortSignal.any([signal]) : signal;
     let settled = false;
     const finish = (result: Acquisition): void => {
       if (settled) return;
       settled = true;
-      signal?.removeEventListener("abort", abort);
+      subscription?.removeEventListener("abort", abort);
       resolve(result);
     };
-    const abort = (): void => finish(acquisitionFailure("OBSERVATION_CANCELLED"));
-    signal?.addEventListener("abort", abort, { once: true });
+    const abort = (): void => {
+      // Ignore synthetic events without consuming the genuine subscription.
+      if (signal?.aborted) finish(acquisitionFailure("OBSERVATION_CANCELLED"));
+    };
+    subscription?.addEventListener("abort", abort);
     if (signal?.aborted) {
       abort();
       return;
@@ -204,6 +211,10 @@ export async function collectObservations<S extends ObservationAbortSignal>(
     provenance: report.provenance,
     ...(report.termination === undefined ? {} : { termination: report.termination }),
   });
+  if (report.observations.length === 0) {
+    const checkedOrigin = validateEmptyReportOrigin(evidence, origin);
+    if (!checkedOrigin.ok) return error("invalid_evidence", checkedOrigin.diagnostics);
+  }
   const allowed = new Set(criteria.map((criterion) => criterion.criterionId));
   const returned = [];
   for (const [index, observation] of report.observations.entries()) {

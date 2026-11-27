@@ -430,3 +430,25 @@ void collectObservations(definition, evidence, typedHostPort, { signal: hostSign
 // @ts-expect-error a bare aborted flag lacks the required listener methods
 const invalidSignal: ObservationAbortSignal = { aborted: false };
 void invalidSignal;
+
+const reportEnvelope = {
+  schemaVersion: 2,
+  definition: evidence.definition,
+  provenance: {
+    adapterId: "fixture", adapterVersion: "v1", runRef: "run1",
+    toolchainId: "node", toolchainVersion: "v24",
+    capturedStdoutBytes: 2, capturedStderrBytes: 0,
+    stdoutTruncated: false, stderrTruncated: false,
+  },
+} as const;
+const unselectedReportFact = {
+  criterionId: "plain", evidenceRef: "plain1", kind: "text", completeness: "complete", value: "ok",
+} as const;
+const selectedReportFact = { ...unselectedReportFact, criterionId: "out", evidenceRef: "out1", executionFact: "stdout" } as const;
+const legacyReport: import("@0xbuff/assay").ObservationPortReport = { ...reportEnvelope, observations: [unselectedReportFact] };
+const mixedReport: import("@0xbuff/assay").ObservationPortReport = { ...reportEnvelope, termination: "exited", observations: [selectedReportFact, unselectedReportFact] };
+// @ts-expect-error selected reports require termination
+const missingReportTermination: import("@0xbuff/assay").ObservationPortReport = { ...reportEnvelope, observations: [selectedReportFact] };
+void legacyReport;
+void mixedReport;
+void missingReportTermination;

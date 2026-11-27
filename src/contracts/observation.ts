@@ -33,13 +33,15 @@ type SelectedReportFact = {
     Readonly<{ executionFact: ExecutionFactFor<K>; origin?: never }>;
 }[SelectedKind];
 
-type ReportFact =
-  | (Exclude<ObservationFact, { kind: "manual" }> &
-      Readonly<{ executionFact?: never; origin?: never }>)
-  | SelectedReportFact;
+type UnselectedReportFact = Exclude<ObservationFact, { kind: "manual" }> &
+  Readonly<{ executionFact?: never; origin?: never }>;
+
+type ReportFact = UnselectedReportFact | SelectedReportFact;
 
 /** Structural cancellation surface, compatible with native AbortSignal.
  * No ambient DOM or Node declarations are required by the installed package.
+ * Structural hosts must set aborted before notifying all registered abort
+ * listeners and must not suppress notification. Listener methods must not throw.
  */
 export interface ObservationAbortSignal {
   readonly aborted: boolean;
@@ -70,15 +72,22 @@ export interface ObservationPort<S extends ObservationAbortSignal = ObservationA
   observe(request: ObservationPortRequest, signal?: S): Promise<unknown>;
 }
 
-export interface ObservationPortReport {
-  readonly schemaVersion: 2;
-  readonly definition: DefinitionReference;
-  readonly artifactDigest?: string;
-  readonly provenance: ObservationPortProvenance;
-  /** Required when a report returns a selected execution fact. */
-  readonly termination?: ExecutionTermination;
-  readonly observations: readonly ReportFact[];
-}
+export type ObservationPortReport = Readonly<{
+  schemaVersion: 2;
+  definition: DefinitionReference;
+  artifactDigest?: string;
+  provenance: ObservationPortProvenance;
+}> &
+  (
+    | Readonly<{
+        termination?: ExecutionTermination;
+        observations: readonly UnselectedReportFact[];
+      }>
+    | Readonly<{
+        termination: ExecutionTermination;
+        observations: readonly ReportFact[];
+      }>
+  );
 
 export interface ObservationPortReceipt {
   readonly definition: DefinitionReference;

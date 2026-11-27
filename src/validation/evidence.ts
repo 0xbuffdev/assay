@@ -4,12 +4,12 @@ import {
   EXECUTION_FACT_KINDS,
   equalJsonValue,
 } from "../contracts/common";
-import type { EvidenceBundle, EvidenceBundleDraft } from "../contracts/evidence";
+import type { EvidenceBundle, EvidenceBundleDraft, ObservationOrigin } from "../contracts/evidence";
 import type { ValidationResult } from "../contracts/validation";
 import {
   booleanValue,
   choice,
-  type Diagnostics,
+  Diagnostics,
   definitionRef,
   digest,
   finish,
@@ -55,6 +55,7 @@ export function validateObservations(
   artifactDigest: unknown,
   issues: Diagnostics,
   report = false,
+  envelopeOrigin?: ObservationOrigin,
 ): void {
   if (!list(observations, "$.observations", issues, CONTRACT_LIMITS.maxObservations)) return;
   const ids: unknown[] = [];
@@ -70,6 +71,74 @@ export function validateObservations(
       completeValues: Map<string, unknown>;
     }
   >();
+  function recordRunClaim(
+    claim: Record<string, unknown>,
+    capture: { stdoutTruncated: boolean; stderrTruncated: boolean },
+    p: string,
+    originPath: string,
+    obs?: Record<string, unknown>,
+  ): void {
+    if (typeof claim.sourceRef === "string" && typeof claim.runRef === "string") {
+      const key = JSON.stringify([claim.sourceRef, claim.runRef]);
+      const run = runs.get(key);
+      const prior = run?.claim;
+      const completeValues = run?.completeValues ?? new Map<string, unknown>();
+      const selector = obs?.executionFact;
+      // A run has one complete value per selected singleton fact. Boolean
+      // properties are distinct authored criteria, not a shared run value.
+      if (
+        obs?.completeness === "complete" &&
+        typeof selector === "string" &&
+        selector !== "boolean_property" &&
+        Object.hasOwn(EXECUTION_FACT_KINDS, selector)
+      ) {
+        if (completeValues.has(selector)) {
+          if (!equalJsonValue(completeValues.get(selector), obs?.value))
+            issues.add(`${p}.value`, "MISMATCHED_ORIGIN");
+        } else {
+          completeValues.set(selector, obs?.value);
+        }
+      }
+      const completePath = {
+        path: `${p}.completeness`,
+        fact: obs.executionFact,
+        termination: claim.termination,
+      };
+      if (
+        run?.termination !== undefined &&
+        claim.termination !== undefined &&
+        run.termination !== claim.termination
+      ) {
+        issues.add(`${originPath}.termination`, "MISMATCHED_ORIGIN");
+      }
+      if (
+        prior &&
+        (prior.kind !== claim.kind ||
+          prior.artifactDigest !== claim.artifactDigest ||
+          (prior.provenance !== undefined &&
+            claim.provenance !== undefined &&
+            JSON.stringify(prior.provenance) !== JSON.stringify(claim.provenance)))
+      ) {
+        issues.add(originPath, "MISMATCHED_ORIGIN");
+      }
+      if (run) {
+        if (prior?.provenance === undefined) run.claim = claim;
+        run.stdoutTruncated ||= capture.stdoutTruncated;
+        run.stderrTruncated ||= capture.stderrTruncated;
+        if (run.termination === undefined) run.termination = claim.termination;
+        if (obs?.completeness === "complete") run.completePaths.push(completePath);
+      } else {
+        runs.set(key, {
+          claim,
+          ...capture,
+          termination: claim.termination,
+          completePaths: obs?.completeness === "complete" ? [completePath] : [],
+          completeValues,
+        });
+      }
+    }
+  }
+
   for (const [i, obs] of observations.entries()) {
     const p = `$.observations[${i}]`;
     if (
@@ -134,65 +203,7 @@ export function validateObservations(
       const origin = obs.origin;
       if (origin && typeof origin === "object" && !Array.isArray(origin)) {
         const claim = origin as Record<string, unknown>;
-        if (typeof claim.sourceRef === "string" && typeof claim.runRef === "string") {
-          const key = JSON.stringify([claim.sourceRef, claim.runRef]);
-          const run = runs.get(key);
-          const prior = run?.claim;
-          const completeValues = run?.completeValues ?? new Map<string, unknown>();
-          const selector = obs.executionFact;
-          // A run has one complete value per selected singleton fact. Boolean
-          // properties are distinct authored criteria, not a shared run value.
-          if (
-            obs.completeness === "complete" &&
-            typeof selector === "string" &&
-            selector !== "boolean_property" &&
-            Object.hasOwn(EXECUTION_FACT_KINDS, selector)
-          ) {
-            if (completeValues.has(selector)) {
-              if (!equalJsonValue(completeValues.get(selector), obs.value))
-                issues.add(`${p}.value`, "MISMATCHED_ORIGIN");
-            } else {
-              completeValues.set(selector, obs.value);
-            }
-          }
-          const completePath = {
-            path: `${p}.completeness`,
-            fact: obs.executionFact,
-            termination: claim.termination,
-          };
-          if (
-            run?.termination !== undefined &&
-            claim.termination !== undefined &&
-            run.termination !== claim.termination
-          ) {
-            issues.add(`${p}.origin.termination`, "MISMATCHED_ORIGIN");
-          }
-          if (
-            prior &&
-            (prior.kind !== claim.kind ||
-              prior.artifactDigest !== claim.artifactDigest ||
-              (prior.provenance !== undefined &&
-                claim.provenance !== undefined &&
-                JSON.stringify(prior.provenance) !== JSON.stringify(claim.provenance)))
-          ) {
-            issues.add(`${p}.origin`, "MISMATCHED_ORIGIN");
-          }
-          if (run) {
-            if (prior?.provenance === undefined) run.claim = claim;
-            run.stdoutTruncated ||= capture.stdoutTruncated;
-            run.stderrTruncated ||= capture.stderrTruncated;
-            if (run.termination === undefined) run.termination = claim.termination;
-            if (obs.completeness === "complete") run.completePaths.push(completePath);
-          } else {
-            runs.set(key, {
-              claim,
-              ...capture,
-              termination: claim.termination,
-              completePaths: obs.completeness === "complete" ? [completePath] : [],
-              completeValues,
-            });
-          }
-        }
+        recordRunClaim(claim, capture, p, `${p}.origin`, obs);
       }
     }
     if (obs.kind === "text") {
@@ -278,6 +289,18 @@ export function validateObservations(
       unique(obs.artifactRefs, `${p}.artifactRefs`, issues);
     } else issues.add(`${p}.kind`, "INVALID_VALUE");
   }
+  // The validated envelope itself is a run claim even without returned facts.
+  if (envelopeOrigin) {
+    recordRunClaim(
+      envelopeOrigin,
+      {
+        stdoutTruncated: envelopeOrigin.provenance?.stdoutTruncated ?? false,
+        stderrTruncated: envelopeOrigin.provenance?.stderrTruncated ?? false,
+      },
+      "$",
+      "$",
+    );
+  }
   // Consult the whole run, including observations that omit capture provenance.
   // Unknown stream attribution remains conservative. Exit status is not a stream.
   for (const run of runs.values()) {
@@ -293,6 +316,16 @@ export function validateObservations(
   }
   unique(ids, "$.observations", issues);
   unique(refs, "$.observations", issues);
+}
+
+/** Check a validated empty report envelope against already verified evidence. */
+export function validateEmptyReportOrigin(
+  evidence: EvidenceBundle,
+  origin: ObservationOrigin,
+): ValidationResult<null> {
+  const issues = new Diagnostics();
+  validateObservations(evidence.observations, evidence.artifactDigest, issues, false, origin);
+  return issues.result("invalid_evidence", null);
 }
 
 function validateOrigin(

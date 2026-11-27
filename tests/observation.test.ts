@@ -44,7 +44,9 @@ function evidence(rubric = definition()): EvidenceBundle {
   });
 }
 
-function report(overrides: Partial<ObservationPortReport> = {}): ObservationPortReport {
+type UnselectedReport = ObservationPortReport & { termination?: never };
+
+function report(overrides: Partial<UnselectedReport> = {}): UnselectedReport {
   return {
     schemaVersion: 2,
     definition: referenceOf(definition()),
@@ -574,7 +576,7 @@ describe("AY-I19 cooperative cancellation", () => {
     });
     const nativePort: ObservationPort<AbortSignal> = { observe };
     const before = evidence();
-    const remove = vi.spyOn(controller.signal, "removeEventListener");
+    const remove = vi.spyOn(AbortSignal.prototype, "removeEventListener");
     const collection = collectObservations(definition(), before, nativePort, {
       signal: controller.signal,
     });
@@ -582,10 +584,64 @@ describe("AY-I19 cooperative cancellation", () => {
     controller.abort();
     expect(await collection).toEqual(cancelled);
     expect(remove).toHaveBeenCalledWith("abort", expect.any(Function));
+    expect(remove.mock.contexts[0]).not.toBe(controller.signal);
+    remove.mockRestore();
     resolve(report());
     await pending;
     expect(before.observations).toEqual([]);
     expect(await collection).toEqual(cancelled);
+  });
+
+  it("isolates native cancellation from stopping listeners and synthetic events", async () => {
+    const controller = new AbortController();
+    controller.signal.addEventListener("abort", (event) => event.stopImmediatePropagation());
+    let reject!: (reason: unknown) => void;
+    const pending = new Promise<unknown>((_resolve, fail) => {
+      reject = fail;
+    });
+    const observe = vi.fn(async () => pending);
+    const remove = vi.spyOn(AbortSignal.prototype, "removeEventListener");
+    const collection = collectObservations(
+      definition(),
+      evidence(),
+      { observe },
+      { signal: controller.signal },
+    );
+    controller.signal.dispatchEvent(new Event("abort"));
+    expect(controller.signal.aborted).toBe(false);
+    expect(remove).not.toHaveBeenCalled();
+    controller.abort();
+    expect(await collection).toEqual(cancelled);
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(remove.mock.contexts[0]).not.toBe(controller.signal);
+    remove.mockRestore();
+    reject(new Error("PRIVATE_LATE_REJECTION"));
+    await Promise.resolve();
+  });
+
+  it("ignores structural synthetic notifications and removes the subscription", async () => {
+    let listener: (() => void) | undefined;
+    const signal = {
+      aborted: false,
+      addEventListener(_type: "abort", callback: () => void) {
+        listener = callback;
+      },
+      removeEventListener: vi.fn(() => {
+        listener = undefined;
+      }),
+    };
+    const collection = collectObservations(
+      definition(),
+      evidence(),
+      { observe: () => new Promise(() => {}) },
+      { signal },
+    );
+    listener?.();
+    expect(signal.removeEventListener).not.toHaveBeenCalled();
+    signal.aborted = true;
+    listener?.();
+    expect(await collection).toEqual(cancelled);
+    expect(signal.removeEventListener).toHaveBeenCalledTimes(1);
   });
 
   it("handles synchronous abort and a late provider rejection", async () => {
@@ -612,7 +668,7 @@ describe("AY-I19 cooperative cancellation", () => {
 
   it("reports synchronous exceptions and removes listeners on success", async () => {
     const controller = new AbortController();
-    const remove = vi.spyOn(controller.signal, "removeEventListener");
+    const remove = vi.spyOn(AbortSignal.prototype, "removeEventListener");
     const result = await collectObservations(
       definition(),
       evidence(),
@@ -633,6 +689,7 @@ describe("AY-I19 cooperative cancellation", () => {
     });
     expect(success.ok).toBe(true);
     expect(remove).toHaveBeenCalledTimes(2);
+    remove.mockRestore();
     controller.abort();
     expect(success.ok).toBe(true);
   });

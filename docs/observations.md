@@ -234,7 +234,9 @@ The collector derives each new observation's origin from the envelope scope,
 run and termination; observation-level origins remain forbidden. A report
 may omit unavailable facts. Interrupted runs remain inconclusive, and no
 exit value or output is synthesized. The receipt records termination when
-supplied. Unselected reports may omit termination.
+supplied. Unselected reports may omit termination. Even an empty report must
+agree with existing claims for the same adapter and run: an envelope is
+validated against earlier origins without modifying or adding observations.
 
 Supply a host-owned signal as the fourth argument:
 `collectObservations(definition, startingEvidence, port, { signal })`.
@@ -243,6 +245,12 @@ The exported structural `ObservationAbortSignal` type requires only the abort fl
 and listener methods, so the installed declarations remain usable without Node
 or DOM ambient types. Hosts needing the full native signal API can declare
 `ObservationPort<AbortSignal>`; the collector preserves that signal type.
+Native signals in the supported Node runtime use a private dependent signal for
+the collector subscription, so a host listener stopping propagation does not
+suppress cancellation. Synthetic events without an aborted flag are ignored.
+Custom structural signals are trusted host code: they must set `aborted`
+before notifying all listeners, must not suppress notification and must not
+throw from listener methods.
 Verified
 inputs are checked before cancellation; a valid pre-aborted operation never
 invokes the port. Pending abort settles the collector, removes its listener,

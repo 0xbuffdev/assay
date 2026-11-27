@@ -507,3 +507,48 @@ describe("AY-I19 scoped selected reports", () => {
     }
   });
 });
+
+describe("AY-I19 empty report run claims", () => {
+  it("rejects conflicting same-run termination and relevant truncation without changing evidence", async () => {
+    const rubric = definition([stdout, { ...stderr, mode: "advisory" }]);
+    const initial = createEvidenceBundle(rubric, { schemaVersion: 2, observations: [out] });
+    if (!initial.ok) throw new Error("Invalid evidence fixture");
+    const baseReport = {
+      schemaVersion: 2,
+      definition: initial.value.definition,
+      termination: "exited",
+      provenance: { ...provenance, stdoutTruncated: false },
+      observations: [],
+    };
+    for (const response of [
+      { ...baseReport, termination: "timeout" },
+      { ...baseReport, termination: "crash" },
+      { ...baseReport, provenance },
+    ]) {
+      const collected = await collectObservations(rubric, initial.value, {
+        observe: async () => response,
+      });
+      expect(collected).toMatchObject({ ok: false, outcome: "invalid_evidence" });
+    }
+    for (const response of [
+      baseReport,
+      {
+        ...baseReport,
+        provenance: { ...baseReport.provenance, stderrTruncated: true },
+      },
+      {
+        ...baseReport,
+        termination: "timeout",
+        provenance: { ...provenance, runRef: "unrelated" },
+      },
+    ]) {
+      const collected = await collectObservations(rubric, initial.value, {
+        observe: async () => response,
+      });
+      if (!collected.ok) throw new Error("Invalid collection");
+      expect(collected.evidence).toEqual(initial.value);
+      expect(collected.receipt?.evidenceRefs).toEqual([]);
+      expect(evaluate(rubric, collected.evidence).outcome).toBe("pass");
+    }
+  });
+});
