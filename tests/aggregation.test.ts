@@ -88,7 +88,7 @@ describe("AY-I16 evaluator and projection policy agreement", () => {
             input(advisory, "advisory", "advisory"),
           ];
           const created = createAllDefinition({
-            schemaVersion: 3,
+            schemaVersion: 4,
             assessmentId: "truth-table",
             revision: "rev1",
             policyVersion: "composed-required-v1",
@@ -96,7 +96,7 @@ describe("AY-I16 evaluator and projection policy agreement", () => {
           });
           if (!created.ok) throw new Error("Invalid truth table definition");
           const prepared = createEvidenceBundle(created.value, {
-            schemaVersion: 3,
+            schemaVersion: 4,
             observations: entries.map((entry) => entry.observation),
           });
           if (!prepared.ok) throw new Error("Invalid truth table evidence");

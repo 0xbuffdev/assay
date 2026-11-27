@@ -73,7 +73,7 @@ function draft(
   composition: CriterionComposition,
 ): AssessmentDefinitionDraft {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     assessmentId: "composition",
     revision: "rev1",
     policyVersion: "composed-required-v1",
@@ -111,7 +111,7 @@ describe("AY-I23 composition", () => {
             );
             const evidence = unwrap(
               createEvidenceBundle(definition, {
-                schemaVersion: 3,
+                schemaVersion: 4,
                 observations: [
                   observation("first", first),
                   observation("second", second),
@@ -174,7 +174,7 @@ describe("AY-I23 composition", () => {
             );
             const evidence = unwrap(
               createEvidenceBundle(definition, {
-                schemaVersion: 3,
+                schemaVersion: 4,
                 observations: [
                   observation("first", first),
                   observation("second", second),
@@ -195,10 +195,10 @@ describe("AY-I23 composition", () => {
     const definition = unwrap(
       createAssessmentDefinition(draft([criterion("first"), criterion("second")], flat("any"))),
     );
-    const empty = unwrap(createEvidenceBundle(definition, { schemaVersion: 3, observations: [] }));
+    const empty = unwrap(createEvidenceBundle(definition, { schemaVersion: 4, observations: [] }));
     expect(evaluate(definition, empty).outcome).toBe("inconclusive");
     const one = unwrap(
-      createEvidenceBundle(definition, { schemaVersion: 3, observations: [observation("first")] }),
+      createEvidenceBundle(definition, { schemaVersion: 4, observations: [observation("first")] }),
     );
     expect(evaluate(definition, one).outcome).toBe("pass");
     expect(inspectEvidenceCoverage(definition, one)).toMatchObject({
@@ -207,7 +207,7 @@ describe("AY-I23 composition", () => {
     });
     expect(
       createEvidenceBundle(definition, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         observations: [observation("first"), { ...observation("second"), value: "invalid" }],
       }).ok,
     ).toBe(false);
@@ -216,7 +216,7 @@ describe("AY-I23 composition", () => {
   it("rejects malformed nondecisive and advisory inputs at evaluation before comparison", () => {
     const reference = unwrap(
       createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "alternative-reference",
         kind: "number",
         value: 42,
@@ -245,10 +245,10 @@ describe("AY-I23 composition", () => {
       ),
     );
     const valid = unwrap(
-      createEvidenceBundle(definition, { schemaVersion: 3, observations: [observation("first")] }),
+      createEvidenceBundle(definition, { schemaVersion: 4, observations: [observation("first")] }),
     );
     const references = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: referenceOf(definition),
       references: [reference],
     };
@@ -430,10 +430,10 @@ describe("AY-I23 composition", () => {
       );
     });
     expect(sealed.revisionDigest).toBe(
-      `sha256:${createHash("sha256").update(`assay:definition:v3\n${encoded}`, "utf8").digest("hex")}`,
+      `sha256:${createHash("sha256").update(`assay:definition:v4\n${encoded}`, "utf8").digest("hex")}`,
     );
     expect(verifyAssessmentDefinition({ ...sealed, composition: flat("any") }).ok).toBe(false);
-    for (const schemaVersion of [1, 2, 4]) {
+    for (const schemaVersion of [1, 2, 3, 5]) {
       expect(createAssessmentDefinition({ ...authored, schemaVersion }).ok).toBe(false);
     }
     expect(createAssessmentDefinition({ ...authored, policyVersion: "all-required-v1" }).ok).toBe(
@@ -444,7 +444,7 @@ describe("AY-I23 composition", () => {
   it("withholds every hidden any-branch outcome and rejects forged roots", () => {
     const normal = unwrap(
       createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "private-canary",
         kind: "number",
         value: 42,
@@ -452,7 +452,7 @@ describe("AY-I23 composition", () => {
     );
     const overflow = unwrap(
       createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "private-canary",
         kind: "number",
         value: 1e308,
@@ -518,13 +518,13 @@ describe("AY-I23 composition", () => {
           createAssessmentDefinition(draft([criterion("first"), hidden], composition)),
         );
         const refs = {
-          schemaVersion: 3,
+          schemaVersion: 4,
           definition: referenceOf(definition),
           references: "omitReference" in fixture ? [] : [fixture.reference],
         };
         const evidence = unwrap(
           createEvidenceBundle(definition, {
-            schemaVersion: 3,
+            schemaVersion: 4,
             observations: [
               observation("first", publicOutcome),
               ...(fixture.observed === null ? [] : [fixture.observed]),
@@ -548,7 +548,7 @@ describe("AY-I23 composition", () => {
         expect(projection).toEqual({
           ok: true,
           value: {
-            schemaVersion: 3,
+            schemaVersion: 4,
             outcome: "withheld",
             findings: [
               {

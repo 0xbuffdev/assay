@@ -24,7 +24,7 @@ const observation = {
   completeness: "complete",
 } as const;
 
-function draft(criteria: readonly unknown[], schemaVersion = 3) {
+function draft(criteria: readonly unknown[], schemaVersion = 4) {
   return {
     schemaVersion,
     assessmentId: "conformance",
@@ -58,7 +58,7 @@ function compare(criterion: unknown, fact: unknown, matches: boolean): void {
   const definition = unwrap(createAssessmentDefinition(draft([criterion])));
   const evidence = unwrap(
     createEvidenceBundle(definition, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       observations: [fact],
     }),
   );
@@ -72,16 +72,16 @@ function compare(criterion: unknown, fact: unknown, matches: boolean): void {
   expect(projectPublicResult(definition, result)).toEqual({
     ok: true,
     value: {
-      schemaVersion: 3,
+      schemaVersion: 4,
       outcome,
       findings: [{ criterionId: "fact", outcome, reason: matches ? "match" : "mismatch" }],
     },
   });
 }
 
-describe("AY-I24 independent conformance, evaluator v0.0.4", () => {
+describe("AY-I24 independent conformance, evaluator v0.0.5", () => {
   it("checks the independent serializer's byte ordering before checking generated hashes", () => {
-    expect(ASSAY_EVALUATOR_VERSION).toBe("v0.0.4");
+    expect(ASSAY_EVALUATOR_VERSION).toBe("v0.0.5");
     expect(independentBytes({ 2: "two", 10: "ten", z: [-0, "é"], a: { y: 1 } })).toBe(
       '{"10":"ten","2":"two","a":{"y":1},"z":[0,"é"]}',
     );
@@ -95,7 +95,7 @@ describe("AY-I24 independent conformance, evaluator v0.0.4", () => {
         kind: "exact_text",
         parameters: { expected: { type: "literal", value: text } },
       };
-      for (const schema of [3]) {
+      for (const schema of [4]) {
         const input = draft([criterion], schema);
         const definition = unwrap(createAssessmentDefinition(input));
         expect(definition.revisionDigest).toBe(
@@ -106,13 +106,13 @@ describe("AY-I24 independent conformance, evaluator v0.0.4", () => {
       const value = { 2: i, 10: text, z: [null, -0, i % 2 === 0], a: { é: "e\u0301" } };
       const reordered = { a: value.a, z: value.z, 10: value[10], 2: value[2] };
       const recordDraft = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "fixture",
         kind: "json",
         value,
       };
       const record = unwrap(createReferenceRecord(recordDraft));
-      expect(record.referenceDigest).toBe(independentDigest("assay:reference:v3", recordDraft));
+      expect(record.referenceDigest).toBe(independentDigest("assay:reference:v4", recordDraft));
       expect(unwrap(createReferenceRecord({ ...recordDraft, value: reordered }))).toEqual(record);
       const definitionDraft = draft([
         {
@@ -130,15 +130,15 @@ describe("AY-I24 independent conformance, evaluator v0.0.4", () => {
       ]);
       const definition = unwrap(createAssessmentDefinition(definitionDraft));
       expect(definition.revisionDigest).toBe(
-        independentDigest("assay:definition:v3", definitionDraft),
+        independentDigest("assay:definition:v4", definitionDraft),
       );
       const evidenceDraft = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         observations: [{ ...observation, kind: "json", value: reordered }],
       };
       const evidence = unwrap(createEvidenceBundle(definition, evidenceDraft));
       expect(evidence.evidenceDigest).toBe(
-        independentDigest("assay:evidence:v3", {
+        independentDigest("assay:evidence:v4", {
           ...evidenceDraft,
           definition: {
             assessmentId: definition.assessmentId,
@@ -148,7 +148,7 @@ describe("AY-I24 independent conformance, evaluator v0.0.4", () => {
         }),
       );
       const references = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: evidence.definition,
         references: [record],
       };
@@ -156,7 +156,7 @@ describe("AY-I24 independent conformance, evaluator v0.0.4", () => {
       expect(result).toMatchObject({
         outcome: "pass",
         evidenceDigest: evidence.evidenceDigest,
-        evaluator: { id: "assay", version: "v0.0.4" },
+        evaluator: { id: "assay", version: "v0.0.5" },
         findings: [{ criterionId: "fact", outcome: "pass", reasonCode: "MATCH" }],
       });
       expect(
@@ -353,7 +353,7 @@ describe("AY-I24 independent conformance, evaluator v0.0.4", () => {
           });
           const definition = unwrap(createAssessmentDefinition(draft(criteria)));
           const evidence = unwrap(
-            createEvidenceBundle(definition, { schemaVersion: 3, observations }),
+            createEvidenceBundle(definition, { schemaVersion: 4, observations }),
           );
           const result = evaluate(definition, evidence);
           expect(result).toMatchObject({
