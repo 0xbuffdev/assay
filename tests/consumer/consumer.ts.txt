@@ -38,7 +38,7 @@ import {
   type ValidationResult,
 } from "@0xbuff/assay";
 
-const semantics: "v0.0.4" = ASSAY_EVALUATOR_VERSION;
+const semantics: "v0.0.5" = ASSAY_EVALUATOR_VERSION;
 void semantics;
 const authoredDraft: AssessmentDefinitionDraft = {
   schemaVersion: ASSAY_SCHEMA_VERSION,
@@ -57,7 +57,7 @@ const authoredDraft: AssessmentDefinitionDraft = {
 const boundedDefinition = createAssessmentDefinition(authoredDraft);
 if (boundedDefinition.ok) {
   const verified = verifyAssessmentDefinition(boundedDefinition.value);
-  const prepared = createEvidenceBundle(boundedDefinition.value, { schemaVersion: 3, observations: [] });
+  const prepared = createEvidenceBundle(boundedDefinition.value, { schemaVersion: 4, observations: [] });
   if (prepared.ok) {
     const pure: EvaluationResponse = evaluate(boundedDefinition.value, prepared.value);
     void pure;
@@ -89,7 +89,7 @@ if (!constructed.ok) throw new Error("Invalid typed fixture");
 const definition: AssessmentDefinition = constructed.value;
 
 const evidenceDraft: EvidenceBundleDraft = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   observations: [
     { criterionId: "output", evidenceRef: "output-1", completeness: "complete", kind: "text", value: "ok" },
   ],
@@ -150,7 +150,7 @@ const port: ObservationPort = {
     void ids;
     void max;
     return {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: request.definition,
       observations: [],
       provenance: {
@@ -222,7 +222,7 @@ void validated;
 
 // The installed package exposes typed, separately supplied reference records.
 const referenceDraft: ReferenceRecordDraft = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   referenceId: "quantity",
   kind: "number",
   value: 10,
@@ -232,7 +232,7 @@ const referenceCreated = createReferenceRecord(referenceDraft);
 if (referenceCreated.ok) {
   const reference: ReferenceRecord = referenceCreated.value;
   const boundDraft: AssessmentDefinitionDraft = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     assessmentId: "typed-reference",
     composition: { rootGroupId: "root", groups: [{ id: "root", operator: "all", children: [{ kind: "criterion", id: "quantity" }] }] },
     revision: "rev1",
@@ -254,9 +254,9 @@ if (referenceCreated.ok) {
     }],
   };
   const sealed = createAssessmentDefinition(boundDraft);
-  if (sealed.ok && sealed.value.schemaVersion === 3) {
+  if (sealed.ok && sealed.value.schemaVersion === 4) {
     const bundle: ReferenceBundle = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: {
         assessmentId: sealed.value.assessmentId,
         revision: sealed.value.revision,
@@ -265,7 +265,7 @@ if (referenceCreated.ok) {
       references: [reference],
     };
     const verified: ValidationResult<ReferenceBundle> = verifyReferenceBundle(sealed.value, bundle);
-    const boundEvidence = createEvidenceBundle(sealed.value, { schemaVersion: 3, observations: [] });
+    const boundEvidence = createEvidenceBundle(sealed.value, { schemaVersion: 4, observations: [] });
     if (!boundEvidence.ok) throw new Error("Invalid bound fixture");
     const evaluated: EvaluationResponse = evaluate(sealed.value, boundEvidence.value, bundle);
     if ("diagnostics" in evaluated) {
@@ -280,9 +280,9 @@ if (referenceCreated.ok) {
 // @ts-expect-error schema-2 references require a digest
 const unbound: import("@0xbuff/assay").Expected<string> = { type: "reference", referenceId: "x" };
 // @ts-expect-error numeric references do not accept strings
-const badReference: ReferenceRecordDraft = { schemaVersion: 3, referenceId: "x", kind: "number", value: "1" };
+const badReference: ReferenceRecordDraft = { schemaVersion: 4, referenceId: "x", kind: "number", value: "1" };
 // @ts-expect-error set reference values must match the declared item type
-const mixedReference: ReferenceRecordDraft = { schemaVersion: 3, referenceId: "x", kind: "set", itemType: "boolean", value: [1] };
+const mixedReference: ReferenceRecordDraft = { schemaVersion: 4, referenceId: "x", kind: "set", itemType: "boolean", value: [1] };
 void unbound;
 void badReference;
 void mixedReference;
@@ -301,7 +301,7 @@ void currentReference;
  // @ts-expect-error schema 1 is not a sealed evidence bundle
 const legacyEvidence: EvidenceBundle = { schemaVersion: 1, definition: evidence.definition, observations: [] };
 // @ts-expect-error evidence digest is mandatory
-const unsealedEvidence: EvidenceBundle = { schemaVersion: 3, definition: evidence.definition, observations: [] };
+const unsealedEvidence: EvidenceBundle = { schemaVersion: 4, definition: evidence.definition, observations: [] };
 // @ts-expect-error independent origins cannot claim an artifact digest
 const mixedOrigin: ObservationOrigin = { kind: "independent", sourceRef: "fixture", artifactDigest: "sha256:" + "a".repeat(64) };
 // @ts-expect-error artifact-derived origins require an artifact digest
@@ -436,7 +436,7 @@ const invalidSignal: ObservationAbortSignal = { aborted: false };
 void invalidSignal;
 
 const reportEnvelope = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   definition: evidence.definition,
   provenance: {
     adapterId: "fixture", adapterVersion: "v1", runRef: "run1",

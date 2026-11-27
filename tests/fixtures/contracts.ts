@@ -47,7 +47,7 @@ export function sealDefinition(
     criteria: draft.criteria,
     composition: allComposition(draft.criteria),
   });
-  if (!checked.ok || checked.value.schemaVersion !== 3) {
+  if (!checked.ok || checked.value.schemaVersion !== 4) {
     throw new Error("Invalid authored test fixture");
   }
   return checked.value;
@@ -66,7 +66,7 @@ export const digestB = `sha256:${"b".repeat(64)}`;
 
 export function definition(): AssessmentDefinition {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     assessmentId: "assay-demo",
     composition: allComposition([
       { id: "output", mode: "required" },
@@ -147,7 +147,7 @@ export function definition(): AssessmentDefinition {
 
 export function evidence(): EvidenceBundle {
   return sealEvidenceFixture({
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: {
       assessmentId: "assay-demo",
       revision: "rev1",
@@ -182,7 +182,7 @@ export function evidence(): EvidenceBundle {
 
 export function result(): EvaluationResult {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     evidenceDigest: digestB,
     outcome: "inconclusive",
     definition: {
@@ -198,10 +198,10 @@ export function result(): EvaluationResult {
         reasonCode: "REFERENCE_UNAVAILABLE",
         evidenceRefs: ["ev-output"],
         evaluatorId: "assay",
-        evaluatorVersion: "v0.0.4",
+        evaluatorVersion: "v0.0.5",
       },
     ],
-    evaluator: { id: "assay", version: "v0.0.4" },
+    evaluator: { id: "assay", version: "v0.0.5" },
     warnings: [],
   };
 }
@@ -224,7 +224,7 @@ export function sealEvidenceFixture(
     );
   });
   const evidenceDigest = `sha256:${createHash("sha256")
-    .update(`assay:evidence:v3\n${bytes}`, "utf8")
+    .update(`assay:evidence:v4\n${bytes}`, "utf8")
     .digest("hex")}`;
   return { ...content, evidenceDigest } as EvidenceBundle;
 }

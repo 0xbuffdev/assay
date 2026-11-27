@@ -53,7 +53,7 @@ type UnselectedReport = ObservationPortReport & { termination?: never };
 
 function report(overrides: Partial<UnselectedReport> = {}): UnselectedReport {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: referenceOf(definition()),
     artifactDigest: digestA,
     provenance: {
@@ -137,7 +137,7 @@ describe("AY-I03 optional injected observation port", () => {
       expect(serialized).not.toContain("expected");
       expect(serialized).not.toContain("trusted");
       expect(request).toMatchObject({
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: referenceOf(input),
         artifactDigest: digestA,
         criteria: [{ criterionId: "members", kind: "set", itemType: "string" }],
@@ -168,14 +168,14 @@ describe("AY-I03 optional injected observation port", () => {
 
   it("requests missing public facts in authored order despite a decisive nested any branch", async () => {
     const reference = createReferenceRecord({
-      schemaVersion: 3,
+      schemaVersion: 4,
       referenceId: "hidden-reference-canary",
       kind: "text",
       value: "hidden-value-canary",
     });
     if (!reference.ok) throw new Error("Invalid reference fixture");
     const created = createAssessmentDefinition({
-      schemaVersion: 3,
+      schemaVersion: 4,
       assessmentId: "composed-collection",
       revision: "rev1",
       policyVersion: "composed-required-v1",
@@ -230,7 +230,7 @@ describe("AY-I03 optional injected observation port", () => {
     if (!created.ok) throw new Error("Invalid composed definition");
     const rubric = created.value;
     const starting = createEvidenceBundle(rubric, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       artifactDigest: digestA,
       observations: [
         {
@@ -266,7 +266,7 @@ describe("AY-I03 optional injected observation port", () => {
     });
     const observe = vi.fn(async (request: ObservationPortRequest) => {
       expect(request).toEqual({
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: referenceOf(rubric),
         artifactDigest: digestA,
         criteria: [
@@ -318,7 +318,7 @@ describe("AY-I03 optional injected observation port", () => {
     expect(control.receipt?.evidenceRefs).toEqual(["stdout1"]);
     expect(evaluate(rubric, control.evidence).outcome).toBe("pass");
     const diagnostic = [{ path: "$.schemaVersion", code: "UNSUPPORTED_VERSION" }];
-    for (const schemaVersion of [1, 2]) {
+    for (const schemaVersion of [1, 2, 3]) {
       const obsolete = { ...current, schemaVersion };
       expect(parseObservationPortReport(obsolete)).toEqual({
         ok: false,
@@ -943,7 +943,7 @@ describe("AY-I21 combined observation resource limits", () => {
     "revalidates individually valid JSON facts after collection ($label)",
     async ({ overflow }) => {
       const authored = createAllDefinition({
-        schemaVersion: 3,
+        schemaVersion: 4,
         assessmentId: "combined-budget",
         revision: "rev1",
         policyVersion: "composed-required-v1",
@@ -960,7 +960,7 @@ describe("AY-I21 combined observation resource limits", () => {
       const canary = "PRIVATE_COMBINED_BUDGET_CANARY";
       const chunk = canary.padEnd(CONTRACT_LIMITS.maxStringLength, "x");
       const starting = createEvidenceBundle(rubric, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         observations: [
           {
             criterionId: "existing",
@@ -981,7 +981,7 @@ describe("AY-I21 combined observation resource limits", () => {
       // budget together with the existing nine, before metadata is counted.
       const acquiredValue = [...Array(6).fill(chunk), overflow ? chunk : chunk.slice(0, -1024)];
       const incoming = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: referenceOf(rubric),
         provenance: { ...report().provenance, capturedStdoutBytes: 0 },
         observations: [

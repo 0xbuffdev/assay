@@ -52,7 +52,7 @@ function createAllDefinition(draft) {
 }
 
 const draft = (criteria, revision = "rev1") => ({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "external-consumer",
   revision,
   policyVersion: "composed-required-v1",
@@ -66,7 +66,7 @@ function define(criteria, revision) {
 }
 // Independently seal synthetic inputs, including malformed negative fixtures.
 function evidence(observations, definition) {
-  const content = { schemaVersion: 3, definition: lineage(definition), observations };
+  const content = { schemaVersion: 4, definition: lineage(definition), observations };
   const bytes = JSON.stringify(content, (_key, value) => {
     if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
     return Object.fromEntries(
@@ -77,7 +77,7 @@ function evidence(observations, definition) {
   });
   return {
     ...content,
-    evidenceDigest: `sha256:${createHash("sha256").update(`assay:evidence:v3\n${bytes}`, "utf8").digest("hex")}`,
+    evidenceDigest: `sha256:${createHash("sha256").update(`assay:evidence:v4\n${bytes}`, "utf8").digest("hex")}`,
   };
 }
 function checked(criteria, observations, revision) {
@@ -124,11 +124,11 @@ assert.deepEqual(
     "projectPublicResult",
   ].sort(),
 );
-assert.equal(assay.ASSAY_SCHEMA_VERSION, 3);
+assert.equal(assay.ASSAY_SCHEMA_VERSION, 4);
 
 const unsigned = {
   composition: allComposition([{ id: "output", mode: "required" }]),
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "packed-integrity",
   revision: "rev1",
   policyVersion: "composed-required-v1",
@@ -146,7 +146,7 @@ assert.equal(separatelyComputed.ok, true);
 assert.equal(sealed.revisionDigest, separatelyComputed.value);
 assert.equal(assay.verifyAssessmentDefinition(sealed).ok, true);
 const sealedInput = assay.createEvidenceBundle(sealed, {
-  schemaVersion: 3,
+  schemaVersion: 4,
   observations: [text("output", "ok")],
 });
 assert.equal(sealedInput.ok, true);
@@ -162,7 +162,7 @@ const visibleProjection = assay.projectPublicResult(sealed, assay.evaluate(seale
 assert.deepEqual(visibleProjection, {
   ok: true,
   value: {
-    schemaVersion: 3,
+    schemaVersion: 4,
     outcome: "pass",
     findings: [{ criterionId: "output", outcome: "pass", reason: "match" }],
   },
@@ -194,7 +194,7 @@ const privateProjection = assay.projectPublicResult(privateSealed.value, private
 assert.deepEqual(privateProjection, {
   ok: true,
   value: {
-    schemaVersion: 3,
+    schemaVersion: 4,
     outcome: "withheld",
     findings: [{ criterionId: "output", outcome: "pass", reason: "match" }],
   },
@@ -414,7 +414,7 @@ const collected = await assay.collectObservations(portDefinition, evidence([], p
     assert.ok(!serialized.includes("hidden-output"));
     assert.ok(!serialized.includes("expected"));
     return {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: request.definition,
       provenance: {
         adapterId: "fixture-runner",
@@ -444,7 +444,7 @@ const portRejected = await assay.collectObservations(
   evidence([], publicDefinition),
   {
     observe: async (request) => ({
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: request.definition,
       provenance: {
         adapterId: "mock",
@@ -513,7 +513,7 @@ console.log("Independent packed ESM consumer: acceptance and hostile-input cases
 
 // AY-I13: independently pinned schema-2 content and definition lineage.
 const reference = assay.createReferenceRecord({
-  schemaVersion: 3,
+  schemaVersion: 4,
   referenceId: "secret",
   kind: "text",
   value: "café\n",
@@ -521,10 +521,10 @@ const reference = assay.createReferenceRecord({
 assert.equal(reference.ok, true);
 assert.equal(
   reference.value.referenceDigest,
-  "sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f",
+  "sha256:27702532f918730d005384ff402dd3a5eb3f7d6f442479a03580b4c4da01709c",
 );
 const bound = createAllDefinition({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "vector",
   revision: "rev1",
   policyVersion: "composed-required-v1",
@@ -547,10 +547,10 @@ const bound = createAllDefinition({
 assert.equal(bound.ok, true);
 assert.equal(
   bound.value.revisionDigest,
-  "sha256:b0b4ed130a1ed38d5b306a7c43f10a512fbe8f2905b110ea781c4f3bcc8fd6cf",
+  "sha256:0bb2de4fa1b1dfaec607807cf533016071643258cd7784f3f0bc14a0f62a910f",
 );
 const bundle = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   definition: {
     assessmentId: bound.value.assessmentId,
     revision: bound.value.revision,
@@ -589,7 +589,7 @@ const projectedPass = assay.projectPublicResult(bound.value, protectedPass);
 assert.deepEqual(projectedPass, assay.projectPublicResult(bound.value, protectedFail));
 assert.deepEqual(projectedPass, {
   ok: true,
-  value: { schemaVersion: 3, outcome: "withheld", findings: [] },
+  value: { schemaVersion: 4, outcome: "withheld", findings: [] },
 });
 assert.ok(!JSON.stringify(protectedPass).includes(reference.value.referenceDigest));
 assert.ok(!JSON.stringify(protectedPass).includes("café"));
@@ -619,7 +619,7 @@ const rejectedEvidence = assay.evaluate(
 assert.equal(rejectedEvidence.outcome, "invalid_evidence");
 assert.ok(!JSON.stringify(rejectedEvidence).includes("PRIVATE_EVIDENCE_CANARY"));
 const scoped = assay.createEvidenceBundle(sealed, {
-  schemaVersion: 3,
+  schemaVersion: 4,
   artifactDigest: digest("a"),
   observations: [
     {
@@ -639,7 +639,7 @@ assert.equal(scopedResult.artifactDigest, digest("a"));
 assert.equal(scopedResult.evidenceDigest, scoped.value.evidenceDigest);
 assert.equal(
   assay.createEvidenceBundle(sealed, {
-    schemaVersion: 3,
+    schemaVersion: 4,
     artifactDigest: digest("b"),
     observations: scoped.value.observations,
   }).ok,
@@ -647,7 +647,7 @@ assert.equal(
 );
 assert.equal(
   assay.evaluate(sealed, {
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: lineage(sealed),
     observations: [text("output", "ok")],
   }).outcome,
@@ -693,7 +693,7 @@ const objectiveDefinition = createAllDefinition({
       expected: { type: "literal", value: { a: [null, false], b: 0 } },
     }),
   ]),
-  schemaVersion: 3,
+  schemaVersion: 4,
 });
 assert.equal(objectiveDefinition.ok, true);
 const objectiveEvidence = evidence(
@@ -714,7 +714,7 @@ const executionDefinition = createAllDefinition({
       executionFact: "stdout",
     },
   ]),
-  schemaVersion: 3,
+  schemaVersion: 4,
 });
 assert.equal(executionDefinition.ok, true);
 const outputFact = {
@@ -731,7 +731,7 @@ const timedOut = evidence(
 valid(assay.evaluate(executionDefinition.value, timedOut), "inconclusive");
 assert.equal(
   assay.createEvidenceBundle(executionDefinition.value, {
-    schemaVersion: 3,
+    schemaVersion: 4,
     observations: [{ ...outputFact, executionFact: "stderr" }],
   }).ok,
   false,
@@ -748,7 +748,7 @@ const repeatedExecutionDefinition = createAllDefinition({
       executionFact: "stdout",
     },
   ]),
-  schemaVersion: 3,
+  schemaVersion: 4,
 });
 assert.equal(repeatedExecutionDefinition.ok, true);
 const secondOutput = {
@@ -771,9 +771,9 @@ for (const observations of [
 }
 
 // Serialized data must be decoded before the existing typed validation boundary.
-const decodedRecord = assay.decodeSerializedRecord('{"schemaVersion":3}');
+const decodedRecord = assay.decodeSerializedRecord('{"schemaVersion":4}');
 assert.equal(decodedRecord.ok, true);
-assert.equal(decodedRecord.value.schemaVersion, 3);
+assert.equal(decodedRecord.value.schemaVersion, 4);
 assert.equal(Object.isFrozen(decodedRecord.value), true);
 assert.deepEqual(assay.decodeSerializedRecord('{"secret":1,"secret":2}'), {
   ok: false,

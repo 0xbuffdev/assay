@@ -17,11 +17,11 @@ import {
 } from "../src/index";
 import { allComposition, sealEvidenceFixture } from "./fixtures/contracts";
 
-const referenceDigest = "sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f";
-const definitionDigest = "sha256:b0b4ed130a1ed38d5b306a7c43f10a512fbe8f2905b110ea781c4f3bcc8fd6cf";
-const referenceBytes = '{"kind":"text","referenceId":"secret","schemaVersion":3,"value":"café\\n"}';
+const referenceDigest = "sha256:27702532f918730d005384ff402dd3a5eb3f7d6f442479a03580b4c4da01709c";
+const definitionDigest = "sha256:0bb2de4fa1b1dfaec607807cf533016071643258cd7784f3f0bc14a0f62a910f";
+const referenceBytes = '{"kind":"text","referenceId":"secret","schemaVersion":4,"value":"café\\n"}';
 const definitionBytes =
-  '{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}';
+  '{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:27702532f918730d005384ff402dd3a5eb3f7d6f442479a03580b4c4da01709c","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":4}';
 
 function independent(domain: string, canonical: string): string {
   return `sha256:${createHash("sha256").update(`${domain}\n${canonical}`, "utf8").digest("hex")}`;
@@ -33,7 +33,7 @@ function unwrap<T>(result: ValidationResult<T>): T {
 }
 
 const referenceDraft = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   referenceId: "secret",
   kind: "text",
   value: "café\n",
@@ -59,7 +59,7 @@ function textCriterion(record: ReferenceRecord, id = "output") {
 
 function draft(criteria: readonly unknown[]) {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     assessmentId: "vector",
     revision: "rev1",
     policyVersion: "composed-required-v1",
@@ -70,7 +70,7 @@ function draft(criteria: readonly unknown[]) {
 
 function bundle(definition: AssessmentDefinition, records: readonly ReferenceRecord[]) {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: {
       assessmentId: definition.assessmentId,
       revision: definition.revision,
@@ -87,10 +87,10 @@ function fixture() {
 }
 
 describe("AY-I13 content-bound reference contracts", () => {
-  it("matches independent canonical UTF-8 SHA-256 vectors for schema 3", () => {
+  it("matches independent canonical UTF-8 SHA-256 vectors for schema 4", () => {
     const f = fixture();
-    expect(independent("assay:reference:v3", referenceBytes)).toBe(referenceDigest);
-    expect(independent("assay:definition:v3", definitionBytes)).toBe(definitionDigest);
+    expect(independent("assay:reference:v4", referenceBytes)).toBe(referenceDigest);
+    expect(independent("assay:definition:v4", definitionBytes)).toBe(definitionDigest);
     expect(f.record.referenceDigest).toBe(referenceDigest);
     expect(f.definition.revisionDigest).toBe(definitionDigest);
     expect(verifyAssessmentDefinition(f.definition).ok).toBe(true);
@@ -104,7 +104,7 @@ describe("AY-I13 content-bound reference contracts", () => {
           value: "café\n",
           kind: "text",
           referenceId: "secret",
-          schemaVersion: 3,
+          schemaVersion: 4,
         }),
       ),
     ).toEqual(f.record);
@@ -201,7 +201,7 @@ describe("AY-I13 content-bound reference contracts", () => {
     const result = evaluate(
       f.definition,
       sealEvidenceFixture({
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: f.bundle.definition,
         observations: [
           {
@@ -223,7 +223,7 @@ describe("AY-I13 content-bound reference contracts", () => {
   it("checks inferred kinds, exact units and set item types for sealed records", () => {
     const text = unwrap(createReferenceRecord(referenceDraft));
     const numericDraft = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       referenceId: "quantity",
       kind: "number",
       value: 10,
@@ -232,7 +232,7 @@ describe("AY-I13 content-bound reference contracts", () => {
     const unitless = unwrap(createReferenceRecord(numericDraft));
     const items = unwrap(
       createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "items",
         kind: "set",
         itemType: "number",
@@ -240,10 +240,10 @@ describe("AY-I13 content-bound reference contracts", () => {
       }),
     );
     expect(meters.referenceDigest).toBe(
-      "sha256:1e4890246c0eda1381302e0d56d458fc08d2883e806b411eec5572b24cd78a0b",
+      "sha256:dc3ca7a792de9a5703e72ff6409caa17aa3a16ec8b93e8a7468d25785060386b",
     );
     expect(items.referenceDigest).toBe(
-      "sha256:eb8098fafa7f466e471989a3f2106d02b130766c3c27cee4692ba77b8ae587a8",
+      "sha256:51de8ae6a5a8cb3171785783da7d4c45725dc3300175f97b427247470f84bf4c",
     );
     const base = { id: "check", mode: "required", visibility: "restricted" };
     function numeric(record: ReferenceRecord, unit?: string) {
@@ -299,7 +299,7 @@ describe("AY-I13 content-bound reference contracts", () => {
 
   it("keeps authored set order and unit absence part of reference identity", () => {
     const record = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       referenceId: "set1",
       kind: "set",
       itemType: "number",
@@ -308,7 +308,7 @@ describe("AY-I13 content-bound reference contracts", () => {
     expect(unwrap(createReferenceRecord(record)).referenceDigest).not.toBe(
       unwrap(createReferenceRecord({ ...record, value: [2, 1] })).referenceDigest,
     );
-    const number = { schemaVersion: 3, referenceId: "num", kind: "number", value: 1 };
+    const number = { schemaVersion: 4, referenceId: "num", kind: "number", value: 1 };
     expect(unwrap(createReferenceRecord(number)).referenceDigest).not.toBe(
       unwrap(createReferenceRecord({ ...number, unit: "m" })).referenceDigest,
     );
@@ -361,7 +361,7 @@ describe("AY-I13 content-bound reference contracts", () => {
 
 function observed(definition: AssessmentDefinition, observations: readonly unknown[]) {
   return sealEvidenceFixture({
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: bundle(definition, []).definition,
     observations,
   });
@@ -404,7 +404,7 @@ describe("AY-I14 protected reference evaluation", () => {
     const projected = projectPublicResult(definition, pass);
     expect(projected).toEqual({
       ok: true,
-      value: { schemaVersion: 3, outcome: "withheld", findings: [] },
+      value: { schemaVersion: 4, outcome: "withheld", findings: [] },
     });
     expect(projectPublicResult(definition, fail)).toEqual(projected);
     expect(projectPublicResult(definition, unavailable)).toEqual(projected);
@@ -447,7 +447,7 @@ describe("AY-I14 protected reference evaluation", () => {
     const text = unwrap(createReferenceRecord({ ...referenceDraft, value: " CAFÉ\r\n" }));
     const number = unwrap(
       createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "number",
         kind: "number",
         value: 100,
@@ -456,7 +456,7 @@ describe("AY-I14 protected reference evaluation", () => {
     );
     const set = unwrap(
       createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "set",
         kind: "set",
         itemType: "number",
@@ -559,7 +559,7 @@ describe("AY-I14 protected reference evaluation", () => {
       [Number.MAX_VALUE, -Number.MAX_VALUE, 0, "fail"],
     ] as const) {
       const record = unwrap(
-        createReferenceRecord({ schemaVersion: 3, referenceId: "num", kind: "number", value }),
+        createReferenceRecord({ schemaVersion: 4, referenceId: "num", kind: "number", value }),
       );
       const definition = unwrap(
         createAssessmentDefinition(

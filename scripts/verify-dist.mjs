@@ -34,7 +34,7 @@ assert.deepEqual(
     "projectPublicResult",
   ].sort(),
 );
-assert.equal(entry.ASSAY_SCHEMA_VERSION, 3);
+assert.equal(entry.ASSAY_SCHEMA_VERSION, 4);
 assert.equal(typeof entry.decodeSerializedRecord, "function");
 assert.deepEqual(entry.decodeSerializedRecord('{"x":1,"x":2}'), {
   ok: false,
@@ -42,7 +42,7 @@ assert.deepEqual(entry.decodeSerializedRecord('{"x":1,"x":2}'), {
 });
 
 const golden = entry.createAssessmentDefinition({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "vector",
   composition: {
     rootGroupId: "fixture-root",
@@ -65,7 +65,7 @@ const golden = entry.createAssessmentDefinition({
 assert.equal(golden.ok, true);
 assert.equal(
   golden.value.revisionDigest,
-  "sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798",
+  "sha256:db53afe46dc26651f77a64613a6d059fdeefff1caeb0947c92c567db478f13a2",
 );
 assert.equal(entry.verifyAssessmentDefinition(golden.value).ok, true);
 const modified = {
@@ -91,7 +91,7 @@ assert.equal(
 );
 
 const sealed = entry.createAssessmentDefinition({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "pack-test",
   composition: {
     rootGroupId: "fixture-root",
@@ -119,7 +119,7 @@ const decodedDefinition = entry.decodeSerializedRecord(JSON.stringify(definition
 assert.equal(decodedDefinition.ok, true);
 assert.equal(entry.verifyAssessmentDefinition(decodedDefinition.value).ok, true);
 const prepared = entry.createEvidenceBundle(definition, {
-  schemaVersion: 3,
+  schemaVersion: 4,
   observations: [
     {
       criterionId: "objective",
@@ -138,7 +138,7 @@ assert.equal(observed.findings[0].reasonCode, "MATCH");
 assert.deepEqual(entry.projectPublicResult(definition, observed), {
   ok: true,
   value: {
-    schemaVersion: 3,
+    schemaVersion: 4,
     outcome: "pass",
     findings: [{ criterionId: observed.findings[0].criterionId, outcome: "pass", reason: "match" }],
   },
@@ -158,11 +158,11 @@ assert.equal(
   true,
   "Output must match its public contract",
 );
-const empty = entry.createEvidenceBundle(definition, { schemaVersion: 3, observations: [] });
+const empty = entry.createEvidenceBundle(definition, { schemaVersion: 4, observations: [] });
 assert.equal(empty.ok, true);
 const pending = entry.collectObservations(definition, empty.value, {
   observe: async () => ({
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: { assessmentId: "pack-test", revision: "rev1", revisionDigest: digest },
     provenance: {
       adapterId: "fixture",

@@ -119,7 +119,7 @@ describe("AY-I24 resource conformance and measurement", () => {
       parameters: { expected: { type: "literal", value: String(i).padStart(3_800, "x") } },
     }));
     const draft = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       assessmentId: "resource",
       revision: "v1",
       policyVersion: "composed-required-v1",
@@ -127,7 +127,7 @@ describe("AY-I24 resource conformance and measurement", () => {
     };
     const rubric = unwrap(createAllDefinition(draft));
     const evidenceDraft = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       observations: criteria.map((criterion, i) => ({
         criterionId: criterion.id,
         evidenceRef: `obs-${i}`,
@@ -202,7 +202,7 @@ describe("AY-I24 resource conformance and measurement", () => {
       const records = values.map((value, i) =>
         unwrap(
           createReferenceRecord({
-            schemaVersion: 3,
+            schemaVersion: 4,
             referenceId: `protected-${i}`,
             kind: "json",
             value,
@@ -211,7 +211,7 @@ describe("AY-I24 resource conformance and measurement", () => {
       );
       const rubric = unwrap(
         createAllDefinition({
-          schemaVersion: 3,
+          schemaVersion: 4,
           assessmentId: "protected-resource",
           revision: "v1",
           policyVersion: "composed-required-v1",
@@ -232,7 +232,7 @@ describe("AY-I24 resource conformance and measurement", () => {
       );
       const evidence = unwrap(
         createEvidenceBundle(rubric, {
-          schemaVersion: 3,
+          schemaVersion: 4,
           observations: values.map((value, i) => ({
             criterionId: `fact-${i}`,
             evidenceRef: `obs-${i}`,
@@ -243,7 +243,7 @@ describe("AY-I24 resource conformance and measurement", () => {
         }),
       );
       const references = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: evidence.definition,
         references: records,
       };
@@ -298,7 +298,7 @@ describe("AY-I24 resource conformance and measurement", () => {
         }
         expect(projectPublicResult(exact.rubric, result)).toEqual({
           ok: true,
-          value: { schemaVersion: 3, outcome: "withheld", findings: [] },
+          value: { schemaVersion: 4, outcome: "withheld", findings: [] },
         });
       },
     );
