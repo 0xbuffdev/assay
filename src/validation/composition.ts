@@ -8,8 +8,7 @@ export function validateComposition(
   issues: Diagnostics,
 ): void {
   const path = "$.composition";
-  if (!object(value, path, ["rootGroupId", "groups"], ["rootGroupId", "groups"], issues))
-    return;
+  if (!object(value, path, ["rootGroupId", "groups"], ["rootGroupId", "groups"], issues)) return;
   if (!identifier(value.rootGroupId, `${path}.rootGroupId`, issues)) return;
   if (!list(value.groups, `${path}.groups`, issues, CONTRACT_LIMITS.maxGroups)) return;
 
@@ -39,7 +38,7 @@ export function validateComposition(
     if (raw.children.length === 0) issues.add(`${gp}.children`, "INVALID_VALUE");
     edges += raw.children.length;
     if (edges > CONTRACT_LIMITS.maxCompositionEdges) {
-      issues.add(path, "INVALID_VALUE");
+      issues.add(path, "TOO_MANY_ITEMS");
       return;
     }
     const children: Child[] = [];
@@ -66,7 +65,11 @@ export function validateComposition(
   const leaves = new Set<string>();
   // Mark before descent: cycles and shared children cannot cause expansion.
   function visit(id: string, depth: number): void {
-    if (depth > CONTRACT_LIMITS.maxGroupDepth || visited.has(id)) {
+    if (depth > CONTRACT_LIMITS.maxGroupDepth) {
+      issues.add(path, "INPUT_TOO_DEEP");
+      return;
+    }
+    if (visited.has(id)) {
       issues.add(path, "INVALID_VALUE");
       return;
     }
