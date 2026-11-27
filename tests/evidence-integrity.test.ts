@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
   collectObservations,
-  createAssessmentDefinition,
   createEvidenceBundle,
   evaluate,
   parseEvaluationResult,
@@ -11,11 +10,11 @@ import {
   type ValidationResult,
   verifyEvidenceBundle,
 } from "../src/index";
-import { digestA, digestB, referenceOf, sealEvidenceFixture } from "./fixtures/contracts";
+import { createAllDefinition, digestA, digestB, referenceOf, sealEvidenceFixture } from "./fixtures/contracts";
 
-const expectedDigest = "sha256:cadd06a98401114bb8039949999c922cdc806c3998cc19f00735819f494e58bd";
+const expectedDigest = "sha256:06c8270cffe62153c69c77a9233044a7c97ceb5d8519142711f5f9dbddf9d301";
 const bytes =
-  '{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\\n"}],"schemaVersion":2}';
+  '{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\\n"}],"schemaVersion":3}';
 
 function unwrap<T>(result: ValidationResult<T>): T {
   if (!result.ok) throw new Error("Invalid synthetic fixture");
@@ -32,11 +31,11 @@ const criterion = {
 
 function definition(two = false, secondMode: "required" | "advisory" = "required") {
   return unwrap(
-    createAssessmentDefinition({
-      schemaVersion: 1,
+    createAllDefinition({
+      schemaVersion: 3,
       assessmentId: "vector",
       revision: "rev1",
-      policyVersion: "all-required-v1",
+      policyVersion: "composed-required-v1",
       criteria: two ? [criterion, { ...criterion, id: "second", mode: secondMode }] : [criterion],
     }),
   );
@@ -56,7 +55,7 @@ const artifactOrigin = {
   runRef: "run1",
 } as const;
 const draft = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   artifactDigest: digestA,
   observations: [{ ...fact, origin: artifactOrigin }],
 } as const;
@@ -76,14 +75,14 @@ describe("AY-I15 evidence identity and scoped claims", () => {
   it("pins an independently calculated canonical UTF-8 evidence digest", () => {
     const rubric = definition();
     const evidence = unwrap(createEvidenceBundle(rubric, draft));
-    const independent = createHash("sha256").update(`assay:evidence:v2\n${bytes}`, "utf8");
+    const independent = createHash("sha256").update(`assay:evidence:v3\n${bytes}`, "utf8");
     expect(`sha256:${independent.digest("hex")}`).toBe(expectedDigest);
     expect(evidence.evidenceDigest).toBe(expectedDigest);
     expect(unwrap(verifyEvidenceBundle(rubric, evidence))).toEqual(evidence);
     expect(Object.isFrozen(evidence.observations[0].origin)).toBe(true);
     const result = evaluate(rubric, evidence);
     expect(result).toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       outcome: "pass",
       definition: referenceOf(rubric),
       evidenceDigest: expectedDigest,
@@ -99,7 +98,7 @@ describe("AY-I15 evidence identity and scoped claims", () => {
       createEvidenceBundle(rubric, {
         observations: draft.observations,
         artifactDigest: digestA,
-        schemaVersion: 2,
+        schemaVersion: 3,
       }),
     );
     expect(reordered.evidenceDigest).toBe(expectedDigest);
@@ -166,7 +165,7 @@ describe("AY-I15 evidence identity and scoped claims", () => {
     for (const bad of [
       { ...draft, artifactDigest: digestB },
       { ...draft, observations: [fact] },
-      { schemaVersion: 2, observations: draft.observations },
+      { schemaVersion: 3, observations: draft.observations },
       {
         ...draft,
         observations: [
@@ -195,10 +194,10 @@ describe("AY-I15 evidence identity and scoped claims", () => {
   it("prevents retroactive scope binding and attaches claims only to returned facts", async () => {
     const rubric = definition(true);
     const initial = unwrap(
-      createEvidenceBundle(rubric, { schemaVersion: 2, observations: [fact] }),
+      createEvidenceBundle(rubric, { schemaVersion: 3, observations: [fact] }),
     );
     const report = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       definition: referenceOf(rubric),
       artifactDigest: digestA,
       provenance,
@@ -208,7 +207,7 @@ describe("AY-I15 evidence identity and scoped claims", () => {
     expect(late).toMatchObject({ ok: false, outcome: "invalid_evidence" });
     const scoped = unwrap(
       createEvidenceBundle(rubric, {
-        schemaVersion: 2,
+        schemaVersion: 3,
         artifactDigest: digestA,
         observations: [{ ...fact, origin: { kind: "independent", sourceRef: "local" } }],
       }),
@@ -240,7 +239,7 @@ describe("AY-I15 evidence identity and scoped claims", () => {
     expect(verifyEvidenceBundle(rubric, collected.evidence).ok).toBe(true);
     expect(evaluate(rubric, collected.evidence).outcome).toBe("inconclusive");
 
-    const empty = unwrap(createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] }));
+    const empty = unwrap(createEvidenceBundle(rubric, { schemaVersion: 3, observations: [] }));
     const introduced = await collectObservations(rubric, empty, { observe: async () => report });
     expect(introduced).toMatchObject({
       ok: true,
@@ -356,7 +355,7 @@ describe("AY-I15 evidence identity and scoped claims", () => {
     const snapshot = structuredClone(initial);
     for (const flag of ["stdoutTruncated", "stderrTruncated"] as const) {
       const observe = vi.fn(async () => ({
-        schemaVersion: 2,
+        schemaVersion: 3,
         definition: referenceOf(rubric),
         artifactDigest: digestA,
         provenance: { ...provenance, [flag]: true },
