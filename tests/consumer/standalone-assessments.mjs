@@ -172,7 +172,12 @@ const hiddenValue = "AYI25_PRIVATE_CONTENT";
 const providerError = "AYI25_PRIVATE_PROVIDER_ERROR";
 const publicOutput = "items=3\n";
 const artifactDigest = `sha256:${createHash("sha256").update("synthetic-inventory-artifact").digest("hex")}`;
-const protectedExpected = { groups: [{ sku: hiddenValue, count: 2 }, { sku: "B", count: 1 }] };
+const protectedExpected = {
+  groups: [
+    { sku: hiddenValue, count: 2 },
+    { sku: "B", count: 1 },
+  ],
+};
 const reference = unwrap(
   createReferenceRecord({
     schemaVersion: 2,
@@ -253,14 +258,23 @@ const requested = [
   { criterionId: "exit", kind: "number", executionFact: "exit_status" },
 ];
 
-function mockReport(request, { truncated = false, unavailable = false, output = publicOutput } = {}) {
+function mockReport(
+  request,
+  { truncated = false, unavailable = false, output = publicOutput } = {},
+) {
   assert.deepEqual(request.criteria, requested);
   assert.deepEqual(request.definition, { ...starting.definition });
   assert.equal(request.artifactDigest, artifactDigest);
   // Definition/artifact identity is deliberately present in the scoped
   // request. No hidden criterion, expected content or reference digest is.
   const requestBytes = JSON.stringify(request);
-  for (const secret of [hiddenId, hiddenRef, hiddenValue, reference.referenceDigest, hiddenFactRef]) {
+  for (const secret of [
+    hiddenId,
+    hiddenRef,
+    hiddenValue,
+    reference.referenceDigest,
+    hiddenFactRef,
+  ]) {
     assert.ok(!requestBytes.includes(secret));
   }
   assert.ok(!requestBytes.includes("expected"));
@@ -346,7 +360,13 @@ const emptyReference = complete(
 for (const result of [privateFail, absent, emptyReference]) {
   assert.equal(publicView(inventory, result, "withheld", publicFeedback), passBytes);
 }
-for (const secret of [...canaries, collected.evidenceDigest, "obs-summary", "obs-exit", "public-run"]) {
+for (const secret of [
+  ...canaries,
+  collected.evidenceDigest,
+  "obs-summary",
+  "obs-exit",
+  "public-run",
+]) {
   assert.ok(!passBytes.includes(secret));
 }
 
