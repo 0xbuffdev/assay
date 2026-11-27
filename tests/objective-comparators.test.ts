@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTRACT_LIMITS,
+  collectObservations,
   createAssessmentDefinition,
   createEvidenceBundle,
   createReferenceRecord,
   evaluate,
+  parseAssessmentDefinition,
+  parseEvidenceBundle,
   projectPublicResult,
+  verifyReferenceBundle,
 } from "../src/index";
 
 const base = { id: "check", mode: "required", visibility: "public" } as const;
@@ -206,5 +210,298 @@ describe("schema-2 objective comparators", () => {
       });
       expect(JSON.stringify(result)).not.toContain("private-canary");
     }
+  });
+});
+
+describe("AY-I17 integration regressions", () => {
+  it("applies the key-length limit to all own structured properties", () => {
+    const reference = createReferenceRecord({
+      schemaVersion: 2,
+      referenceId: "json-ref",
+      kind: "json",
+      value: null,
+    });
+    if (!reference.ok) throw new Error("Invalid reference fixture");
+    const definition = createAssessmentDefinition(
+      draft("json_equality", {
+        expected: {
+          type: "reference",
+          referenceId: reference.value.referenceId,
+          referenceDigest: reference.value.referenceDigest,
+        },
+      }),
+    );
+    if (!definition.ok) throw new Error("Invalid definition fixture");
+    const evidence = createEvidenceBundle(definition.value, {
+      schemaVersion: 2,
+      observations: [fact("json", null)],
+    });
+    if (!evidence.ok) throw new Error("Invalid evidence fixture");
+
+    for (const enumerable of [true, false]) {
+      for (const extra of [0, 1]) {
+        const name = "k".repeat(CONTRACT_LIMITS.maxStringLength + extra);
+        const value = Object.defineProperty({}, name, { value: true, enumerable });
+        const authored = draft("json_equality", { expected: literal(value) });
+        const parsed = parseAssessmentDefinition({
+          ...authored,
+          revisionDigest: definition.value.revisionDigest,
+        });
+        const sealed = createAssessmentDefinition(authored);
+        const referenceDraft = {
+          schemaVersion: 2,
+          referenceId: "json-ref",
+          kind: "json",
+          value,
+        };
+        const prepared = createEvidenceBundle(definition.value, {
+          schemaVersion: 2,
+          observations: [fact("json", value)],
+        });
+        const parsedEvidence = parseEvidenceBundle({
+          ...evidence.value,
+          observations: [fact("json", value)],
+        });
+        const createdReference = createReferenceRecord(referenceDraft);
+        for (const result of [parsed, sealed, prepared, parsedEvidence, createdReference]) {
+          expect(result.ok).toBe(extra === 0);
+          if (!result.ok) {
+            expect(result.diagnostics).toEqual([
+              expect.objectContaining({ code: "INPUT_TOO_LARGE" }),
+            ]);
+            expect(JSON.stringify(result)).not.toContain(name);
+          }
+        }
+        if (extra === 0) {
+          if (!createdReference.ok) throw new Error("Expected accepted boundary key");
+          const bound = createAssessmentDefinition(
+            draft("json_equality", {
+              expected: {
+                type: "reference",
+                referenceId: createdReference.value.referenceId,
+                referenceDigest: createdReference.value.referenceDigest,
+              },
+            }),
+          );
+          if (!bound.ok) throw new Error("Invalid bound fixture");
+          const bundle = {
+            schemaVersion: 2,
+            definition: {
+              assessmentId: bound.value.assessmentId,
+              revision: bound.value.revision,
+              revisionDigest: bound.value.revisionDigest,
+            },
+            references: [createdReference.value],
+          };
+          expect(verifyReferenceBundle(bound.value, bundle).ok).toBe(true);
+        } else {
+          const bundle = {
+            schemaVersion: 2,
+            definition: evidence.value.definition,
+            references: [{ ...reference.value, value }],
+          };
+          expect(verifyReferenceBundle(definition.value, bundle)).toMatchObject({
+            ok: false,
+            domain: "invalid_reference",
+            diagnostics: [{ code: "INPUT_TOO_LARGE" }],
+          });
+        }
+      }
+    }
+  });
+
+  it("rejects content-bound references with the wrong kind or range unit", () => {
+    const records = [
+      { kind: "range", value: interval(0, 2), unit: "ft" },
+      { kind: "range", value: interval(0, 2) },
+      { kind: "number", value: 1, unit: "m" },
+    ];
+    for (const record of records) {
+      const reference = createReferenceRecord({
+        schemaVersion: 2,
+        referenceId: "quantity",
+        ...record,
+      });
+      if (!reference.ok) throw new Error("Invalid reference fixture");
+      const definition = createAssessmentDefinition(
+        draft(
+          "number_range",
+          {
+            expected: {
+              type: "reference",
+              referenceId: reference.value.referenceId,
+              referenceDigest: reference.value.referenceDigest,
+            },
+            unit: "m",
+          },
+          "restricted",
+        ),
+      );
+      if (!definition.ok) throw new Error("Invalid definition fixture");
+      const evidence = createEvidenceBundle(definition.value, {
+        schemaVersion: 2,
+        observations: [{ ...fact("number", 1), unit: "m" }],
+      });
+      if (!evidence.ok) throw new Error("Invalid evidence fixture");
+      const bundle = {
+        schemaVersion: 2,
+        definition: evidence.value.definition,
+        references: [reference.value],
+      };
+      const diagnostics = [{ path: "$.references[0]", code: "MISMATCHED_REFERENCE" }];
+      expect(verifyReferenceBundle(definition.value, bundle)).toEqual({
+        ok: false,
+        domain: "invalid_reference",
+        diagnostics,
+      });
+      expect(evaluate(definition.value, evidence.value, bundle)).toEqual({
+        outcome: "invalid_reference",
+        diagnostics,
+      });
+    }
+  });
+
+  it("collects only public typed facts and rejects invalid or incomplete reports", async () => {
+    const reference = createReferenceRecord({
+      schemaVersion: 2,
+      referenceId: "private-ref",
+      kind: "json",
+      value: { answer: "private-canary" },
+    });
+    if (!reference.ok) throw new Error("Invalid reference fixture");
+    const definition = createAssessmentDefinition({
+      ...draft("boolean_equality", { expected: literal(false) }),
+      criteria: [
+        {
+          ...base,
+          id: "flag",
+          kind: "boolean_equality",
+          parameters: { expected: literal(false) },
+        },
+        {
+          ...base,
+          id: "quantity",
+          kind: "number_range",
+          parameters: { expected: literal(interval(0, 2)), unit: "m" },
+        },
+        {
+          ...base,
+          id: "structure",
+          kind: "json_equality",
+          parameters: { expected: literal({ output: "public-canary" }) },
+        },
+        {
+          ...base,
+          id: "hidden",
+          mode: "advisory",
+          visibility: "restricted",
+          kind: "json_equality",
+          parameters: {
+            expected: {
+              type: "reference",
+              referenceId: reference.value.referenceId,
+              referenceDigest: reference.value.referenceDigest,
+            },
+          },
+        },
+      ],
+    });
+    if (!definition.ok) throw new Error("Invalid definition fixture");
+    const evidence = createEvidenceBundle(definition.value, {
+      schemaVersion: 2,
+      observations: [],
+    });
+    if (!evidence.ok) throw new Error("Invalid evidence fixture");
+    const facts = [
+      { ...fact("boolean", false), criterionId: "flag", evidenceRef: "flag-fact" },
+      {
+        ...fact("number", 1),
+        criterionId: "quantity",
+        evidenceRef: "range-fact",
+        unit: "m",
+      },
+      {
+        ...fact("json", { output: "public-canary" }),
+        criterionId: "structure",
+        evidenceRef: "json-fact",
+      },
+    ];
+    const provenance = {
+      adapterId: "fixture",
+      adapterVersion: "v1",
+      runRef: "run1",
+      toolchainId: "fixture",
+      toolchainVersion: "v1",
+      capturedStdoutBytes: 0,
+      capturedStderrBytes: 0,
+      stdoutTruncated: false,
+      stderrTruncated: false,
+    };
+    const report = {
+      schemaVersion: 2,
+      definition: evidence.value.definition,
+      provenance,
+      observations: facts,
+    };
+    const collected = await collectObservations(definition.value, evidence.value, {
+      async observe(request) {
+        expect(request).toEqual({
+          schemaVersion: 2,
+          definition: report.definition,
+          criteria: [
+            { criterionId: "flag", kind: "boolean" },
+            { criterionId: "quantity", kind: "number", unit: "m" },
+            { criterionId: "structure", kind: "json" },
+          ],
+          limits: { maxCapturedBytes: CONTRACT_LIMITS.maxCapturedBytes },
+        });
+        expect(Object.isFrozen(request)).toBe(true);
+        return report;
+      },
+    });
+    if (!collected.ok) throw new Error("Expected valid collection");
+    expect(collected.receipt?.evidenceRefs).toEqual(["flag-fact", "range-fact", "json-fact"]);
+    expect(evaluate(definition.value, collected.evidence)).toMatchObject({
+      outcome: "pass",
+      findings: [
+        { criterionId: "flag", outcome: "pass" },
+        { criterionId: "quantity", outcome: "pass" },
+        { criterionId: "structure", outcome: "pass" },
+        { criterionId: "hidden", outcome: "inconclusive" },
+      ],
+    });
+
+    const invalidReports = [
+      { ...report, observations: [{ ...facts[0], kind: "text", value: "false" }] },
+      { ...report, observations: [{ ...facts[1], unit: "ft" }] },
+      { ...report, observations: [{ ...facts[2], criterionId: "hidden" }] },
+    ];
+    for (const invalid of invalidReports) {
+      const rejected = await collectObservations(definition.value, evidence.value, {
+        observe: async () => invalid,
+      });
+      expect(rejected).toMatchObject({ ok: false, outcome: "invalid_evidence" });
+    }
+    const truncated = await collectObservations(definition.value, evidence.value, {
+      observe: async () => ({
+        ...report,
+        provenance: { ...provenance, stdoutTruncated: true },
+      }),
+    });
+    if (!truncated.ok) throw new Error("Expected bounded truncated collection");
+    expect(truncated.evidence.observations.map((item) => item.completeness)).toEqual([
+      "truncated",
+      "truncated",
+      "truncated",
+    ]);
+    expect(evaluate(definition.value, truncated.evidence)).toMatchObject({
+      outcome: "inconclusive",
+      findings: [
+        { outcome: "inconclusive", reasonCode: "EVIDENCE_TRUNCATED" },
+        { outcome: "inconclusive", reasonCode: "EVIDENCE_TRUNCATED" },
+        { outcome: "inconclusive", reasonCode: "EVIDENCE_TRUNCATED" },
+        { outcome: "inconclusive", reasonCode: "EVIDENCE_MISSING" },
+      ],
+    });
   });
 });

@@ -147,17 +147,19 @@ For schema-2 definitions use the domain `assay:definition:v2` followed by LF,
 then the same canonical JSON rules as v1. Exclude only the definition's
 top-level `revisionDigest`. An objective reference expectation has exactly
 `{ type: "reference", referenceId, referenceDigest }`; its value kind is
-inferred from the criterion, including the numeric unit and set item type.
+inferred from the criterion, including the optional number or range unit and set item type.
 Duplicate objective reference IDs are rejected even when identical.
 Schema-1 declarations do not accept the new digest field.
 
 For reference records use the domain `assay:reference:v2` followed by LF,
 then canonical JSON of the validated unsigned record. Exclude only the
 record's own `referenceDigest`. Record fields are:
-`schemaVersion: 2`, `referenceId`, `kind`, `value`, and, for numbers, an
-optional `unit` (omission is deliberate unitlessness); for sets, a required
-`itemType` of string, number or boolean. Text, finite numbers and homogeneous
-arrays of the declared scalar type are admitted. No extra fields, unknown
+`schemaVersion: 2`, `referenceId`, `kind`, `value`, and, for `number` and
+`range`, an optional `unit` (omission is deliberate unitlessness); for `set`, a
+required `itemType` of string, number or boolean. Admitted kinds are `text`,
+`number`, `set`, `boolean`, `range`, and `json`. See
+[objective comparison semantics](evaluation.md#ay-i17-objective-comparisons-schema-2)
+for the new expected value shapes and comparison rules. No extra fields, unknown
 versions, URLs, executable expectations, or implicit conversion. The same
 object/key/node/string limits apply to the record and the complete bundle;
 a bundle may contain at most 64 records, the maximum number of criteria.

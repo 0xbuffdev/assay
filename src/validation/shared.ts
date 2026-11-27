@@ -238,6 +238,11 @@ export function snapshot(input: unknown, issues: Diagnostics): unknown | typeof 
 
       const output: DataObject = Object.create(null) as DataObject;
       for (const key of names) {
+        // Apply the per-key bound to every own name, including hidden data properties.
+        if (key.length > CONTRACT_LIMITS.maxStringLength) {
+          issues.add(path, "INPUT_TOO_LARGE");
+          return BAD;
+        }
         // Never reflect an attacker-controlled key into public diagnostics.
         if (key === "__proto__" || key === "prototype" || key === "constructor") {
           issues.add(path, "UNSAFE_KEY");
