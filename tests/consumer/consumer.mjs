@@ -501,5 +501,49 @@ assert.equal(
     ],
   }).outcome,
   "inconclusive",
-  "AY-I13 validates references but does not compare them",
+  "Omitted reference bundles remain inconclusive",
+);
+
+const boundEvidence = {
+  schemaVersion: 1,
+  definition: bundle.definition,
+  observations: [
+    {
+      criterionId: "output",
+      evidenceRef: "reference-observation",
+      kind: "text",
+      completeness: "complete",
+      value: "café\n",
+    },
+  ],
+};
+const protectedPass = valid(assay.evaluate(bound.value, boundEvidence, bundle), "pass");
+const protectedFail = valid(
+  assay.evaluate(
+    bound.value,
+    { ...boundEvidence, observations: [{ ...boundEvidence.observations[0], value: "wrong" }] },
+    bundle,
+  ),
+  "fail",
+);
+assert.equal(protectedPass.findings[0].reasonCode, "MATCH");
+assert.equal(protectedFail.findings[0].reasonCode, "VALUE_MISMATCH");
+const projectedPass = assay.projectPublicResult(bound.value, protectedPass);
+assert.deepEqual(projectedPass, assay.projectPublicResult(bound.value, protectedFail));
+assert.deepEqual(projectedPass, {
+  ok: true,
+  value: { schemaVersion: 1, outcome: "withheld", findings: [] },
+});
+assert.ok(!JSON.stringify(protectedPass).includes(reference.value.referenceDigest));
+assert.ok(!JSON.stringify(protectedPass).includes("café"));
+const invalidReference = assay.evaluate(bound.value, boundEvidence, {
+  ...bundle,
+  references: [{ ...reference.value, value: "PRIVATE_REFERENCE_CONTENT_CANARY" }],
+});
+assert.equal(invalidReference.outcome, "invalid_reference");
+assert.deepEqual(Object.keys(invalidReference).sort(), ["diagnostics", "outcome"]);
+assert.ok(!JSON.stringify(invalidReference).includes("PRIVATE_REFERENCE_CONTENT_CANARY"));
+assert.equal(
+  assay.evaluate(bound.value, boundEvidence, { ...bundle, references: [] }).outcome,
+  "inconclusive",
 );

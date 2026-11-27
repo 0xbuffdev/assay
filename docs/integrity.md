@@ -221,6 +221,8 @@ const verified = verifyReferenceBundle(definition.value, {
   references: [reference.value],
 });
 // verified is a privileged validation result, not a comparison or grade.
+// If verified.ok, evaluate(definition.value, evidence, verified.value) compares
+// caller-supplied observations against the content-bound reference.
 ```
 
 ### Schema-2 golden vectors
@@ -252,9 +254,10 @@ sha256:a5105a469d8dec865417760e3516f52f5d0566f35bdeaa16803de7cf4c8e80a0
 Both hashes are independently pinned with Node crypto in the source tests.
 Neither digest authenticates a publisher or hides low-entropy expected values.
 Do not publish protected definitions, reference records or their digests.
-Reference lookup and comparison are explicitly deferred to AY-I14; evaluation
-continues to report reference expectations as unavailable. No new evidence
-or execution fact schema is introduced here.
+AY-I14 permits evaluation using the verified schema-2 reference bundle as the
+optional third argument to `evaluate`. Missing material remains unavailable;
+invalid supplied records fail before comparison. No network lookup, new evidence
+or execution fact schema is introduced.
 
 Additional reference vectors (same domain and LF; no trailing LF):
 

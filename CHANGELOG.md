@@ -9,6 +9,7 @@
 
 ### Added
 
+- AY-I14: optional verified schema-2 reference comparison, reusing objective comparators and preserving opaque public projection; invalid reference material returns a diagnostic failure envelope.
 - AY-I07: learner-safe technical result projection that withholds restricted findings, all evidence references, reason codes and hidden aggregates, with strict definition/result coherence checks and uniform opaque rejection.
 - AY-I06: versioned deterministic definition content hashes, unsigned draft sealing, integrity verification and explicitly guarded evaluator/observation-port paths; pure synchronous SHA-256 without runtime dependencies. Content hashes do not authenticate publishers.
 - AY-I05: numeric observations carry an optional unit identifier; unit-bearing criteria reject absent or different observation units rather than silently comparing incompatible quantities.

@@ -73,7 +73,8 @@ schema-1 digest profile. Projection already verifies the definition. Structural
 parsers and coverage inspection remain non-evaluating operations.
 AY-I13 adds schema-2 objective reference declarations and independently sealed
 reference records and bundles. Definition and reference integrity remain
-separate from comparison; AY-I14 owns protected reference comparisons. The
+separate from comparison; AY-I14 validates supplied bundles at the evaluation
+boundary and passes their typed expected values to the same objective comparators. The
 schema-1 canonical profile and existing evidence/result versions are retained.
 The foundation gate checks the source module allowlist, permitted dependency
 directions and absence of cycles; existing public export and packed-consumer

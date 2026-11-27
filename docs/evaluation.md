@@ -6,8 +6,8 @@ authorized **host-side record**, not a learner API response. For a bounded
 learner-facing view, use [public result projection](projection.md) and enforce
 access authorization in the host; do not directly serialize the full result.
 
-Assay evaluates caller-authorized _literal_ criteria against bounded typed
-observations. The source API is `evaluate(definition, evidence)` and the
+Assay evaluates caller-authorized literal or content-bound reference criteria against bounded typed
+observations. The source API is `evaluate(definition, evidence, references?)` and the
 implementation is pure: no clock, random source, network request, dynamic
 predicates, AI service, code runner or institutional grade writer.
 
@@ -75,9 +75,9 @@ one finding per criterion in authored order, evaluator version, and bounded,
 value-free warnings. Findings use `pass`, `fail`, `inconclusive` or `error`
 and stable uppercase reason codes.
 
-An invalid definition or evidence bundle returns a distinct
+An invalid definition, reference bundle or evidence bundle returns a distinct
 `EvaluationFailure` envelope with `outcome: "invalid_definition"` or
-`"invalid_evidence"` and deterministic structured diagnostics. There is
+`"invalid_evidence"` or `"invalid_reference"` and deterministic structured diagnostics. There is
 **no invented definition identity, findings or grade** on an invalid-input
 envelope. A failure and a complete result form the discriminated
 `EvaluationResponse` union. Internal comparator failures on structurally valid
@@ -159,10 +159,22 @@ messages, HTML or raw observations in its findings.
 
 ## Unresolved expectations and provider boundary
 
-Any `{ type: "reference", referenceId }` expectation remains
-`REFERENCE_UNAVAILABLE`, not pass or fail. Assay does not resolve references
-from attacker-controlled observation fields, and hidden expected values are
-not copied into returned results. Execution assertion states are
+Schema-2 objective expectations can be compared using an optional caller-supplied
+`ReferenceBundle` as the third argument to `evaluate`. Definition integrity
+is checked first, then the entire supplied reference bundle (including records
+for advisory or unobserved criteria), then evidence. The bundle must match the
+verified definition lineage and every supplied reference must match its declared
+ID, kind, digest, unit or set item type. Invalid reference material returns
+`invalid_reference` with value-free diagnostics and no findings. Schema-1
+ID-only references remain unavailable; supplying a bundle to a schema-1
+definition returns `invalid_definition` (unsupported definition version for
+reference binding). Omitted or partial bundles are allowed; a complete
+observation without its requested record yields `REFERENCE_UNAVAILABLE`.
+Missing/truncated observations retain their existing reasons. The same objective
+comparison rules apply to literal and verified referenced values, including
+normalization, tolerance, order and duplicates. The engine never fetches
+reference material or accepts expected values from observations. Do not expose
+full results or reference digests to learners; use the public projection. Execution assertion states are
 **observations only**; `confirmed` is not proof of a trusted sandbox.
 `manual_evidence` remains `REVIEW_REQUIRED` or `ARTIFACT_MISSING`.
 
@@ -170,6 +182,22 @@ AY-I03 adds an [optional port for bounded typed observation collection](observat
 and claimed run/adapter provenance. Resolving restricted references, proving
 execution origin and recording authorized review decisions still require an
 independent host-owned security boundary, not the comparator or the port.
+
+## Protected comparison example
+
+After creating the definition and reference bundle as shown in [integrity](integrity.md#canonical-digest-algorithm-v2-ay-i13), supply evidence whose definition lineage matches the bundle:
+
+```ts
+const result = evaluate(definition, evidence, references);
+// A matching protected expectation may now pass; an absent record is inconclusive.
+const publicView = projectPublicResult(definition, result);
+// A restricted criterion withholds the aggregate outcome.
+```
+
+The authorized caller resolves and stores references outside Assay. The optional
+observation port receives neither the bundle nor expected values. This ticket
+changes only objective reference comparison; evidence identity and the broader
+result-union migration remain separate tickets.
 
 ## Verification
 

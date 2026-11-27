@@ -111,8 +111,10 @@ wrong-kind, wrong-unit or tampered references are invalid input, not learner
 failure. Definitions cannot repeat an objective reference ID in schema 2.
 An empty or partial bundle is permitted, not a completeness claim.
 
-The comparison engine does not accept reference bundles in AY-I13; objective
-reference comparisons remain unavailable until AY-I14. Execution assertions
+AY-I14 adds optional reference bundles to `evaluate(definition, evidence, references?)`.
+Valid supplied records use the same objective comparator as literals; missing
+records are inconclusive, and malformed material returns an `invalid_reference`
+failure envelope. Schema-1 ID-only expectations remain unavailable. Execution assertions
 retain their schema-1-style ID-only metadata and remain non-authoritative;
 AY-I18 owns their replacement with typed execution facts. See
 [the canonical profiles](integrity.md#canonical-digest-algorithm-v2-ay-i13).
@@ -131,7 +133,7 @@ use `inspectEvidenceCoverage` to identify missing or incomplete _required_
 criteria (including truncated output, missing execution assertions and empty manual artifacts) and reject mismatched definition identities, unknown criterion IDs or
 incompatible observation kinds. This helper does not compare observations
 against expected values or conclude `pass`/`fail`; `evaluate` performs
-local literal comparisons under the documented conditions.
+local literal and content-bound reference comparisons under the documented conditions.
 
 The library cannot establish that submitted observation values came from
 a trustworthy runner. A caller cannot turn `evidenceRef`, `revisionDigest`
@@ -205,7 +207,7 @@ outside the portable library.
 `inspectEvidenceCoverage(definition: unknown, evidence: unknown)`
 return discriminated `ValidationResult<T>` values. On success the data is
 deeply cloned and frozen; on error the output reports only diagnostic codes
-and paths. The separate `evaluate(definition, evidence)` operation produces
+and paths. The separate `evaluate(definition, evidence, references?)` operation produces
 versioned technical findings or an invalid-input diagnostic envelope as
 documented in [evaluation](evaluation.md). No compatibility layer is promised
 for unshipped versions.

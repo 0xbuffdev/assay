@@ -37,7 +37,7 @@ export interface EvaluationResult {
  * diagnostics instead of manufacturing an EvaluationResult's lineage.
  */
 export interface EvaluationFailure {
-  readonly outcome: "invalid_definition" | "invalid_evidence";
+  readonly outcome: "invalid_definition" | "invalid_evidence" | "invalid_reference";
   readonly diagnostics: readonly ValidationDiagnostic[];
 }
 
