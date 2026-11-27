@@ -32,6 +32,10 @@ export function authorAll<T extends { criteria: readonly unknown[] }>(draft: T) 
   return { ...draft, composition: allComposition(draft.criteria) };
 }
 
+export function createAllDefinition<T extends { criteria: readonly unknown[] }>(draft: T) {
+  return createAssessmentDefinition(authorAll(draft));
+}
+
 export function sealDefinition(draft: Omit<AssessmentDefinitionDraft, "composition">): AssessmentDefinition {
   const checked = createAssessmentDefinition({
     schemaVersion: draft.schemaVersion,
