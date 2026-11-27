@@ -96,6 +96,13 @@ The resource suite samples each fixed workload five times after one warm-up.
 Workloads cover the exact serialized byte/node cap with multibyte text,
 escape-heavy maximum-length strings, maximum depth, and 64 large criteria
 with corresponding evidence, including sealing, evaluation and projection.
+The protected-reference object-input workload separately measures evaluation
+with 64 distinct content-bound JSON references at exactly 262,144 counted
+string/key bytes, matching structured observations, and a verified definition.
+Independent accounting reports actual snapshot sizes and serialized size; the
+same shape with one additional payload byte, independently sealed and bound,
+must return invalid_reference. This is the object snapshot boundary, not a
+claim that the same JSON fits the serialized transport cap.
 Adjacent invalid inputs must reject; machine-dependent time and memory are
 observations, not pass/fail thresholds. Logs report the Node version, platform,
 architecture, OS release, CI checkout SHA (for pull requests this may be the
