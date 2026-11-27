@@ -13,7 +13,7 @@ Assay evaluates evidence; it does **not** execute learner code, authenticate a s
 1. **Define the requirements.** Author typed criteria for exact or normalized text, numeric values with explicit tolerances and units, sets, reported execution assertions, or manual evidence. Every assessment needs at least one required criterion.
 2. **Bind the definition to its content.** Use [definition integrity](docs/integrity.md) to create or verify a deterministic, versioned SHA-256 digest. A hash identifies content; it does not authenticate its publisher.
 3. **Supply observations.** Pass bounded, typed evidence directly or use an [optional injected observation port](docs/observations.md). A provider's claimed provenance is not independent proof of execution.
-4. **Evaluate.** Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). Required findings determine the technical outcome; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
+4. **Evaluate.** Supply an optional content-bound reference bundle from authorized host storage alongside the definition and evidence. Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). Required findings determine the technical outcome; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
 5. **Present only appropriate findings.** The full technical record is for an authorized host. Use the [learner-safe projection](docs/projection.md) to omit restricted findings, evidence references and hidden aggregate outcomes. The host must still decide who is allowed to see any result.
 
 The pure library has **no runtime dependencies**, network requirement, model provider, private workspace or mandatory executor.
@@ -29,6 +29,7 @@ flowchart TD
     subgraph Host["Host application"]
         Definition["Authorized assessment definition"]
         Evidence["Bounded typed evidence"]
+        References["Authorized optional schema-2 reference bundle"]
         Provider["Optional host-supplied observation provider"]
         Record["Authorized technical record"]
         Authorization["Host access and disclosure decision"]
@@ -44,29 +45,37 @@ flowchart TD
     Definition --> Integrity
     Integrity -->|"Verified definition"| Evaluation
     Evidence --> Evaluation
+    References -->|"Privileged expected values"| Evaluation
     Integrity --> Collection
     Evidence --> Collection
     Collection -->|"Eligible public requests"| Provider
     Provider -->|"Claimed observations"| Collection
     Collection -->|"Validated combined evidence"| Evaluation
     Evaluation -->|"Complete technical result"| Record
+    Evaluation -->|"Invalid input"| Failure["Value-free diagnostic failure"]
     Record --> Projection
     Integrity --> Projection
     Projection -->|"Restricted public view"| Authorization
     Authorization --> Consumer["Authorized recipient"]
 ```
 
-This shows the verified evaluation path. The host owns authorization, execution isolation, evidence authenticity, protected reference storage and any formal decision. Assay neither runs submitted programs nor contacts a provider unless the caller explicitly invokes collection with an injected port. A content digest is not an authentication mechanism.
+This shows the verified evaluation path. The host supplies optional protected reference material directly to evaluation, never to observation collection or the provider. The host owns authorization, execution isolation, evidence authenticity, protected reference storage and any formal decision. Assay neither runs submitted programs nor contacts a provider unless the caller explicitly invokes collection with an injected port. A content digest is not an authentication mechanism.
 
 ### Deterministic evaluation
 
 ```mermaid
 flowchart TD
-    Start["Definition and evidence"] --> Validate{"Definition structure valid?"}
+    Start["Definition, evidence and optional references"] --> Validate{"Definition structure valid?"}
     Validate -->|No| InvalidDefinition["invalid_definition"]
     Validate -->|Yes| Digest{"Definition digest valid?"}
     Digest -->|No| InvalidDefinition
-    Digest -->|Yes| EvidenceCheck{"Evidence valid and consistent?"}
+    Digest -->|Yes| Supplied{"Reference bundle supplied?"}
+    Supplied -->|No| EvidenceCheck{"Evidence valid and consistent?"}
+    Supplied -->|Yes| Schema{"Definition schema 2?"}
+    Schema -->|"No: schema 1"| InvalidDefinition
+    Schema -->|Yes| ReferenceCheck{"Bundle and reference bindings valid?"}
+    ReferenceCheck -->|No| InvalidReference["invalid_reference"]
+    ReferenceCheck -->|Yes| EvidenceCheck
     EvidenceCheck -->|No| InvalidEvidence["invalid_evidence"]
     EvidenceCheck -->|Yes| Compare["Evaluate each criterion in authored order"]
     Compare --> Findings["Criterion findings: pass, fail, inconclusive or error"]
@@ -82,7 +91,7 @@ flowchart TD
     Pass --> Result
 ```
 
-The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. Optional schema-2 reference bundles are verified before comparison; invalid reference material produces a value-free `invalid_reference` failure, not a learner mismatch. There is no unchecked public evaluation path. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
+The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch; supplying a bundle for a schema-1 definition returns `invalid_definition`. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
 
 ### Optional observation acquisition
 
