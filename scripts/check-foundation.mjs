@@ -53,13 +53,35 @@ for (const file of [
   "tsconfig.build.json",
   "tsdown.config.ts",
   "vitest.config.ts",
+  "src/contracts/common.ts",
+  "src/contracts/definition.ts",
+  "src/contracts/evidence.ts",
+  "src/contracts/observation.ts",
+  "src/contracts/projection.ts",
+  "src/contracts/result.ts",
+  "src/contracts/validation.ts",
+  "src/evaluation/aggregate.ts",
+  "src/evaluation/comparators/finding.ts",
+  "src/evaluation/comparators/number.ts",
+  "src/evaluation/comparators/review.ts",
+  "src/evaluation/comparators/set.ts",
+  "src/evaluation/comparators/text.ts",
+  "src/evaluation/compare.ts",
+  "src/evaluation/evaluate.ts",
+  "src/evaluation/verified.ts",
   "src/index.ts",
-  "src/contracts.ts",
-  "src/validation.ts",
-  "src/evaluate.ts",
-  "src/observation.ts",
-  "src/integrity.ts",
-  "src/projection.ts",
+  "src/integrity/canonical.ts",
+  "src/integrity/definition.ts",
+  "src/integrity/sha256.ts",
+  "src/observation/collect.ts",
+  "src/observation/verified.ts",
+  "src/projection/public.ts",
+  "src/validation/coverage.ts",
+  "src/validation/definition.ts",
+  "src/validation/evidence.ts",
+  "src/validation/observation.ts",
+  "src/validation/result.ts",
+  "src/validation/shared.ts",
   "tests/evaluate.test.ts",
   "tests/observation.test.ts",
   "tests/numeric-units.test.ts",
@@ -73,6 +95,7 @@ for (const file of [
   "docs/evaluation.md",
   "docs/observations.md",
   "tests/foundation.test.ts",
+  "tests/aggregation.test.ts",
   "scripts/verify-dist.mjs",
   "scripts/verify-package.mjs",
   "tests/consumer/consumer.mjs",
@@ -116,5 +139,98 @@ for (const rootDirectory of ["src", "tests"]) {
     }
   }
 }
+
+// The package root is the only public entry; implementation modules never import it.
+const sourcePaths = new Set([
+  "src/contracts/common.ts",
+  "src/contracts/definition.ts",
+  "src/contracts/evidence.ts",
+  "src/contracts/observation.ts",
+  "src/contracts/projection.ts",
+  "src/contracts/result.ts",
+  "src/contracts/validation.ts",
+  "src/evaluation/aggregate.ts",
+  "src/evaluation/comparators/finding.ts",
+  "src/evaluation/comparators/number.ts",
+  "src/evaluation/comparators/review.ts",
+  "src/evaluation/comparators/set.ts",
+  "src/evaluation/comparators/text.ts",
+  "src/evaluation/compare.ts",
+  "src/evaluation/evaluate.ts",
+  "src/evaluation/verified.ts",
+  "src/index.ts",
+  "src/integrity/canonical.ts",
+  "src/integrity/definition.ts",
+  "src/integrity/sha256.ts",
+  "src/observation/collect.ts",
+  "src/observation/verified.ts",
+  "src/projection/public.ts",
+  "src/validation/coverage.ts",
+  "src/validation/definition.ts",
+  "src/validation/evidence.ts",
+  "src/validation/observation.ts",
+  "src/validation/result.ts",
+  "src/validation/shared.ts",
+]);
+const edges = new Map();
+const allowedLayers = {
+  contracts: ["contracts"],
+  validation: ["contracts", "validation"],
+  integrity: ["contracts", "integrity", "validation"],
+  evaluation: ["contracts", "evaluation", "validation", "integrity"],
+  observation: ["contracts", "observation", "validation", "integrity"],
+  projection: ["contracts", "projection", "validation", "integrity", "evaluation"],
+};
+
+for (const file of sourcePaths) {
+  const source = await readFile(locate(file), "utf8");
+  const dependencies = [];
+  const imports = source.matchAll(
+    /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?)["']([^"']+)["']/g,
+  );
+  for (const [, specifier] of imports) {
+    assert.ok(specifier.startsWith("."), `External source import in ${file}: ${specifier}`);
+    const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier)) + ".ts";
+    assert.ok(sourcePaths.has(target), `Untracked module in ${file}: ${target}`);
+    assert.notEqual(target, "src/index.ts", `Internal dependency on public root: ${file}`);
+    if (file !== "src/index.ts") {
+      const layer = file.split("/")[1];
+      const targetLayer = target.split("/")[1];
+      assert.ok(allowedLayers[layer]?.includes(targetLayer), `Forbidden dependency: ${file} -> ${target}`);
+      if (layer === "projection" && targetLayer === "evaluation") {
+        assert.equal(target, "src/evaluation/aggregate.ts");
+      }
+      if (layer === "evaluation" && targetLayer === "integrity") {
+        assert.equal(file, "src/evaluation/verified.ts");
+      }
+    }
+    dependencies.push(target);
+  }
+  edges.set(file, dependencies);
+}
+
+// Reject untracked source files and cycles rather than silently omitting new modules.
+const pendingSources = ["src"];
+while (pendingSources.length > 0) {
+  const directory = pendingSources.pop();
+  for (const item of await readdir(locate(directory), { withFileTypes: true })) {
+    const relative = path.posix.join(directory, item.name);
+    if (item.isDirectory()) pendingSources.push(relative);
+    else if (item.isFile() && /\.tsx?$/.test(item.name)) {
+      assert.ok(sourcePaths.has(relative), `Untracked source file: ${relative}`);
+    }
+  }
+}
+const active = new Set();
+const visited = new Set();
+function visit(file) {
+  assert.ok(!active.has(file), `Cyclic source dependency: ${file}`);
+  if (visited.has(file)) return;
+  active.add(file);
+  for (const target of edges.get(file)) visit(target);
+  active.delete(file);
+  visited.add(file);
+}
+for (const file of sourcePaths) visit(file);
 
 console.log("Assay foundation metadata and source import checks passed");

@@ -1,22 +1,19 @@
-import {
-  ASSAY_SCHEMA_VERSION,
-  type AssessmentDefinition,
-  CONTRACT_LIMITS,
-  type EvidenceBundle,
-  type Observation,
-  type ObservationCollectionResult,
-  type ObservationPort,
-  type ObservationPortCriterion,
-  type ObservationPortKind,
-  type ObservationPortReceipt,
-  type ObservationPortRequest,
-} from "./contracts";
-import {
-  inspectEvidenceCoverage,
-  parseAssessmentDefinition,
-  parseEvidenceBundle,
-  parseObservationPortReport,
-} from "./validation";
+import { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "../contracts/common";
+import type { AssessmentDefinition } from "../contracts/definition";
+import type { EvidenceBundle, Observation } from "../contracts/evidence";
+import type {
+  ObservationCollectionResult,
+  ObservationPort,
+  ObservationPortCriterion,
+  ObservationPortKind,
+  ObservationPortReceipt,
+  ObservationPortRequest,
+} from "../contracts/observation";
+import type { DiagnosticCode } from "../contracts/validation";
+import { inspectEvidenceCoverage } from "../validation/coverage";
+import { parseAssessmentDefinition } from "../validation/definition";
+import { parseEvidenceBundle } from "../validation/evidence";
+import { parseObservationPortReport } from "../validation/observation";
 
 function requestedKind(
   criterion: AssessmentDefinition["criteria"][number],
@@ -38,14 +35,14 @@ function requestedKind(
 
 function error(
   outcome: "invalid_definition" | "invalid_evidence",
-  diagnostics: readonly { path: string; code: import("./contracts").DiagnosticCode }[],
+  diagnostics: readonly { path: string; code: DiagnosticCode }[],
 ): ObservationCollectionResult {
   return Object.freeze({ ok: false, outcome, diagnostics });
 }
 
 function invalidEvidence(
   path: string,
-  code: import("./contracts").DiagnosticCode,
+  code: DiagnosticCode,
 ): ObservationCollectionResult {
   return error("invalid_evidence", Object.freeze([Object.freeze({ path, code })]));
 }
