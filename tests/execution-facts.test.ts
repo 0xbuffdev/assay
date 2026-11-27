@@ -294,14 +294,15 @@ describe("typed execution facts", () => {
         evidenceRef: "fact-second",
         value: otherValue,
       };
-      for (const observations of [[observation, other], [other, observation]]) {
+      for (const observations of [
+        [observation, other],
+        [other, observation],
+      ]) {
         expect(run([check, second], observations).outcome).toBe("invalid_evidence");
       }
       expect(
-        run(
-          [check, second],
-          [observation, { ...other, origin: { ...origin, runRef: "run2" } }],
-        ).outcome,
+        run([check, second], [observation, { ...other, origin: { ...origin, runRef: "run2" } }])
+          .outcome,
       ).toBe("pass");
       expect(
         run(

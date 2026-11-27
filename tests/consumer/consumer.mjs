@@ -683,8 +683,16 @@ const repeatedExecutionDefinition = assay.createAssessmentDefinition({
   schemaVersion: 2,
 });
 assert.equal(repeatedExecutionDefinition.ok, true);
-const secondOutput = { ...outputFact, criterionId: "second", evidenceRef: "second", value: "other" };
-for (const observations of [[outputFact, secondOutput], [secondOutput, outputFact]]) {
+const secondOutput = {
+  ...outputFact,
+  criterionId: "second",
+  evidenceRef: "second",
+  value: "other",
+};
+for (const observations of [
+  [outputFact, secondOutput],
+  [secondOutput, outputFact],
+]) {
   assert.equal(
     assay.evaluate(
       repeatedExecutionDefinition.value,
