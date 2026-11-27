@@ -112,6 +112,85 @@ assert.equal(
   assay.createAssessmentDefinition({ ...JSON.parse(executionVector), policyVersion: "future" }).ok,
   false,
 );
+// A current, otherwise-valid report must be accepted; only its version is mutated.
+const report = {
+  schemaVersion: 3,
+  definition: content.definition,
+  termination: "exited",
+  provenance: {
+    adapterId: "fixture",
+    adapterVersion: "v1",
+    runRef: "run1",
+    toolchainId: "node",
+    toolchainVersion: "v24",
+    capturedStdoutBytes: 2,
+    capturedStderrBytes: 0,
+    stdoutTruncated: false,
+    stderrTruncated: false,
+  },
+  observations: [
+    {
+      criterionId: "out",
+      evidenceRef: "collected-out",
+      kind: "text",
+      executionFact: "stdout",
+      completeness: "complete",
+      value: "ok",
+    },
+  ],
+};
+assert.equal(assay.parseObservationPortReport(report).ok, true);
+for (const schemaVersion of [1, 2, 4, "3"]) {
+  unsupported(assay.parseObservationPortReport({ ...report, schemaVersion }));
+}
+const starting = unwrap(
+  assay.createEvidenceBundle(execution, { schemaVersion: 3, observations: [] }),
+);
+const collected = await assay.collectObservations(execution, starting, {
+  observe: async () => report,
+});
+assert.equal(collected.ok, true);
+assert.equal(assay.evaluate(execution, collected.evidence).outcome, "pass");
+assert.equal(collected.receipt.evidenceDigest, collected.evidence.evidenceDigest);
+for (const schemaVersion of [1, 2]) {
+  let calls = 0;
+  const port = {
+    async observe() {
+      calls++;
+      return { ...report, schemaVersion };
+    },
+  };
+  const diagnostic = [{ path: "$.schemaVersion", code: "UNSUPPORTED_VERSION" }];
+  assert.deepEqual(await assay.collectObservations(execution, starting, port), {
+    ok: false,
+    outcome: "invalid_evidence",
+    diagnostics: diagnostic,
+  });
+  assert.equal(calls, 1);
+  assert.deepEqual(
+    await assay.collectObservations({ ...execution, schemaVersion }, starting, port),
+    { ok: false, outcome: "invalid_definition", diagnostics: diagnostic },
+  );
+  assert.deepEqual(
+    await assay.collectObservations(execution, { ...starting, schemaVersion }, port),
+    { ok: false, outcome: "invalid_evidence", diagnostics: diagnostic },
+  );
+  assert.equal(calls, 1);
+}
+assert.equal(assay.projectPublicResult(execution, result).ok, true);
+const retiredPolicy = { ...result, policyVersion: "all-required-v1" };
+assert.equal(
+  assay.createAssessmentDefinition({
+    ...JSON.parse(executionVector),
+    policyVersion: retiredPolicy.policyVersion,
+  }).ok,
+  false,
+);
+assert.equal(assay.parseEvaluationResult(retiredPolicy).ok, false);
+assert.deepEqual(assay.projectPublicResult(execution, retiredPolicy), {
+  ok: false,
+  reasonCode: "PUBLIC_PROJECTION_REJECTED",
+});
 console.log(
   "AY-I22 independent canonical profiles, version rejection and exact semantics verified",
 );
