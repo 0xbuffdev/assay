@@ -293,15 +293,19 @@ describe("AY-I23 composition", () => {
     const [root] = composition.groups;
     const dangling = { ...root, children: [leaf("first"), leaf("second"), group("absent")] };
     expect(
-      createAssessmentDefinition({ ...authored, composition: { ...composition, groups: [dangling] } })
-        .ok,
+      createAssessmentDefinition({
+        ...authored,
+        composition: { ...composition, groups: [dangling] },
+      }).ok,
     ).toBe(false);
     const mutations = [
       { ...composition, extra: "private-canary" },
       { ...composition, groups: [{ ...root, extra: "private-canary" }] },
       {
         ...composition,
-        groups: [{ ...root, children: [{ ...leaf("first"), extra: "private-canary" }, leaf("second")] }],
+        groups: [
+          { ...root, children: [{ ...leaf("first"), extra: "private-canary" }, leaf("second")] },
+        ],
       },
     ];
     for (const invalid of mutations) {
@@ -309,7 +313,9 @@ describe("AY-I23 composition", () => {
       expect(rejected).toMatchObject({
         ok: false,
         domain: "invalid_definition",
-        diagnostics: expect.arrayContaining([expect.objectContaining({ code: "UNEXPECTED_FIELD" })]),
+        diagnostics: expect.arrayContaining([
+          expect.objectContaining({ code: "UNEXPECTED_FIELD" }),
+        ]),
       });
       expect(JSON.stringify(rejected)).not.toContain("private-canary");
     }

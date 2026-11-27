@@ -280,9 +280,7 @@ describe("AY-I03 optional injected observation port", () => {
       expect(JSON.stringify(request)).not.toContain("expected");
       return returned;
     });
-    const collected = successful(
-      await collectObservations(rubric, starting.value, { observe }),
-    );
+    const collected = successful(await collectObservations(rubric, starting.value, { observe }));
     expect(observe).toHaveBeenCalledTimes(1);
     const origin = {
       kind: "artifact",
@@ -342,9 +340,9 @@ describe("AY-I03 optional injected observation port", () => {
         outcome: "invalid_definition",
         diagnostics: diagnostic,
       });
-      expect(await collectObservations(rubric, { ...starting, schemaVersion }, { observe })).toEqual(
-        { ok: false, outcome: "invalid_evidence", diagnostics: diagnostic },
-      );
+      expect(
+        await collectObservations(rubric, { ...starting, schemaVersion }, { observe }),
+      ).toEqual({ ok: false, outcome: "invalid_evidence", diagnostics: diagnostic });
       expect(observe).not.toHaveBeenCalled();
     }
   });
