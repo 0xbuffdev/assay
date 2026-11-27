@@ -18,6 +18,127 @@ Assay evaluates evidence; it does **not** execute learner code, authenticate a s
 
 The pure library has **no runtime dependencies**, network requirement, model provider, private workspace or mandatory executor.
 
+## Architecture
+
+Assay separates pure evaluation from optional evidence acquisition and public-result projection. The diagrams below describe the current source, not the proposed follow-up contracts.
+
+### System boundary
+
+```mermaid
+flowchart TD
+    subgraph Host["Host application"]
+        Definition["Authorized assessment definition"]
+        Evidence["Bounded typed evidence"]
+        Provider["Optional host-supplied observation provider"]
+        Record["Authorized technical record"]
+        Authorization["Host access and disclosure decision"]
+    end
+
+    subgraph Assay["Assay library"]
+        Integrity["Definition content integrity"]
+        Collection["Optional observation collection"]
+        Evaluation["Validation and deterministic evaluation"]
+        Projection["Public result projection"]
+    end
+
+    Definition --> Integrity
+    Integrity -->|"Verified definition"| Evaluation
+    Evidence --> Evaluation
+    Integrity --> Collection
+    Evidence --> Collection
+    Collection -->|"Eligible public requests"| Provider
+    Provider -->|"Claimed observations"| Collection
+    Collection -->|"Validated combined evidence"| Evaluation
+    Evaluation -->|"Complete technical result"| Record
+    Record --> Projection
+    Integrity --> Projection
+    Projection -->|"Restricted public view"| Authorization
+    Authorization --> Consumer["Authorized recipient"]
+```
+
+This shows the verified evaluation path. The host owns authorization, execution isolation, evidence authenticity, protected reference storage and any formal decision. Assay neither runs submitted programs nor contacts a provider unless the caller explicitly invokes collection with an injected port. A content digest is not an authentication mechanism.
+
+### Deterministic evaluation
+
+```mermaid
+flowchart TD
+    Start["Definition and evidence"] --> Verified{"Entry point"}
+    Verified -->|"evaluateVerified"| Digest{"Definition digest valid?"}
+    Digest -->|No| InvalidDefinition["invalid_definition"]
+    Digest -->|Yes| Validate{"Definition structure valid?"}
+    Verified -->|"evaluate"| Validate
+    Validate -->|No| InvalidDefinition
+    Validate -->|Yes| EvidenceCheck{"Evidence valid and consistent?"}
+    EvidenceCheck -->|No| InvalidEvidence["invalid_evidence"]
+    EvidenceCheck -->|Yes| Compare["Evaluate each criterion in authored order"]
+    Compare --> Findings["Criterion findings: pass, fail, inconclusive or error"]
+    Findings --> Required["Aggregate required findings only"]
+    Required --> Outcome{"Required outcomes"}
+    Outcome -->|"Any fail"| Fail["fail"]
+    Outcome -->|"Otherwise any error"| Error["evaluation_error"]
+    Outcome -->|"Otherwise any unresolved"| Inconclusive["inconclusive"]
+    Outcome -->|"All pass"| Pass["pass"]
+    Fail --> Result["Immutable versioned technical result"]
+    Error --> Result
+    Inconclusive --> Result
+    Pass --> Result
+```
+
+The current `evaluate` entry point checks structural validity and definition/evidence consistency but does not recompute the definition digest. Prefer `evaluateVerified` when using a content-bound definition. Missing or truncated evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
+
+### Optional observation acquisition
+
+```mermaid
+sequenceDiagram
+    participant H as Host
+    participant A as Assay
+    participant P as Injected observation port
+
+    H->>A: collectVerifiedObservations(definition, evidence, port)
+    A->>A: Verify definition digest and validate evidence
+    alt Invalid definition or evidence
+        A-->>H: Structured failure
+    else No eligible missing public criteria
+        A-->>H: Existing evidence, no receipt
+    else Eligible missing public criteria
+        A->>P: Bounded request without expected answers
+        alt Port throws
+            A-->>H: Redacted acquisition error
+        else Port returns a report
+            P-->>A: Claimed observations and provenance
+            A->>A: Validate report, lineage, scope and completeness
+            alt Invalid report
+                A-->>H: Structured failure
+            else Valid report
+                A-->>H: Combined evidence and claimed receipt
+            end
+        end
+    end
+```
+
+Collection is separate from evaluation: the caller must pass the returned evidence to the evaluator. Restricted criteria and expected answers are not sent to the port. A valid report or receipt does not prove that execution occurred as claimed.
+
+### Public-result disclosure
+
+```mermaid
+flowchart TD
+    D["Content-bound definition"] --> Verify["Verify definition and validate full result"]
+    R["Full technical result"] --> Verify
+    Verify --> Coherent{"Lineage, findings and aggregate consistent?"}
+    Coherent -->|No| Reject["Opaque projection rejection"]
+    Coherent -->|Yes| Filter["Keep public criterion IDs and outcomes only"]
+    Filter --> Restricted{"Any restricted criterion?"}
+    Restricted -->|Yes| Withheld["Overall outcome: withheld"]
+    Restricted -->|No| Public["Overall technical outcome"]
+    Withheld --> View["Restricted public result"]
+    Public --> View
+    View --> Gate["Host verifies origin and authorizes access"]
+```
+
+Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence references, reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
+
+See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Planned mandatory integrity, protected reference comparisons and expanded evidence contracts are not shown as implemented APIs.
+
 ## Develop from source
 
 Requires Node.js 24+ and pnpm 11.2.2.
