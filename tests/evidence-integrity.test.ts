@@ -332,10 +332,7 @@ describe("AY-I15 evidence identity and scoped claims", () => {
       const completeRun = unwrap(
         createEvidenceBundle(rubric, {
           ...draft,
-          observations: [
-            required,
-            { ...advisory, origin: { ...origin, provenance } },
-          ],
+          observations: [required, { ...advisory, origin: { ...origin, provenance } }],
         }),
       );
       expect(evaluate(rubric, completeRun).outcome).toBe("pass");
