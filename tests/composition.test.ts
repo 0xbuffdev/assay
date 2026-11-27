@@ -284,7 +284,8 @@ describe("AY-I23 composition", () => {
       value: 42,
     }));
     const hidden = {
-      ...criterion("hidden-canary"),
+      id: "hidden-canary",
+      mode: "required",
       visibility: "restricted",
       kind: "number_with_tolerance",
       parameters: {

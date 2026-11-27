@@ -81,16 +81,8 @@ flowchart TD
     EvidenceCheck -->|No| InvalidEvidence["invalid_evidence"]
     EvidenceCheck -->|Yes| Compare["Evaluate each criterion in authored order"]
     Compare --> Findings["Criterion findings: pass, fail, inconclusive or error"]
-    Findings --> Required["Aggregate required findings only"]
-    Required --> Outcome{"Required outcomes"}
-    Outcome -->|"Any fail"| Fail["fail"]
-    Outcome -->|"Otherwise any error"| Error["evaluation_error"]
-    Outcome -->|"Otherwise any unresolved"| Inconclusive["inconclusive"]
-    Outcome -->|"All pass"| Pass["pass"]
-    Fail --> Result["Schema-2 result with evidence and artifact lineage"]
-    Error --> Result
-    Inconclusive --> Result
-    Pass --> Result
+    Findings --> Composition["Fold the bounded all/any tree over required findings"]
+    Composition --> Result["Schema-3 result with evidence and artifact lineage"]
 ```
 
 The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path: the evidence digest and origin scope are verified before comparison. Missing, truncated or explicitly interrupted execution evidence is inconclusive at the criterion level; an explicitly composed group can have a decisive outcome despite unresolved alternatives. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.

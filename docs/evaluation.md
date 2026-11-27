@@ -153,13 +153,13 @@ An unresolved or erroneous alternative is never itself a pass. A malformed defin
 
 ## Unresolved expectations and provider boundary
 
-Schema-2 objective expectations can be compared using an optional caller-supplied
+Current objective expectations can be compared using an optional caller-supplied
 `ReferenceBundle` as the third argument to `evaluate`. Definition integrity
 is checked first, then the entire supplied reference bundle (including records
 for advisory or unobserved criteria), then evidence. The bundle must match the
 verified definition lineage and every supplied reference must match its declared
 ID, kind, digest, unit or set item type. Invalid reference material returns
-`invalid_reference` with value-free diagnostics and no findings. Schema-1
+`invalid_reference` with value-free diagnostics and no findings.
 Objective reference declarations require content digests; supplied bundles must bind the exact definition identity.
 
 AY-I03 adds an [optional port for bounded typed observation collection](observations.md)
@@ -179,9 +179,7 @@ const publicView = projectPublicResult(definition, result);
 ```
 
 The authorized caller resolves and stores references outside Assay. The optional
-observation port receives neither the bundle nor expected values. This ticket
-changes only objective reference comparison. AY-I15 adds content-bound
-evidence and result lineage; the broader result-union migration remains AY-I16.
+observation port receives neither the bundle nor expected values. Evidence and result lineage bind the assessment and its observations.
 
 ## Verification
 
@@ -256,7 +254,7 @@ Conflicting termination claims are invalid; a complete observation cannot
 omit termination for a run known to have timed out or crashed. An exited run or zero exit
 status alone is not proof of other required output or properties.
 
-Schema-1 definitions cannot declare a selector. Existing generic criteria
+Generic criteria
 and observations, and assertion-only `observed_execution`, retain their
 meaning. Assertions remain inconclusive even if confirmed. The schema-3
 canonical algorithm hashes every supplied field, including the new

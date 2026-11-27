@@ -24,7 +24,7 @@ import {
 function caseOf(
   criterion: Criterion,
   observation?: Observation,
-): [AssessmentDefinition<1>, EvidenceBundle] {
+): [AssessmentDefinition, EvidenceBundle] {
   const definition = sealDefinition({ ...fixtureDefinition(), criteria: [criterion] });
   return [
     definition,
