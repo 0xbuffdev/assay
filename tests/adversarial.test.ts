@@ -190,9 +190,11 @@ describe("AY-I24 generated adversarial boundary cases", () => {
               probe.outcome,
             );
             expect(result.outcome).toBe(
-              mode === "advisory" ? "pass" : probe.outcome === "error"
-                ? "evaluation_error"
-                : probe.outcome,
+              mode === "advisory"
+                ? "pass"
+                : probe.outcome === "error"
+                  ? "evaluation_error"
+                  : probe.outcome,
             );
             expect(JSON.stringify(projectPublicResult(rubric, result))).toBe(publicBytes);
             const forged = {
@@ -213,12 +215,10 @@ describe("AY-I24 generated adversarial boundary cases", () => {
     }
   });
 
-  it("checks stream-specific truncation and empty reports through the public acquisition boundary", async () => {
+  it("checks stream-specific truncation and empty reports through acquisition", async () => {
     for (const executionFact of ["stdout", "stderr"] as const) {
       const rubric = definition([{ ...publicCriterion, executionFact }]);
-      const existing = unwrap(
-        createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] }),
-      );
+      const existing = unwrap(createEvidenceBundle(rubric, { schemaVersion: 2, observations: [] }));
       for (const stdoutTruncated of [false, true]) {
         for (const stderrTruncated of [false, true]) {
           const provenance = {
@@ -240,7 +240,9 @@ describe("AY-I24 generated adversarial boundary cases", () => {
             observations: [{ ...publicFact, executionFact }],
           };
           const observe = async (request: ObservationPortRequest) => {
-            expect(request.criteria).toEqual([{ criterionId: "public", kind: "text", executionFact }]);
+            expect(request.criteria).toEqual([
+              { criterionId: "public", kind: "text", executionFact },
+            ]);
             expect(JSON.stringify(request)).not.toContain("public-answer");
             return report;
           };
