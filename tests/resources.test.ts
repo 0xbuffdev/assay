@@ -2,7 +2,6 @@ import { release } from "node:os";
 import { performance } from "node:perf_hooks";
 import { describe, expect, it } from "vitest";
 import {
-  createAssessmentDefinition,
   createEvidenceBundle,
   createReferenceRecord,
   decodeSerializedRecord,
@@ -11,6 +10,7 @@ import {
   type ValidationResult,
   verifyReferenceBundle,
 } from "../src/index";
+import { createAllDefinition } from "./fixtures/contracts";
 
 function unwrap<T>(result: ValidationResult<T>): T {
   if (!result.ok) throw new Error("Invalid resource fixture");
@@ -119,15 +119,15 @@ describe("AY-I24 resource conformance and measurement", () => {
       parameters: { expected: { type: "literal", value: String(i).padStart(3_800, "x") } },
     }));
     const draft = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       assessmentId: "resource",
       revision: "v1",
-      policyVersion: "all-required-v1",
+      policyVersion: "composed-required-v1",
       criteria,
     };
-    const rubric = unwrap(createAssessmentDefinition(draft));
+    const rubric = unwrap(createAllDefinition(draft));
     const evidenceDraft = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       observations: criteria.map((criterion, i) => ({
         criterionId: criterion.id,
         evidenceRef: `obs-${i}`,
@@ -139,7 +139,7 @@ describe("AY-I24 resource conformance and measurement", () => {
     const evidence = unwrap(createEvidenceBundle(rubric, evidenceDraft));
     measure(
       "seal 64 criteria / 243200 expected string bytes",
-      () => createAssessmentDefinition(draft),
+      () => createAllDefinition(draft),
       (result) => expect(unwrap(result).revisionDigest).toBe(rubric.revisionDigest),
     );
     measure(
@@ -167,7 +167,7 @@ describe("AY-I24 resource conformance and measurement", () => {
       },
     );
     expect(
-      createAssessmentDefinition({
+      createAllDefinition({
         ...draft,
         criteria: [...criteria, { ...criteria[0], id: "extra" }],
       }).ok,
@@ -202,7 +202,7 @@ describe("AY-I24 resource conformance and measurement", () => {
       const records = values.map((value, i) =>
         unwrap(
           createReferenceRecord({
-            schemaVersion: 2,
+            schemaVersion: 3,
             referenceId: `protected-${i}`,
             kind: "json",
             value,
@@ -210,11 +210,11 @@ describe("AY-I24 resource conformance and measurement", () => {
         ),
       );
       const rubric = unwrap(
-        createAssessmentDefinition({
-          schemaVersion: 2,
+        createAllDefinition({
+          schemaVersion: 3,
           assessmentId: "protected-resource",
           revision: "v1",
-          policyVersion: "all-required-v1",
+          policyVersion: "composed-required-v1",
           criteria: records.map((record, i) => ({
             id: `fact-${i}`,
             mode: "required",
@@ -232,7 +232,7 @@ describe("AY-I24 resource conformance and measurement", () => {
       );
       const evidence = unwrap(
         createEvidenceBundle(rubric, {
-          schemaVersion: 2,
+          schemaVersion: 3,
           observations: values.map((value, i) => ({
             criterionId: `fact-${i}`,
             evidenceRef: `obs-${i}`,
@@ -243,7 +243,7 @@ describe("AY-I24 resource conformance and measurement", () => {
         }),
       );
       const references = {
-        schemaVersion: 2,
+        schemaVersion: 3,
         definition: evidence.definition,
         references: records,
       };
@@ -298,7 +298,7 @@ describe("AY-I24 resource conformance and measurement", () => {
         }
         expect(projectPublicResult(exact.rubric, result)).toEqual({
           ok: true,
-          value: { schemaVersion: 1, outcome: "withheld", findings: [] },
+          value: { schemaVersion: 3, outcome: "withheld", findings: [] },
         });
       },
     );
