@@ -9,7 +9,8 @@ export function parseObservationPortReport(
 ): ValidationResult<ObservationPortReport> {
   return finish(input, "invalid_evidence", (data, issues) => {
     const required = ["schemaVersion", "definition", "provenance", "observations"];
-    if (!object(data, "$", [...required, "artifactDigest", "termination"], required, issues)) return;
+    if (!object(data, "$", [...required, "artifactDigest", "termination"], required, issues))
+      return;
     if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     definitionRef(data.definition, "$.definition", issues);
     if (Object.hasOwn(data, "artifactDigest"))

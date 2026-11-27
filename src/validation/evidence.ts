@@ -1,7 +1,7 @@
 import {
   CONTRACT_LIMITS,
-  EXECUTION_FACT_KINDS,
   captureTruncated,
+  EXECUTION_FACT_KINDS,
   equalJsonValue,
 } from "../contracts/common";
 import type { EvidenceBundle, EvidenceBundleDraft } from "../contracts/evidence";

@@ -550,9 +550,14 @@ describe("AY-I19 cooperative cancellation", () => {
     const controller = new AbortController();
     controller.abort("PRIVATE_ABORT_REASON");
     const observe = vi.fn(async () => report());
-    const result = await collectObservations(definition(), evidence(), { observe }, {
-      signal: controller.signal,
-    });
+    const result = await collectObservations(
+      definition(),
+      evidence(),
+      { observe },
+      {
+        signal: controller.signal,
+      },
+    );
     expect(result).toEqual(cancelled);
     expect(observe).not.toHaveBeenCalled();
   });
@@ -569,9 +574,14 @@ describe("AY-I19 cooperative cancellation", () => {
     });
     const before = evidence();
     const remove = vi.spyOn(controller.signal, "removeEventListener");
-    const collection = collectObservations(definition(), before, { observe }, {
-      signal: controller.signal,
-    });
+    const collection = collectObservations(
+      definition(),
+      before,
+      { observe },
+      {
+        signal: controller.signal,
+      },
+    );
     expect(observe).toHaveBeenCalledTimes(1);
     controller.abort();
     expect(await collection).toEqual(cancelled);
@@ -588,12 +598,17 @@ describe("AY-I19 cooperative cancellation", () => {
     const pending = new Promise<unknown>((_resolve, fail) => {
       reject = fail;
     });
-    const result = await collectObservations(definition(), evidence(), {
-      observe() {
-        controller.abort();
-        return pending;
+    const result = await collectObservations(
+      definition(),
+      evidence(),
+      {
+        observe() {
+          controller.abort();
+          return pending;
+        },
       },
-    }, { signal: controller.signal });
+      { signal: controller.signal },
+    );
     expect(result).toEqual(cancelled);
     reject(new Error("PRIVATE_LATE_REJECTION"));
     await Promise.resolve();
@@ -602,11 +617,16 @@ describe("AY-I19 cooperative cancellation", () => {
   it("reports synchronous exceptions and removes listeners on success", async () => {
     const controller = new AbortController();
     const remove = vi.spyOn(controller.signal, "removeEventListener");
-    const result = await collectObservations(definition(), evidence(), {
-      observe() {
-        throw new Error("PRIVATE_PROVIDER_ERROR");
+    const result = await collectObservations(
+      definition(),
+      evidence(),
+      {
+        observe() {
+          throw new Error("PRIVATE_PROVIDER_ERROR");
+        },
       },
-    }, { signal: controller.signal });
+      { signal: controller.signal },
+    );
     expect(result).toEqual({
       ok: false,
       outcome: "evaluation_error",

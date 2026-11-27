@@ -207,7 +207,8 @@ export async function collectObservations(
   const returned = [];
   for (const [index, observation] of report.observations.entries()) {
     const path = `$.observations[${index}]`;
-    if (!allowed.has(observation.criterionId)) return invalidEvidence(`${path}.criterionId`, "UNKNOWN_CRITERION");
+    if (!allowed.has(observation.criterionId))
+      return invalidEvidence(`${path}.criterionId`, "UNKNOWN_CRITERION");
     if (observation.kind === "execution" && report.provenance.runRef !== observation.runRef) {
       return invalidEvidence(`${path}.runRef`, "MISMATCHED_OBSERVATION");
     }
