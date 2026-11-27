@@ -65,12 +65,10 @@ export type Criterion =
       }>)
   | (CriterionBase &
       Readonly<{ kind: "number_with_tolerance" }> &
-      NumericExecutionSelection<
-        {
-          expected: Expected<number>;
-          tolerance: Readonly<{ absolute: number; relative: number }>;
-        }
-      >)
+      NumericExecutionSelection<{
+        expected: Expected<number>;
+        tolerance: Readonly<{ absolute: number; relative: number }>;
+      }>)
   | (CriterionBase &
       ExecutionSelection<never> &
       Readonly<{
