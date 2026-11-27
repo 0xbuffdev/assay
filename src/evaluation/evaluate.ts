@@ -1,4 +1,5 @@
 import type { ReferenceRecord } from "../contracts/reference";
+import { SCHEMA_VERSION } from "../contracts/version";
 import {
   ASSAY_EVALUATOR_ID,
   ASSAY_EVALUATOR_VERSION,
@@ -100,7 +101,7 @@ export function evaluate(
   }
 
   return Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: SCHEMA_VERSION,
     evidenceDigest: evidence.evidenceDigest,
     ...(evidence.artifactDigest === undefined ? {} : { artifactDigest: evidence.artifactDigest }),
     outcome: aggregateRequired(definition, comparisons),
