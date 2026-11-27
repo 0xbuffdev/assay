@@ -3,7 +3,6 @@ import {
   type AssessmentDefinition,
   CONTRACT_LIMITS,
   collectObservations,
-  createAssessmentDefinition,
   createEvidenceBundle,
   type EvidenceBundle,
   evaluate,
@@ -20,6 +19,7 @@ import {
   definition as exampleDefinition,
   evidence as exampleEvidence,
   referenceOf,
+  createAllDefinition,
   sealDefinition,
   sealEvidenceFixture,
 } from "./fixtures/contracts";
@@ -32,7 +32,7 @@ const outputCriterion = {
   parameters: { expected: { type: "literal", value: "ok" } },
 } as const;
 
-function definition(): AssessmentDefinition<1> {
+function definition(): AssessmentDefinition {
   const original = exampleDefinition();
   return sealDefinition({ ...original, criteria: [outputCriterion] });
 }
@@ -51,7 +51,7 @@ type UnselectedReport = ObservationPortReport & { termination?: never };
 
 function report(overrides: Partial<UnselectedReport> = {}): UnselectedReport {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     definition: referenceOf(definition()),
     artifactDigest: digestA,
     provenance: {
@@ -135,7 +135,7 @@ describe("AY-I03 optional injected observation port", () => {
       expect(serialized).not.toContain("expected");
       expect(serialized).not.toContain("trusted");
       expect(request).toMatchObject({
-        schemaVersion: 2,
+        schemaVersion: 3,
         definition: referenceOf(input),
         artifactDigest: digestA,
         criteria: [{ criterionId: "members", kind: "set", itemType: "string" }],
@@ -759,11 +759,11 @@ describe("AY-I21 combined observation resource limits", () => {
   ])(
     "revalidates individually valid JSON facts after collection ($label)",
     async ({ overflow }) => {
-      const authored = createAssessmentDefinition({
-        schemaVersion: 2,
+      const authored = createAllDefinition({
+        schemaVersion: 3,
         assessmentId: "combined-budget",
         revision: "rev1",
-        policyVersion: "all-required-v1",
+        policyVersion: "composed-required-v1",
         criteria: ["existing", "acquired"].map((id) => ({
           id,
           mode: "required",
@@ -777,7 +777,7 @@ describe("AY-I21 combined observation resource limits", () => {
       const canary = "PRIVATE_COMBINED_BUDGET_CANARY";
       const chunk = canary.padEnd(CONTRACT_LIMITS.maxStringLength, "x");
       const starting = createEvidenceBundle(rubric, {
-        schemaVersion: 2,
+        schemaVersion: 3,
         observations: [
           {
             criterionId: "existing",
@@ -798,7 +798,7 @@ describe("AY-I21 combined observation resource limits", () => {
       // budget together with the existing nine, before metadata is counted.
       const acquiredValue = [...Array(6).fill(chunk), overflow ? chunk : chunk.slice(0, -1024)];
       const incoming = {
-        schemaVersion: 2,
+        schemaVersion: 3,
         definition: referenceOf(rubric),
         provenance: { ...report().provenance, capturedStdoutBytes: 0 },
         observations: [
