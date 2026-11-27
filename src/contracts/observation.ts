@@ -1,3 +1,4 @@
+import type { SCHEMA_VERSION } from "./version";
 import type { ExecutionFactFor, ExecutionTermination, SetItemType } from "./common";
 import type { DefinitionReference } from "./definition";
 import type { EvidenceBundle, ObservationFact, ObservationPortProvenance } from "./evidence";
@@ -56,7 +57,7 @@ export interface ObservationCollectionOptions<
 }
 
 export interface ObservationPortRequest {
-  readonly schemaVersion: 2;
+  readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly definition: DefinitionReference;
   readonly artifactDigest?: string;
   readonly criteria: readonly ObservationPortCriterion[];
@@ -73,7 +74,7 @@ export interface ObservationPort<S extends ObservationAbortSignal = ObservationA
 }
 
 export type ObservationPortReport = Readonly<{
-  schemaVersion: 2;
+  schemaVersion: typeof SCHEMA_VERSION;
   definition: DefinitionReference;
   artifactDigest?: string;
   provenance: ObservationPortProvenance;
