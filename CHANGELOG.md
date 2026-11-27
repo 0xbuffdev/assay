@@ -13,6 +13,8 @@
 
 ### Added
 
+- AY-I22: generated package/evaluator and canonical profile metadata with read-only build verification, independent version vectors and explicit Node 24+ ESM support. No digest, evaluator semantics, public export or package release change.
+
 - AY-I21: explicit bounded serialized-record decoding with duplicate-key rejection, redacted diagnostics and documented transport/snapshot budgets. No canonical digest or evaluator semantics change.
 
 - AY-I17: schema-2 boolean equality, finite numeric ranges and bounded structured JSON equality, including sealed references, evidence and public-only observation collection. Evaluator semantics `v0.0.2`; existing canonical hash profiles and package version unchanged.

@@ -4,6 +4,7 @@
  */
 import {
   ASSAY_DEFINITION_DIGEST_VERSION,
+  ASSAY_EVALUATOR_VERSION,
   ASSAY_SCHEMA_VERSION,
   decodeSerializedRecord,
   type SerializedRecordResult,
@@ -39,6 +40,8 @@ import {
 } from "@0xbuff/assay";
 
 const version: "v1" = ASSAY_DEFINITION_DIGEST_VERSION;
+const semantics: "v0.0.3" = ASSAY_EVALUATOR_VERSION;
+void semantics;
 const authoredDraft: AssessmentDefinitionDraft = {
   schemaVersion: ASSAY_SCHEMA_VERSION,
   assessmentId: "typed-integrity",

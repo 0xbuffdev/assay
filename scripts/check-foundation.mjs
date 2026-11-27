@@ -4,6 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import tsCompiler from "typescript";
 
+await import("./version-metadata.mjs");
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const locate = (relative) => path.join(root, relative);
 const pkg = JSON.parse(await readFile(locate("package.json"), "utf8"));
@@ -45,6 +47,7 @@ const sourcePaths = new Set([
   "src/contracts/reference.ts",
   "src/contracts/result.ts",
   "src/contracts/validation.ts",
+  "src/contracts/version.ts",
   "src/evaluation/aggregate.ts",
   "src/evaluation/comparators/finding.ts",
   "src/evaluation/comparators/number.ts",
@@ -109,6 +112,8 @@ for (const file of [
   "tests/foundation.test.ts",
   "tests/aggregation.test.ts",
   "tests/objective-comparators.test.ts",
+  "scripts/version-metadata.mjs",
+  "tests/consumer/version-vectors.mjs",
   "scripts/verify-dist.mjs",
   "scripts/verify-package.mjs",
   "tests/consumer/consumer.mjs",

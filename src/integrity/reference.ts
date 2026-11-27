@@ -5,6 +5,7 @@ import type {
   ReferenceRecordDraft,
 } from "../contracts/reference";
 import type { ValidationResult } from "../contracts/validation";
+import { REFERENCE_DOMAIN } from "../contracts/version";
 import {
   parseReferenceBundle,
   parseReferenceDraft,
@@ -18,7 +19,7 @@ import { sha256 } from "./sha256";
 const encoder = new TextEncoder();
 
 function hashDraft(draft: ReferenceRecordDraft): string {
-  return sha256(encoder.encode(`assay:reference:v2\n${canonical(draft)}`));
+  return sha256(encoder.encode(REFERENCE_DOMAIN + canonical(draft)));
 }
 
 /** Seal bounded typed expected content; the returned record is privileged. */

@@ -49,3 +49,14 @@ Use the [source organization](architecture.md#source-organization) to locate the
 The tests verify versioned definitions, observations, findings, safety bounds and evidence coverage. The dist verifier checks that tsdown emitted executable ESM and declarations; it also smoke-tests deterministic comparison using the built ESM package. AY-I01 tests cover strict schema validation, bounded inputs, deterministic diagnostics and evidence coverage; AY-I02 tests cover comparator boundaries, replay, required/advisory precedence and unverified evidence. AY-I03 tests cover mock ports, provenance consistency, truncation, forged trust flags, restricted inputs, unsafe text and thrown provider errors. AY-I04 adds a standalone offline tarball installation, exact archive allowlist and Apache-2.0 notice audit, hostile-input ESM consumer, and isolated TypeScript declaration consumer. The pack check runs in `pnpm check` and as its own CI step after `pnpm build` on Ubuntu and Windows. It starts npm's JavaScript CLI through the active Node executable (never a Windows `.cmd` shim or shell invocation).
 
 Assay source is Apache-2.0 licensed; the npm package remains unpublished and deliberately unpublishable until separately approved. The package remains `private: true`. A green packed-consumer check is not release authorization.
+
+## Version metadata and runtime compatibility
+
+AY-I22 separates package release (`package.json`) from evaluator semantics and
+canonical domains (authored in `scripts/version-metadata.mjs`). The generated
+`src/contracts/version.ts` is checked in for source consumers. Run
+`pnpm generate:version` only after an approved identity change; foundation and
+build verification reject stale generated metadata without rewriting it.
+The package manifest remains the public package-version authority, while the
+existing evaluator export and technical result identify evaluator semantics.
+See [version compatibility](integrity.md#version-compatibility-ay-i22).
