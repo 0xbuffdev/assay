@@ -1,6 +1,7 @@
 import { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "../contracts/common";
 import type { AssessmentDefinition, AssessmentDefinitionDraft } from "../contracts/definition";
 import type { ValidationResult } from "../contracts/validation";
+import { validateComposition } from "./composition";
 import {
   BAD,
   booleanValue,
@@ -27,23 +28,19 @@ function expected(
   path: string,
   kind: "text" | "number" | "set" | "boolean" | "range" | "json",
   itemType: unknown,
-  schemaVersion: unknown,
   referenceIds: Set<string>,
   issues: Diagnostics,
 ): void {
   const allowed = ["type", "value", "referenceId", "referenceDigest"];
   if (!object(value, path, allowed, ["type"], issues)) return;
   if (value.type === "reference") {
-    const keys =
-      schemaVersion === 2 ? ["type", "referenceId", "referenceDigest"] : ["type", "referenceId"];
+    const keys = ["type", "referenceId", "referenceDigest"];
     object(value, path, keys, keys, issues);
     identifier(value.referenceId, `${path}.referenceId`, issues);
-    if (schemaVersion === 2) {
-      digest(value.referenceDigest, `${path}.referenceDigest`, issues);
-      if (typeof value.referenceId === "string") {
-        if (referenceIds.has(value.referenceId)) issues.add(`${path}.referenceId`, "DUPLICATE_ID");
-        referenceIds.add(value.referenceId);
-      }
+    digest(value.referenceDigest, `${path}.referenceDigest`, issues);
+    if (typeof value.referenceId === "string") {
+      if (referenceIds.has(value.referenceId)) issues.add(`${path}.referenceId`, "DUPLICATE_ID");
+      referenceIds.add(value.referenceId);
     }
     return;
   }
@@ -64,7 +61,6 @@ function expected(
 function parameters(
   criterion: DataObject,
   path: string,
-  schemaVersion: unknown,
   referenceIds: Set<string>,
   issues: Diagnostics,
 ): void {
@@ -88,7 +84,6 @@ function parameters(
       `${p}.expected`,
       "text",
       undefined,
-      schemaVersion,
       referenceIds,
       issues,
     );
@@ -122,7 +117,6 @@ function parameters(
       `${p}.expected`,
       "number",
       undefined,
-      schemaVersion,
       referenceIds,
       issues,
     );
@@ -147,10 +141,6 @@ function parameters(
     criterion.kind === "number_range" ||
     criterion.kind === "json_equality"
   ) {
-    if (schemaVersion !== 2) {
-      issues.add(`${path}.kind`, "UNSUPPORTED_VERSION");
-      return;
-    }
     const range = criterion.kind === "number_range";
     if (!object(value, p, range ? ["expected", "unit"] : ["expected"], ["expected"], issues))
       return;
@@ -160,7 +150,6 @@ function parameters(
       `${p}.expected`,
       range ? "range" : criterion.kind === "boolean_equality" ? "boolean" : "json",
       undefined,
-      schemaVersion,
       referenceIds,
       issues,
     );
@@ -187,7 +176,6 @@ function parameters(
       `${p}.expected`,
       "set",
       value.itemType,
-      schemaVersion,
       referenceIds,
       issues,
     );
@@ -229,6 +217,7 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
           "revisionDigest",
           "policyVersion",
           "criteria",
+          "composition",
         ],
         [
           "schemaVersion",
@@ -237,17 +226,18 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
           "revisionDigest",
           "policyVersion",
           "criteria",
+          "composition",
         ],
         issues,
       )
     )
       return;
-    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION && data.schemaVersion !== 2)
+    if (data.schemaVersion !== ASSAY_SCHEMA_VERSION)
       issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     identifier(data.assessmentId, "$.assessmentId", issues);
     revision(data.revision, "$.revision", issues);
     digest(data.revisionDigest, "$.revisionDigest", issues);
-    choice(data.policyVersion, ["all-required-v1"], "$.policyVersion", issues);
+    choice(data.policyVersion, ["composed-required-v1"], "$.policyVersion", issues);
     if (!list(data.criteria, "$.criteria", issues, CONTRACT_LIMITS.maxCriteria)) return;
     if (data.criteria.length === 0) issues.add("$.criteria", "EMPTY_REQUIRED_CRITERIA");
     const ids: unknown[] = [];
@@ -286,11 +276,8 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
           issues,
         )
       ) {
-        parameters(criterion, path, data.schemaVersion, referenceIds, issues);
+        parameters(criterion, path, referenceIds, issues);
         if (Object.hasOwn(criterion, "executionFact")) {
-          if (data.schemaVersion !== 2) {
-            issues.add(`${path}.executionFact`, "UNSUPPORTED_VERSION");
-          }
           const kind = criterion.kind;
           const selectors =
             kind === "exact_text" || kind === "normalized_text"
@@ -317,6 +304,7 @@ export function parseAssessmentDefinition(input: unknown): ValidationResult<Asse
       if (criterion.mode === "required") required++;
     }
     unique(ids, "$.criteria", issues);
+    validateComposition(data.composition, data.criteria, issues);
     if (data.criteria.length > 0 && required === 0)
       issues.add("$.criteria", "EMPTY_REQUIRED_CRITERIA");
   });
@@ -338,8 +326,8 @@ export function parseAssessmentDefinitionDraft(
     !object(
       data,
       "$",
-      ["schemaVersion", "assessmentId", "revision", "policyVersion", "criteria"],
-      ["schemaVersion", "assessmentId", "revision", "policyVersion", "criteria"],
+      ["schemaVersion", "assessmentId", "revision", "policyVersion", "criteria", "composition"],
+      ["schemaVersion", "assessmentId", "revision", "policyVersion", "criteria", "composition"],
       issues,
     )
   ) {
