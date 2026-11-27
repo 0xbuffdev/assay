@@ -1,18 +1,31 @@
 import type { ExecutionFact, JsonValue, NumericRange, SetItemType, SetScalar } from "./common";
-
-export type DefinitionSchemaVersion = 1 | 2;
+import type { SCHEMA_VERSION } from "./version";
 
 /** The only supported binding aggregation policy. */
-export type PolicyVersion = "all-required-v1";
+export type PolicyVersion = "composed-required-v1";
 
 export type CriterionMode = "required" | "advisory";
 export type ReferenceVisibility = "public" | "restricted";
 
-export type Expected<T, V extends DefinitionSchemaVersion = DefinitionSchemaVersion> =
+export type Expected<T> =
   | Readonly<{ type: "literal"; value: T }>
-  | (V extends 1
-      ? Readonly<{ type: "reference"; referenceId: string; referenceDigest?: never }>
-      : Readonly<{ type: "reference"; referenceId: string; referenceDigest: string }>);
+  | Readonly<{ type: "reference"; referenceId: string; referenceDigest: string }>;
+
+export type CompositionChild = Readonly<{
+  kind: "criterion" | "group";
+  id: string;
+}>;
+
+export interface CriterionGroup {
+  readonly id: string;
+  readonly operator: "all" | "any";
+  readonly children: readonly CompositionChild[];
+}
+
+export interface CriterionComposition {
+  readonly rootGroupId: string;
+  readonly groups: readonly CriterionGroup[];
+}
 
 export interface CriterionBase {
   readonly id: string;
@@ -28,54 +41,48 @@ export type TextNormalization = Readonly<{
   trim: "none" | "both";
 }>;
 
-type ExecutionSelection<
-  V extends DefinitionSchemaVersion,
-  F extends ExecutionFact = never,
-> = Readonly<{ executionFact?: V extends 2 ? F : never }>;
+type ExecutionSelection<F extends ExecutionFact = never> = Readonly<{ executionFact?: F }>;
 
-type NumericExecutionSelection<V extends DefinitionSchemaVersion, P> =
+type NumericExecutionSelection<P> =
   | Readonly<{ executionFact?: never; parameters: Readonly<P & { unit?: string }> }>
   | Readonly<{
-      executionFact: V extends 2 ? "exit_status" : never;
+      executionFact: "exit_status";
       parameters: Readonly<P & { unit?: never }>;
     }>;
 
-export type Criterion<V extends DefinitionSchemaVersion = DefinitionSchemaVersion> =
+export type Criterion =
   | (CriterionBase &
-      ExecutionSelection<V, "stdout" | "stderr"> &
+      ExecutionSelection<"stdout" | "stderr"> &
       Readonly<{
         kind: "exact_text";
-        parameters: Readonly<{ expected: Expected<string, V> }>;
+        parameters: Readonly<{ expected: Expected<string> }>;
       }>)
   | (CriterionBase &
-      ExecutionSelection<V, "stdout" | "stderr"> &
+      ExecutionSelection<"stdout" | "stderr"> &
       Readonly<{
         kind: "normalized_text";
-        parameters: Readonly<{ expected: Expected<string, V>; normalization: TextNormalization }>;
+        parameters: Readonly<{ expected: Expected<string>; normalization: TextNormalization }>;
       }>)
   | (CriterionBase &
       Readonly<{ kind: "number_with_tolerance" }> &
-      NumericExecutionSelection<
-        V,
-        {
-          expected: Expected<number, V>;
-          tolerance: Readonly<{ absolute: number; relative: number }>;
-        }
-      >)
+      NumericExecutionSelection<{
+        expected: Expected<number>;
+        tolerance: Readonly<{ absolute: number; relative: number }>;
+      }>)
   | (CriterionBase &
-      ExecutionSelection<V, never> &
+      ExecutionSelection<never> &
       Readonly<{
         kind: "set_equivalence";
         parameters: Readonly<{
-          expected: Expected<readonly SetScalar[], V>;
+          expected: Expected<readonly SetScalar[]>;
           itemType: SetItemType;
           order: "ignore" | "preserve";
           duplicates: "ignore" | "respect";
         }>;
       }>)
-  | (V extends 2 ? AdditionalObjectiveCriterion : never)
+  | AdditionalObjectiveCriterion
   | (CriterionBase &
-      ExecutionSelection<V, never> &
+      ExecutionSelection<never> &
       Readonly<{
         kind: "observed_execution";
         parameters: Readonly<{
@@ -83,27 +90,24 @@ export type Criterion<V extends DefinitionSchemaVersion = DefinitionSchemaVersio
         }>;
       }>)
   | (CriterionBase &
-      ExecutionSelection<V, never> &
+      ExecutionSelection<never> &
       Readonly<{
         kind: "manual_evidence";
         parameters: Readonly<{ review: "required" }>;
       }>);
 
 /** Authored definition before deterministic content hashing. */
-export type AssessmentDefinitionDraft<V extends DefinitionSchemaVersion = DefinitionSchemaVersion> =
-  V extends DefinitionSchemaVersion ? Omit<DefinitionFields<V>, "revisionDigest"> : never;
+export type AssessmentDefinitionDraft = Omit<AssessmentDefinition, "revisionDigest">;
 
-export type AssessmentDefinition<V extends DefinitionSchemaVersion = DefinitionSchemaVersion> =
-  V extends DefinitionSchemaVersion ? DefinitionFields<V> : never;
-
-interface DefinitionFields<V extends DefinitionSchemaVersion> {
-  readonly schemaVersion: V;
+export interface AssessmentDefinition {
+  readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly assessmentId: string;
   readonly revision: string;
   /** A SHA-256 claim. A host must authenticate and verify it independently. */
   readonly revisionDigest: string;
   readonly policyVersion: PolicyVersion;
-  readonly criteria: readonly Criterion<V>[];
+  readonly criteria: readonly Criterion[];
+  readonly composition: CriterionComposition;
 }
 
 export type DefinitionReference = Readonly<{
@@ -114,17 +118,17 @@ export type DefinitionReference = Readonly<{
 
 type AdditionalObjectiveCriterion =
   | (CriterionBase &
-      ExecutionSelection<2, "boolean_property"> &
+      ExecutionSelection<"boolean_property"> &
       Readonly<{
         kind: "boolean_equality";
-        parameters: Readonly<{ expected: Expected<boolean, 2> }>;
+        parameters: Readonly<{ expected: Expected<boolean> }>;
       }>)
   | (CriterionBase &
       Readonly<{ kind: "number_range" }> &
-      NumericExecutionSelection<2, { expected: Expected<NumericRange, 2> }>)
+      NumericExecutionSelection<{ expected: Expected<NumericRange> }>)
   | (CriterionBase &
-      ExecutionSelection<2, "structured_stdout" | "structured_stderr"> &
+      ExecutionSelection<"structured_stdout" | "structured_stderr"> &
       Readonly<{
         kind: "json_equality";
-        parameters: Readonly<{ expected: Expected<JsonValue, 2> }>;
+        parameters: Readonly<{ expected: Expected<JsonValue> }>;
       }>);

@@ -8,7 +8,7 @@ import {
   parseEvaluationResult,
   parseEvidenceBundle,
 } from "../src/index";
-import { definition, digestB, evidence, result } from "./fixtures/contracts";
+import { authorAll, definition, digestB, evidence, result } from "./fixtures/contracts";
 
 type JsonRecord = Record<string, unknown>;
 const mutated = <T>(input: T): JsonRecord => structuredClone(input) as JsonRecord;
@@ -19,7 +19,7 @@ function errorCodes(input: ReturnType<typeof parseAssessmentDefinition>): string
 
 describe("AY-I01 versioned definition contracts", () => {
   it("has a stable schema and public bounds", () => {
-    expect(ASSAY_SCHEMA_VERSION).toBe(1);
+    expect(ASSAY_SCHEMA_VERSION).toBe(3);
     expect(CONTRACT_LIMITS.maxCriteria).toBe(64);
   });
 
@@ -71,7 +71,7 @@ describe("AY-I01 versioned definition contracts", () => {
 
   it("rejects unknown schema versions and ambiguous revisions", () => {
     const wrong = mutated(definition());
-    wrong.schemaVersion = 3;
+    wrong.schemaVersion = 2;
     wrong.revision = "latest";
     expect(errorCodes(parseAssessmentDefinition(wrong))).toEqual(
       expect.arrayContaining(["UNSUPPORTED_VERSION", "INVALID_VALUE"]),
@@ -319,14 +319,14 @@ describe("AY-I01 evidence structure and coverage", () => {
   });
 
   it("marks incomplete execution assertions and missing manual artifacts unresolved", () => {
-    const withRequiredReview = {
+    const withRequiredReview = authorAll({
       ...definition(),
       criteria: definition().criteria.map((criterion) =>
         criterion.kind === "observed_execution" || criterion.kind === "manual_evidence"
           ? { ...criterion, mode: "required" as const }
           : criterion,
       ),
-    };
+    });
     const incomplete = {
       ...evidence(),
       observations: [

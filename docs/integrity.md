@@ -1,372 +1,79 @@
-# Versioned definition, reference and evidence content integrity
+# Definition, reference and evidence integrity
 
-Assay has two explicit trust boundaries:
+Assay verifies content identity, not authentication. The host must independently authorize the exact definition, reference values and evidence lineage. A caller can construct and hash their own data; no digest proves a publisher, execution provider, learner, correctness or official credit.
 
-1. **Content integrity:** Are the criteria, expected values, policy, revision, and other authored fields exactly those named by the declared digest?
-2. **Publisher and evidence authenticity:** Did a trusted publisher authorize that definition and did independently authenticated observations come from the claimed source?
+## Version contract
 
-**Assay implements only the first.** A digest is neither a signature nor an access-control token. The source remains unpublished at 0.0.0; official grades, protected references and publisher authentication remain the host's responsibility.
+AY-I23 replaces the unreleased prior schemas, not their historical bytes. Every versioned public record uses schema generation **3**, including definitions, reference records and bundles, evidence, complete results, public projections, and observation port requests/reports. The sole binding policy is `composed-required-v1`. Evaluator semantics are `v0.0.4`; package version remains private `0.0.0` and the supported runtime is Node 24+ ESM. There is no runtime compatibility adapter, alias, automatic upgrade, or legacy policy path. Older records are explicitly rejected, not rehashed. Historical vectors remain in Git history.
 
-## Creating and checking definitions
+`ASSAY_SCHEMA_VERSION` identifies the sole current generation. The generated version metadata is derived from the authored identities in the version generator and the manifest; the evaluator identity is separate from the package release. A future contract generation must select distinct canonical domains, update generated metadata and independently verify new vectors. Do not edit generated files or silently reinterpret old records.
 
-Author an **unsigned draft** (all fields except revisionDigest). Then call:
+## Canonical bytes
 
-```ts
-import {
-  createAssessmentDefinition,
-  createEvidenceBundle,
-  verifyAssessmentDefinition,
-  evaluate,
-  collectObservations,
-} from "@0xbuff/assay";
+All three integrity domains use the same deterministic serialization after bounded, closed-contract validation:
 
-const draft = {
-  schemaVersion: 1,
-  assessmentId: "smoke",
-  revision: "rev1",
-  policyVersion: "all-required-v1",
-  criteria: [
-    {
-      id: "output",
-      mode: "required",
-      visibility: "public",
-      kind: "exact_text",
-      parameters: { expected: { type: "literal", value: "ok" } },
-    },
-  ],
-};
+- Use compact JSON with object keys sorted by ECMAScript UTF-16 code-unit order. Arrays retain their authored order (including criteria, groups, children and observations). Keys, strings, finite numbers, booleans and null use ECMAScript JSON serialization; -0 serializes as 0. No locale comparison, string normalization, trimming or implicit conversion.
+- Include every validated authored field; omit only the record's own top-level digest. An absent optional field stays absent. Reject unknown keys, unsafe objects, unsupported schemas, nonfinite values and over-limit inputs before hashing.
+- UTF-8 encode the ASCII domain followed by one LF, then the canonical JSON, with no additional trailing LF. Compute SHA-256 and return lowercase `sha256:` plus 64 hex digits.
+- Definition domain: `assay:definition:v3`; reference domain: `assay:reference:v3`; evidence domain: `assay:evidence:v3`.
 
-const created = createAssessmentDefinition(draft);
-if (!created.ok) throw new Error("Invalid authored definition");
-const definition = created.value;
-const checked = verifyAssessmentDefinition(definition);
-if (!checked.ok) throw new Error("Content digest mismatch");
+### Definition integrity
 
-const prepared = createEvidenceBundle(definition, {
-  schemaVersion: 2,
-  observations: [
-    {
-      criterionId: "output",
-      evidenceRef: "observed",
-      completeness: "complete",
-      kind: "text",
-      value: "ok",
-    },
-  ],
-});
-if (!prepared.ok) throw new Error("Invalid evidence");
-const evidence = prepared.value;
-const outcome = evaluate(definition, evidence);
-// outcome is a technical result, NOT a formal grade
-```
+The unsigned draft has exactly schemaVersion, assessmentId, revision, policyVersion, criteria and composition. The sealed definition adds revisionDigest. The composition binds exact group membership, operator and authored order, even where reordering would not change its logical outcome. `computeDefinitionDigest` and `createAssessmentDefinition` validate unsigned drafts, rejecting a caller-supplied revisionDigest. `verifyAssessmentDefinition` recomputes and compares it. Evaluation, collection and projection verify the definition before inspecting other inputs. A changed body with an unchanged digest is invalid_definition; a parser's structural success alone is not integrity verification.
 
-`collectObservations` verifies definition content before inspecting evidence or invoking the optional injected provider. It does **not** verify the adapter's run or publisher.
-
-`parseAssessmentDefinition` and `inspectEvidenceCoverage` perform structural checks, not integrity verification. `evaluate`, `collectObservations` and `projectPublicResult` always verify definition integrity. `verifyAssessmentDefinition` remains available for explicit admission checks. All integrity failures return value-free diagnostics or an opaque projection rejection, not a secret expected answer or a full diff.
-
-parseAssessmentDefinitionDraft rejects caller-supplied revisionDigest fields instead of overwriting them. computeDefinitionDigest returns the digest for such a validated draft without constructing a full definition; createAssessmentDefinition both generates the digest and returns a deeply frozen, validated definition.
-
-## Canonical digest algorithm v1 (normative)
-
-Version constant: ASSAY_DEFINITION_DIGEST_VERSION = "v1".
-
-**Permanent persisted-record binding:** Every definition with `schemaVersion: 1`
-**MUST use digest profile v1**, including its exact `assay:definition:v1` domain
-separator and canonical JSON rules below. A stored definition identifies its
-profile through `schemaVersion`; the `sha256:` prefix identifies the hash
-algorithm, not a separately selectable canonicalization profile. **Any future
-change** to canonicalization, hashed fields, domain separation, or algorithm
-**MUST increment `schemaVersion`**, publish a separate profile and golden
-vectors, and never reinterpret persisted schema-1 bytes under the new profile.
-An implementation that no longer supports an earlier schema must reject it
-explicitly rather than silently verify it using a different profile.
-
-- Accept **only** a validated unsigned AssessmentDefinitionDraft, with exact fields schemaVersion, assessmentId, revision, policyVersion and criteria. Invalid, additional, accessor, cyclic, non-finite, too-large and unknown schema fields are rejected before hashing.
-- Include every authored field, including the complete criteria array in authored order, each criterion's visibility, mode, kind, parameters, reference IDs, numeric units and normalization policy. The only excluded field is the self-referential **top-level** revisionDigest, which does not exist in the unsigned draft.
-- Canonicalize the validated draft recursively as compact JSON. Object keys are sorted by ECMAScript's default UTF-16 code-unit order (Array.prototype.sort with no comparator). Arrays retain their declared order. Keys and primitive strings use JSON.stringify escaping. **No** Unicode normalization, whitespace trimming, reordering of criteria, or case transformation occurs.
-- Finite numbers use ECMAScript JSON.stringify's number serialization (including exponent formatting; -0 serializes as 0). Booleans and null use literal JSON tokens. Invalid or unrepresentable values never reach serialization. Optional fields absent from a validated draft are absent from the hash; no undefined fields are permitted.
-- UTF-8 encode exactly the ASCII domain separator and newline **assay:definition:v1** followed by LF (one byte 0A), then the canonical JSON. No additional trailing newline.
-- Digest = SHA-256 over those bytes, returned as the lowercase string sha256: followed by 64 hex digits.
-- Verification parses and freezes the complete signed definition, reconstructs the exact unsigned draft, recomputes the digest, and compares exact lowercase strings. A mismatch returns invalid_definition with DEFINITION_DIGEST_MISMATCH at $.revisionDigest.
-- This SHA-256 implementation is synchronous, pure TypeScript/JavaScript and has zero runtime dependencies, no Node crypto import, and no hidden network calls. Cross-platform tests compare published vectors with Node's independent crypto implementation.
-
-### Golden vector
-
-Unsigned draft:
-
-```json
-{
-  "schemaVersion": 1,
-  "assessmentId": "vector",
-  "revision": "rev1",
-  "policyVersion": "all-required-v1",
-  "criteria": [
-    {
-      "id": "output",
-      "mode": "required",
-      "visibility": "public",
-      "kind": "exact_text",
-      "parameters": {
-        "expected": { "type": "literal", "value": "café\n" }
-      }
-    }
-  ]
-}
-```
-
-Canonical JSON (single line; the newline in the value is escaped):
+Canonical definition golden vector (one line, escaped LF in value):
 
 ```text
-{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":1}
+{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\n"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}
 ```
 
-SHA-256 over UTF-8 bytes of the domain separator plus canonical JSON:
+Digest: `sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798`.
+
+## Current-generation reference integrity
+
+An objective reference expectation is exactly type, referenceId and referenceDigest, with type equal to reference. IDs must not repeat across objective expectations. `createReferenceRecord` accepts a draft with schemaVersion, referenceId, kind and value; number and range records may include unit, set records require itemType. The sealed record adds referenceDigest. Admitted value kinds are text, number, range, set, boolean and JSON. Restricted objective expectations cannot be literal. Assertion metadata remains non-authoritative and is not an objective reference expectation.
+
+A ReferenceBundle contains exactly schemaVersion, definition (assessmentId, revision, revisionDigest) and references. No bundle digest is added: each record is individually sealed and declared in the definition. `verifyReferenceBundle` checks exact definition lineage, declared reference ID/digest, actual recomputed digest, kind, unit presence/value and set item type. Unknown, duplicate, malformed, wrong-kind, wrong-unit or substituted material is invalid_reference. Missing records are permitted and yield inconclusive comparison when needed. Supplied references are verified after the definition and before evidence. All reference material is privileged.
+
+Canonical reference vector:
 
 ```text
-sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f
+{"kind":"text","referenceId":"secret","schemaVersion":3,"value":"café\n"}
 ```
 
-This vector is independently verified against the Node crypto implementation in tests and a reloaded, persisted schema-1 record. Any future change to hashing, canonicalization or included authored fields requires a separately reviewed **new schema version and digest profile** with new golden vectors; never silently reinterpret a v1 digest.
+Digest: `sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f`.
 
-## Security limits and migration rules
-
-- **No publisher authenticity:** An attacker can create their own modified draft and compute a perfectly valid digest. An authorized host still needs authenticated source/policy admission, independently resolved protected expectations, runner provenance and access controls.
-- **No automatic hiding of restricted criteria:** The digest check sees validated definition content and may include reference IDs in its hash input. Do not hand out full private definitions or full technical findings to untrusted learners; the restricted public projection is scoped separately in AY-I07.
-- **No result signature:** A valid JSON result or verified digest does not make evidence, an AI verdict, or official credit authentic.
-- **No legacy adapter:** The package is unreleased, so callers using new authored definitions should create them from drafts rather than populating the digest with arbitrary placeholder hex. The unchecked evaluation and collection paths have been removed; there is no compatibility alias.
-- **Collision resistance is not source authenticity:** SHA-256 provides content integrity under its usual cryptographic assumptions; an independently established authorized digest or authenticated publisher is needed to prevent substitution of both the definition and its digest.
-
-## Canonical digest algorithm v2 (AY-I13)
-
-Schema-1 definition bytes remain exactly as documented above.
-`ASSAY_SCHEMA_VERSION` and `ASSAY_DEFINITION_DIGEST_VERSION` retain their
-original values for schema-1 records and profile v1. Definitions now also
-admit schema 2. AY-I15 migrates evidence, full technical results, and acquisition records to schema 2; the public projection remains schema 1.
-
-For schema-2 definitions use the domain `assay:definition:v2` followed by LF,
-then the same canonical JSON rules as v1. Exclude only the definition's
-top-level `revisionDigest`. An objective reference expectation has exactly
-`{ type: "reference", referenceId, referenceDigest }`; its value kind is
-inferred from the criterion, including the optional number or range unit and set item type.
-Duplicate objective reference IDs are rejected even when identical.
-Schema-1 declarations do not accept the new digest field.
-
-For reference records use the domain `assay:reference:v2` followed by LF,
-then canonical JSON of the validated unsigned record. Exclude only the
-record's own `referenceDigest`. Record fields are:
-`schemaVersion: 2`, `referenceId`, `kind`, `value`, and, for `number` and
-`range`, an optional `unit` (omission is deliberate unitlessness); for `set`, a
-required `itemType` of string, number or boolean. Admitted kinds are `text`,
-`number`, `set`, `boolean`, `range`, and `json`. See
-[objective comparison semantics](evaluation.md#ay-i17-objective-comparisons-schema-2)
-for the new expected value shapes and comparison rules. No extra fields, unknown
-versions, URLs, executable expectations, or implicit conversion. The same
-object/key/node/string limits apply to the record and the complete bundle;
-a bundle may contain at most 64 records, the maximum number of criteria.
-
-The full `ReferenceBundle` has exactly `schemaVersion: 2`, `definition`
-(the assessment ID, revision and revision digest), and `references`. It
-has no independent digest in this ticket: each record is independently
-content-bound by the definition. `verifyReferenceBundle` checks definition
-integrity before reading the bundle; validates the bounded bundle snapshot;
-then checks lineage, record digest, declared digest, inferred kind, exact
-unit presence/value and set item type. Missing records are permitted; unknown
-or duplicate records are not. The success value is privileged and frozen.
-Failures return value-free diagnostics with `invalid_reference` (or
-`invalid_definition` if the definition is invalid).
-
-```ts
-import {
-  createAssessmentDefinition,
-  createReferenceRecord,
-  verifyReferenceBundle,
-} from "@0xbuff/assay";
-
-const reference = createReferenceRecord({
-  schemaVersion: 2,
-  referenceId: "secret",
-  kind: "text",
-  value: "café\n",
-});
-if (!reference.ok) throw new Error("Invalid reference");
-const definition = createAssessmentDefinition({
-  schemaVersion: 2,
-  assessmentId: "vector",
-  revision: "rev1",
-  policyVersion: "all-required-v1",
-  criteria: [
-    {
-      id: "output",
-      kind: "exact_text",
-      mode: "required",
-      visibility: "restricted",
-      parameters: {
-        expected: {
-          type: "reference",
-          referenceId: reference.value.referenceId,
-          referenceDigest: reference.value.referenceDigest,
-        },
-      },
-    },
-  ],
-});
-if (!definition.ok) throw new Error("Invalid definition");
-const verified = verifyReferenceBundle(definition.value, {
-  schemaVersion: 2,
-  definition: {
-    assessmentId: definition.value.assessmentId,
-    revision: definition.value.revision,
-    revisionDigest: definition.value.revisionDigest,
-  },
-  references: [reference.value],
-});
-// verified is a privileged validation result, not a comparison or grade.
-// If verified.ok, evaluate(definition.value, evidence, verified.value) compares
-// caller-supplied observations against the content-bound reference.
-```
-
-### Schema-2 golden vectors
-
-Canonical reference JSON (no trailing LF; the value contains an escaped LF):
+Canonical definition binding that reference:
 
 ```text
-{"kind":"text","referenceId":"secret","schemaVersion":2,"value":"café\n"}
+{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}
 ```
 
-SHA-256 with the reference domain:
+Digest: `sha256:b0b4ed130a1ed38d5b306a7c43f10a512fbe8f2905b110ea781c4f3bcc8fd6cf`.
 
-```text
-sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5
-```
-
-Canonical definition JSON:
-
-```text
-{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"referenceDigest":"sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5","referenceId":"secret","type":"reference"}},"visibility":"restricted"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":2}
-```
-
-SHA-256 with the definition v2 domain:
-
-```text
-sha256:eb3dcfbc24c13e625e95f0d86b75da3f652805aed29c34c2bcc7cc42b0f5a321
-```
-
-Both hashes are independently pinned with Node crypto in the source tests.
-Neither digest authenticates a publisher or hides low-entropy expected values.
-Do not publish protected definitions, reference records or their digests.
-AY-I14 permits evaluation using the verified schema-2 reference bundle as the
-optional third argument to `evaluate`. Missing material remains unavailable;
-invalid supplied records fail before comparison. No network lookup, new evidence
-or execution fact schema is introduced.
-
-Additional reference vectors (same domain and LF; no trailing LF):
-
-| Canonical JSON                                                                             | SHA-256 digest                                                            |
+| Canonical reference JSON                                                                   | Digest                                                                    |
 | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `{"kind":"number","referenceId":"quantity","schemaVersion":2,"unit":"m","value":10}`       | `sha256:9d9dd9e71c2daf11f25122ef06f982ca2fc3f30a5b02e83f7a3460996e133076` |
-| `{"itemType":"number","kind":"set","referenceId":"items","schemaVersion":2,"value":[1,2]}` | `sha256:1ea024bc6ce68a3e7e55a0b29f1a95dbb7f56228b3d736634fdde1a23165373a` |
+| `{"kind":"number","referenceId":"quantity","schemaVersion":3,"unit":"m","value":10}`       | `sha256:1e4890246c0eda1381302e0d56d458fc08d2883e806b411eec5572b24cd78a0b` |
+| `{"itemType":"number","kind":"set","referenceId":"items","schemaVersion":3,"value":[1,2]}` | `sha256:eb8098fafa7f466e471989a3f2106d02b130766c3c27cee4692ba77b8ae587a8` |
 
-## Canonical evidence digest v2 (AY-I15)
+## Current-generation evidence integrity
 
-`createEvidenceBundle(definition, draft)` verifies the definition, accepts a
-closed draft with exactly schemaVersion (2), observations, and optional
-artifactDigest, derives definition lineage, validates the entire assembled
-bundle and criterion coverage, and seals it. Caller-supplied definition or
-evidenceDigest in the draft is rejected, not overwritten.
-`verifyEvidenceBundle(definition, evidence)` checks the sealed bundle,
-definition lineage and evidence digest. Evaluation and collection require
-this verification; legacy schema-1 or unsigned evidence is rejected.
-The existing definition profiles are unchanged.
+`createEvidenceBundle(definition, draft)` validates a draft with schemaVersion, observations and optional artifactDigest; it derives the definition identity, checks exact criterion coverage and origin scope, seals the entire validated bundle and returns immutable content. It rejects externally asserted definition/evidence digest fields in drafts. The evidence digest covers lineage, optional artifact binding, all observations and origin claims in authored order. `verifyEvidenceBundle` recomputes the digest and checks exact definition lineage and coverage. No overwrite or duplicate criterion/evidence reference is allowed; a correction creates a new bundle.
 
-The hash covers every validated bundle field except the top-level
-evidenceDigest, including schemaVersion, definition lineage, optional artifact
-scope, observations in authored order, and each observation's optional origin
-and full provenance claim. Use the same UTF-16 sorted keys, JSON primitive
-serialization and UTF-8 encoding as the definition profile, preceded by
-`assay:evidence:v2` and a single LF, with no trailing LF. The digest is
-lowercase `sha256:` followed by 64 hex digits. Mismatch returns
-`invalid_evidence` with `EVIDENCE_DIGEST_MISMATCH` at `$.evidenceDigest`.
+An artifact-scoped bundle requires explicitly scoped observations. Artifact origins bind the exact artifact digest, independent origins cannot claim one, and provenance is an inert source/run claim. Selected execution facts require run termination and relevant completeness; missing/truncated or interrupted evidence cannot establish a pass. Collection cannot retrofit artifact scope onto existing unbound observations or change their provenance. It reseals the combined current-generation bundle and returns a receipt binding its new digest and returned fact references. See [observation acquisition](observations.md).
 
-Canonical JSON for the schema-1 definition golden vector above and a
-schema-2 artifact-scoped evidence bundle (the value contains an escaped LF):
+Canonical evidence vector using the first definition vector:
 
 ```text
-{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\n"}],"schemaVersion":2}
+{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","definition":{"assessmentId":"vector","revision":"rev1","revisionDigest":"sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798"},"observations":[{"completeness":"complete","criterionId":"output","evidenceRef":"obs1","kind":"text","origin":{"artifactDigest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","kind":"artifact","runRef":"run1","sourceRef":"fixture"},"value":"café\n"}],"schemaVersion":3}
 ```
 
-Digest:
+Digest: `sha256:06c8270cffe62153c69c77a9233044a7c97ceb5d8519142711f5f9dbddf9d301`.
 
-```text
-sha256:cadd06a98401114bb8039949999c922cdc806c3998cc19f00735819f494e58bd
-```
+The independent installed-package vectors also pin selected execution fact and termination bytes. Tests use Node crypto independently of Assay's portable synchronous SHA-256 implementation.
 
-The pinned digest is independently checked with Node crypto in source tests.
-Changing scope, values, completeness, origin, observation order or lineage
-changes the content identity. A content digest is not a signature, a claim
-of actual artifact bytes, or authorization to expose protected evidence.
-Keep full evidence and its digests in privileged storage. A corrected
-observation requires constructing a new bundle, never mutating the old one.
+## Failure and disclosure boundaries
 
-### AY-I16 policy migration
+All public integrity operations enforce the current schema, closed shapes and record limits; the serialized decoder checks byte limits and duplicate keys before structural validation. Results bind the exact definition/evidence digests, optional artifact digest, policy and evaluator identity. They do not sign the evidence or themselves. Public projection checks the verified definition and complete result correspondence and independently recomputes the group aggregate using the shared owner; it does not receive the evidence and cannot authenticate it. Never expose a restricted reference or low-entropy digest as a secrecy mechanism. Keep full records privileged; errors contain value-free bounded diagnostics or an opaque public projection rejection. Host authorization, transport caps, execution isolation and record retention remain independent.
 
-The policy identity is now `all-required-v1`. Historical drafts with arbitrary
-labels such as `policy1` are rejected rather than interpreted as the supported
-policy. Re-author and reseal explicitly to migrate; this produces different
-content identities. The canonical byte profiles and hash domains are unchanged.
-The vectors above use the newly authored policy, not rewritten historical bytes.
-
-### Selected execution fact vectors (AY-I18)
-
-The optional schema-2 selector and run termination claim participate in the
-same canonical profiles. Old records without these fields retain their bytes.
-For these synthetic vectors, hash the exact JSON below after the corresponding
-domain and one LF, with no trailing LF. The hashes were independently computed
-using Node's SHA-256 implementation.
-
-Definition (`assay:definition:v2`):
-
-```text
-{"assessmentId":"execution","criteria":[{"executionFact":"stdout","id":"out","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"ok"}},"visibility":"public"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":2}
-```
-
-Digest: `sha256:198b7fa36aafa00a8bfc98768d81673d38d1decbfcf1a65e8162235f868368a3`.
-
-Evidence (`assay:evidence:v2`):
-
-```text
-{"definition":{"assessmentId":"execution","revision":"rev1","revisionDigest":"sha256:198b7fa36aafa00a8bfc98768d81673d38d1decbfcf1a65e8162235f868368a3"},"observations":[{"completeness":"complete","criterionId":"out","evidenceRef":"fact-out","executionFact":"stdout","kind":"text","origin":{"kind":"independent","runRef":"run1","sourceRef":"fixture","termination":"exited"},"value":"ok"}],"schemaVersion":2}
-```
-
-Digest: `sha256:c23760b6496a44fc6d185165ab7f8015f60b47a15b7a6c78bc8358ddb1bb9d27`.
-
-## Version compatibility (AY-I22)
-
-| Identity                                                         | Supported values                                     | Purpose                                  |
-| ---------------------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------- |
-| Package release                                                  | `0.0.0` (private)                                    | Distribution, not comparison semantics   |
-| Definition schema / domain                                       | 1 / `assay:definition:v1`, 2 / `assay:definition:v2` | Authored contract and digest bytes       |
-| Reference record / domain                                        | 2 / `assay:reference:v2`                             | Expected content identity                |
-| Evidence schema / domain                                         | 2 / `assay:evidence:v2`                              | Observed content identity                |
-| Reference bundle, observation report and technical result schema | 2                                                    | Record shape                             |
-| Public projection schema                                         | 1                                                    | Public disclosure shape                  |
-| Evaluator semantics                                              | `v0.0.3`                                             | Comparison and technical result identity |
-| Decision policy                                                  | `all-required-v1`                                    | Required aggregation                     |
-| Definition revision                                              | Author-selected identifier plus digest               | Exact authored criteria                  |
-
-All digest domains include one LF before canonical JSON. The existing
-`ASSAY_SCHEMA_VERSION` and `ASSAY_DEFINITION_DIGEST_VERSION` constants identify
-the historical schema-1 definition profile, not every record schema.
-The evaluator supports schema-1 literal definitions and schema-2 definitions;
-legacy unsigned evidence, unsupported schemas, policies and evaluator result
-versions are rejected, not silently upgraded. A new result-affecting change
-requires semantics-version review; changing hashed fields or bytes requires a
-new canonical profile. Re-author and reseal explicitly rather than relabeling
-historical bytes.
-
-The supported runtime is Node.js 24+ ESM. The quality matrix exercises Node 24
-on Ubuntu and Windows, including independent offline installed ESM and type
-consumers. No browser, edge, CommonJS or additional runtime compatibility is
-promised by the neutral bundle target. Runtime support requires actual
-independent packed-consumer evidence. The version vectors in
-`tests/consumer/version-vectors.mjs` pin canonical JSON, SHA-256 hashes and
-technical outcomes for evaluator `v0.0.3`, policy `all-required-v1`.
+See [contracts](contracts.md), [evaluation](evaluation.md), and [public projection](projection.md) for operational behavior. No release is authorized by these profiles.

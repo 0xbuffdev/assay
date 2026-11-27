@@ -5,6 +5,7 @@ import {
   collectObservations,
   createAssessmentDefinition,
   createEvidenceBundle,
+  createReferenceRecord,
   type EvidenceBundle,
   evaluate,
   type ObservationCollectionResult,
@@ -15,6 +16,7 @@ import {
   verifyEvidenceBundle,
 } from "../src/index";
 import {
+  createAllDefinition,
   digestA,
   digestB,
   definition as exampleDefinition,
@@ -32,7 +34,7 @@ const outputCriterion = {
   parameters: { expected: { type: "literal", value: "ok" } },
 } as const;
 
-function definition(): AssessmentDefinition<1> {
+function definition(): AssessmentDefinition {
   const original = exampleDefinition();
   return sealDefinition({ ...original, criteria: [outputCriterion] });
 }
@@ -51,7 +53,7 @@ type UnselectedReport = ObservationPortReport & { termination?: never };
 
 function report(overrides: Partial<UnselectedReport> = {}): UnselectedReport {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     definition: referenceOf(definition()),
     artifactDigest: digestA,
     provenance: {
@@ -135,7 +137,7 @@ describe("AY-I03 optional injected observation port", () => {
       expect(serialized).not.toContain("expected");
       expect(serialized).not.toContain("trusted");
       expect(request).toMatchObject({
-        schemaVersion: 2,
+        schemaVersion: 3,
         definition: referenceOf(input),
         artifactDigest: digestA,
         criteria: [{ criterionId: "members", kind: "set", itemType: "string" }],
@@ -162,6 +164,187 @@ describe("AY-I03 optional injected observation port", () => {
     expect(result.receipt?.definition.revisionDigest).toBe(input.revisionDigest);
     expect(result.receipt?.provenance).toMatchObject({ adapterId: "mock-runner", runRef: "run1" });
     expect("trusted" in (result.receipt?.provenance ?? {})).toBe(false);
+  });
+
+  it("requests missing public facts in authored order despite a decisive nested any branch", async () => {
+    const reference = createReferenceRecord({
+      schemaVersion: 3,
+      referenceId: "hidden-reference-canary",
+      kind: "text",
+      value: "hidden-value-canary",
+    });
+    if (!reference.ok) throw new Error("Invalid reference fixture");
+    const created = createAssessmentDefinition({
+      schemaVersion: 3,
+      assessmentId: "composed-collection",
+      revision: "rev1",
+      policyVersion: "composed-required-v1",
+      criteria: [
+        outputCriterion,
+        {
+          ...outputCriterion,
+          id: "advice",
+          mode: "advisory",
+          parameters: { expected: { type: "literal", value: "advisory-value-canary" } },
+        },
+        {
+          ...outputCriterion,
+          id: "alternative",
+          parameters: { expected: { type: "literal", value: "alternative-value-canary" } },
+        },
+        {
+          ...outputCriterion,
+          id: "hidden-leaf-canary",
+          visibility: "restricted",
+          parameters: {
+            expected: {
+              type: "reference",
+              referenceId: reference.value.referenceId,
+              referenceDigest: reference.value.referenceDigest,
+            },
+          },
+        },
+      ],
+      composition: {
+        rootGroupId: "root-canary",
+        groups: [
+          {
+            id: "root-canary",
+            operator: "any",
+            children: [
+              { kind: "criterion", id: "output" },
+              { kind: "group", id: "nested-canary" },
+            ],
+          },
+          {
+            id: "nested-canary",
+            operator: "all",
+            children: [
+              { kind: "criterion", id: "hidden-leaf-canary" },
+              { kind: "criterion", id: "alternative" },
+            ],
+          },
+        ],
+      },
+    });
+    if (!created.ok) throw new Error("Invalid composed definition");
+    const rubric = created.value;
+    const starting = createEvidenceBundle(rubric, {
+      schemaVersion: 3,
+      artifactDigest: digestA,
+      observations: [
+        {
+          criterionId: "output",
+          evidenceRef: "existing",
+          kind: "text",
+          completeness: "complete",
+          value: "ok",
+          origin: { kind: "independent", sourceRef: "fixture" },
+        },
+      ],
+    });
+    if (!starting.ok) throw new Error("Invalid starting evidence");
+    expect(evaluate(rubric, starting.value).outcome).toBe("pass");
+    const returned = report({
+      definition: referenceOf(rubric),
+      observations: [
+        {
+          criterionId: "advice",
+          evidenceRef: "new-advice",
+          kind: "text",
+          completeness: "complete",
+          value: "advisory-value-canary",
+        },
+        {
+          criterionId: "alternative",
+          evidenceRef: "new-alternative",
+          kind: "text",
+          completeness: "complete",
+          value: "alternative-value-canary",
+        },
+      ],
+    });
+    const observe = vi.fn(async (request: ObservationPortRequest) => {
+      expect(request).toEqual({
+        schemaVersion: 3,
+        definition: referenceOf(rubric),
+        artifactDigest: digestA,
+        criteria: [
+          { criterionId: "advice", kind: "text" },
+          { criterionId: "alternative", kind: "text" },
+        ],
+        limits: { maxCapturedBytes: CONTRACT_LIMITS.maxCapturedBytes },
+      });
+      expect(JSON.stringify(request)).not.toContain("canary");
+      expect(JSON.stringify(request)).not.toContain("composition");
+      expect(JSON.stringify(request)).not.toContain("expected");
+      return returned;
+    });
+    const collected = successful(await collectObservations(rubric, starting.value, { observe }));
+    expect(observe).toHaveBeenCalledTimes(1);
+    const origin = {
+      kind: "artifact",
+      artifactDigest: digestA,
+      sourceRef: returned.provenance.adapterId,
+      runRef: returned.provenance.runRef,
+      provenance: returned.provenance,
+    };
+    const expected = sealEvidenceFixture({
+      ...starting.value,
+      observations: [
+        ...starting.value.observations,
+        ...returned.observations.map((fact) => ({ ...fact, origin })),
+      ],
+    });
+    expect(collected.evidence).toEqual(expected);
+    expect(collected.evidence.evidenceDigest).not.toBe(starting.value.evidenceDigest);
+    expect(verifyEvidenceBundle(rubric, collected.evidence).ok).toBe(true);
+    expect(collected.receipt).toEqual({
+      definition: referenceOf(rubric),
+      artifactDigest: digestA,
+      evidenceDigest: expected.evidenceDigest,
+      evidenceRefs: ["new-advice", "new-alternative"],
+      provenance: returned.provenance,
+    });
+    expect(evaluate(rubric, collected.evidence).outcome).toBe("pass");
+  });
+
+  it("rejects obsolete collection inputs and reports without successful resealing", async () => {
+    const rubric = definition();
+    const starting = evidence(rubric);
+    const current = report();
+    expect(parseObservationPortReport(current).ok).toBe(true);
+    const control = successful(await collectObservations(rubric, starting, provider(current)));
+    expect(control.receipt?.evidenceRefs).toEqual(["stdout1"]);
+    expect(evaluate(rubric, control.evidence).outcome).toBe("pass");
+    const diagnostic = [{ path: "$.schemaVersion", code: "UNSUPPORTED_VERSION" }];
+    for (const schemaVersion of [1, 2]) {
+      const obsolete = { ...current, schemaVersion };
+      expect(parseObservationPortReport(obsolete)).toEqual({
+        ok: false,
+        domain: "invalid_evidence",
+        diagnostics: diagnostic,
+      });
+      const observe = vi.fn(async () => obsolete);
+      expect(await collectObservations(rubric, starting, { observe })).toEqual({
+        ok: false,
+        outcome: "invalid_evidence",
+        diagnostics: diagnostic,
+      });
+      expect(observe).toHaveBeenCalledTimes(1);
+      observe.mockClear();
+      expect(
+        await collectObservations({ ...rubric, schemaVersion }, starting, { observe }),
+      ).toEqual({
+        ok: false,
+        outcome: "invalid_definition",
+        diagnostics: diagnostic,
+      });
+      expect(
+        await collectObservations(rubric, { ...starting, schemaVersion }, { observe }),
+      ).toEqual({ ok: false, outcome: "invalid_evidence", diagnostics: diagnostic });
+      expect(observe).not.toHaveBeenCalled();
+    }
   });
 
   it("supports an independently authorized local literal comparison without formal credit", async () => {
@@ -759,11 +942,11 @@ describe("AY-I21 combined observation resource limits", () => {
   ])(
     "revalidates individually valid JSON facts after collection ($label)",
     async ({ overflow }) => {
-      const authored = createAssessmentDefinition({
-        schemaVersion: 2,
+      const authored = createAllDefinition({
+        schemaVersion: 3,
         assessmentId: "combined-budget",
         revision: "rev1",
-        policyVersion: "all-required-v1",
+        policyVersion: "composed-required-v1",
         criteria: ["existing", "acquired"].map((id) => ({
           id,
           mode: "required",
@@ -777,7 +960,7 @@ describe("AY-I21 combined observation resource limits", () => {
       const canary = "PRIVATE_COMBINED_BUDGET_CANARY";
       const chunk = canary.padEnd(CONTRACT_LIMITS.maxStringLength, "x");
       const starting = createEvidenceBundle(rubric, {
-        schemaVersion: 2,
+        schemaVersion: 3,
         observations: [
           {
             criterionId: "existing",
@@ -798,7 +981,7 @@ describe("AY-I21 combined observation resource limits", () => {
       // budget together with the existing nine, before metadata is counted.
       const acquiredValue = [...Array(6).fill(chunk), overflow ? chunk : chunk.slice(0, -1024)];
       const incoming = {
-        schemaVersion: 2,
+        schemaVersion: 3,
         definition: referenceOf(rubric),
         provenance: { ...report().provenance, capturedStdoutBytes: 0 },
         observations: [

@@ -10,10 +10,10 @@ Assay evaluates evidence; it does **not** execute learner code, authenticate a s
 
 ## How it works
 
-1. **Define the requirements.** Author typed criteria for exact or normalized text, numeric values with explicit tolerances and units, sets, booleans, structured JSON, selected execution facts, or manual evidence. Every assessment needs at least one required criterion.
+1. **Define the requirements.** Author typed criteria for exact or normalized text, numeric values with explicit tolerances and units, sets, booleans, structured JSON, selected execution facts, or manual evidence. Every assessment needs at least one required criterion and an explicit bounded composition of `all` and `any` groups.
 2. **Bind the definition to its content.** Use [definition integrity](docs/integrity.md) to create or verify a deterministic, versioned SHA-256 digest. A hash identifies content; it does not authenticate its publisher.
 3. **Supply observations.** Seal bounded, typed evidence with `createEvidenceBundle` or use an [optional injected observation port](docs/observations.md). A provider's claimed provenance is not independent proof of execution.
-4. **Evaluate.** Supply an optional content-bound reference bundle from authorized host storage alongside the definition and evidence. Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). Required findings determine the technical outcome; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
+4. **Evaluate.** Supply an optional content-bound reference bundle from authorized host storage alongside the definition and evidence. Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). The explicit composition determines the technical outcome from required findings; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
 5. **Present only appropriate findings.** The full technical record is for an authorized host. Use the [learner-safe projection](docs/projection.md) to omit restricted findings, evidence references and hidden aggregate outcomes while exposing only allowlisted public feedback. The host must still decide who is allowed to see any result.
 
 For serialized records, use `decodeSerializedRecord` before contract validation.
@@ -32,8 +32,8 @@ Assay separates pure evaluation from optional evidence acquisition and public-re
 flowchart TD
     subgraph Host["Host application"]
         Definition["Authorized assessment definition"]
-        Evidence["Content-bound schema-2 evidence"]
-        References["Authorized optional schema-2 reference bundle"]
+        Evidence["Content-bound schema-3 evidence"]
+        References["Authorized optional schema-3 reference bundle"]
         Provider["Optional host-supplied observation provider"]
         Record["Authorized technical record"]
         Authorization["Host access and disclosure decision"]
@@ -75,27 +75,17 @@ flowchart TD
     Digest -->|No| InvalidDefinition
     Digest -->|Yes| Supplied{"Reference bundle supplied?"}
     Supplied -->|No| EvidenceCheck{"Evidence shape, digest and origin valid?"}
-    Supplied -->|Yes| Schema{"Definition schema 2?"}
-    Schema -->|"No: schema 1"| InvalidDefinition
-    Schema -->|Yes| ReferenceCheck{"Bundle and reference bindings valid?"}
+    Supplied -->|Yes| ReferenceCheck{"Bundle and reference bindings valid?"}
     ReferenceCheck -->|No| InvalidReference["invalid_reference"]
     ReferenceCheck -->|Yes| EvidenceCheck
     EvidenceCheck -->|No| InvalidEvidence["invalid_evidence"]
     EvidenceCheck -->|Yes| Compare["Evaluate each criterion in authored order"]
     Compare --> Findings["Criterion findings: pass, fail, inconclusive or error"]
-    Findings --> Required["Aggregate required findings only"]
-    Required --> Outcome{"Required outcomes"}
-    Outcome -->|"Any fail"| Fail["fail"]
-    Outcome -->|"Otherwise any error"| Error["evaluation_error"]
-    Outcome -->|"Otherwise any unresolved"| Inconclusive["inconclusive"]
-    Outcome -->|"All pass"| Pass["pass"]
-    Fail --> Result["Schema-2 result with evidence and artifact lineage"]
-    Error --> Result
-    Inconclusive --> Result
-    Pass --> Result
+    Findings --> Composition["Fold the bounded all/any tree over required findings"]
+    Composition --> Result["Schema-3 result with evidence and artifact lineage"]
 ```
 
-The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch; supplying a bundle for a schema-1 definition returns `invalid_definition`. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path: the evidence digest and origin scope are verified before comparison. Missing, truncated or explicitly interrupted execution evidence is inconclusive at the criterion level; a definite required failure still determines the aggregate. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
+The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path: the evidence digest and origin scope are verified before comparison. Missing, truncated or explicitly interrupted execution evidence is inconclusive at the criterion level; an explicitly composed group can have a decisive outcome despite unresolved alternatives. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
 
 ### Optional observation acquisition
 
@@ -148,7 +138,7 @@ flowchart TD
 
 Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence and artifact digests, evidence references, raw reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
 
-See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; schema-2 objective comparators and direct typed execution facts are implemented; selected execution fact acquisition remains ticket-gated.
+See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; schema-3 objective comparators and direct typed execution facts are implemented; selected execution fact acquisition and bounded criterion composition are supported. Only generation 3 and `composed-required-v1` are admitted; earlier unreleased contracts are rejected.
 
 ## Develop from source
 

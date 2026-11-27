@@ -12,16 +12,16 @@ A successful call returns:
 {
   ok: true,
   value: {
-    schemaVersion: 1,
+    schemaVersion: 3,
     outcome: "withheld", // any restricted criteria, even advisory
     findings: [{ criterionId: "public-output", outcome: "pass", reason: "match" }]
   }
 }
 ```
 
-- For **all-public** definitions, the `outcome` is the technical conjunction of all required criterion findings: `pass`, `fail`, `inconclusive`, or `evaluation_error`. Public findings retain **only** their criterion IDs, outcomes and finite mapped public reasons.
+- For **all-public** definitions, the `outcome` is the technical outcome of the explicit required group tree: `pass`, `fail`, `inconclusive`, or `evaluation_error`. Public findings retain **only** their criterion IDs, outcomes and finite mapped public reasons.
 - If the definition contains **any restricted criterion**, the overall outcome is **always `withheld`**, regardless of hidden passes, failures, missing evidence, errors, advisory warnings or the number of hidden checks. Visible public findings remain in their authored order. The projection does not report restricted counts.
-- **Never returned:** restricted criterion IDs, hidden assertion/reference IDs, evidence references (including public evidence references), raw technical reason codes, evaluator metadata, full definition/revision, evidence and artifact digests, policy versions, technical warnings, hidden aggregate outcome, submitted values or diagnostic paths.
+- **Never returned:** restricted criterion IDs, hidden assertion/reference IDs, evidence references (including public evidence references), raw technical reason codes, evaluator metadata, full definition/revision, evidence and artifact digests, policy versions, composition and group IDs, technical warnings, hidden aggregate outcome, submitted values or diagnostic paths.
 - Invalid inputs always return the same frozen, value-free error: `{ ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" }`. The output does not reveal which hidden criterion or field was invalid.
 - The projection only returns schema-valid immutable objects. All public result fields are explicitly constructed from the validated definition and technical findings; no unknown input fields are carried through.
 
@@ -39,9 +39,7 @@ A successful call returns:
 
 The mapping is exhaustive over the supported technical taxonomy. It is applied
 only to public findings after validation of the full record, never to hidden
-findings. The unreleased public projection retains schema 1 with a mandatory
-`reason` field; evaluator semantics, technical-result schema and canonical
-digest profiles are unchanged.
+findings. The current projection uses schema 3 with the mandatory `reason` field and no group structure.
 
 **Example:**
 
@@ -54,10 +52,16 @@ import {
 } from "@0xbuff/assay";
 
 const drafted = createAssessmentDefinition({
-  schemaVersion: 1,
+  schemaVersion: 3,
   assessmentId: "example",
   revision: "rev1",
-  policyVersion: "all-required-v1",
+  policyVersion: "composed-required-v1",
+  composition: {
+    rootGroupId: "root",
+    groups: [
+      { id: "root", operator: "all", children: [{ kind: "criterion", id: "public-output" }] },
+    ],
+  },
   criteria: [
     {
       id: "public-output",
@@ -72,7 +76,7 @@ if (!drafted.ok) throw new Error("Definition invalid");
 const definition = drafted.value;
 
 const prepared = createEvidenceBundle(definition, {
-  schemaVersion: 2,
+  schemaVersion: 3,
   observations: [
     {
       criterionId: "public-output",
@@ -94,7 +98,7 @@ const response = projectPublicResult(definition, technical);
 
 1. The definition **must** have a verifiable, supported schema canonical content digest. The function uses `verifyAssessmentDefinition` from AY-I06 before reading any findings. An attacker cannot change a restricted criterion to public while keeping the old digest.
 2. The complete result must pass `parseEvaluationResult` bounded shape checks, match the **exact** assessment ID, revision, digest and policy version, and have exactly one finding per criterion in its original order. Every finding must agree with the supported evaluator identity/version and a closed outcome/reason pair. Its reason must be compatible with the criterion kind, reference declaration and any known numeric tolerance bound; a literal overflow cannot claim match or mismatch, and a bound that cannot overflow cannot claim numeric overflow. Unknown reference values are not inferred; an absent observation has no evidence reference, other findings have exactly one, and evidence references cannot repeat across findings. The shared aggregation and advisory warning calculation must agree with the complete result. The result carries a mandatory evidence digest and optional artifact digest; projection checks their shape but has no evidence input with which to authenticate them. The host must retain and verify the exact evidence.
-3. The full technical aggregate must match the required-finding conjunction under Assay's existing fail-closed precedence. Forged `pass`, omitted/extra/reordered findings, mismatched lineage or unsupported fields are rejected with **one opaque error**.
+3. The full technical aggregate must match the explicit required group tree under the shared composition semantics. Forged `pass`, omitted/extra/reordered findings, mismatched lineage or unsupported fields are rejected with **one opaque error**.
 4. For public criteria, the function constructs **only** `criterionId`, technical `outcome` and the mapped public `reason`; for restricted ones, it copies **nothing**. The full aggregate is never copied directly, and hidden/advisory warning flags are dropped.
 5. The function has no I/O, runtime dependencies, side-effectful callbacks, secret lookup or external execution. Inputs are copied/validated under the existing bounded, getter-safe contract validators.
 

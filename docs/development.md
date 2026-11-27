@@ -59,12 +59,11 @@ canonical domains (authored in `scripts/version-metadata.mjs`). The generated
 build verification reject stale generated metadata without rewriting it.
 The package manifest remains the public package-version authority, while the
 existing evaluator export and technical result identify evaluator semantics.
-See [version compatibility](integrity.md#version-compatibility-ay-i22).
+See [version compatibility](integrity.md#version-contract).
 
 ## Conformance and adversarial verification (AY-I24)
 
-The conformance suite targets evaluator semantics `v0.0.3`, schema-1 and
-schema-2 definition profiles, and schema-2 reference/evidence profiles.
+The conformance suite targets evaluator semantics `v0.0.4` and the sole generation-3 canonical profiles.
 It uses only synthetic records and the public source entry point. Node's
 `crypto` and an independent property-list JSON serializer check generated
 canonical hashes; fixed authored byte/hash vectors in the existing integrity
@@ -115,7 +114,7 @@ not a proof of worst-case complexity, a memory ceiling or host isolation.
 Preserve the actual CI run and reviewed-head/tree identity when reporting
 acceptance, including any failed or unexecuted commands. Source review does
 not establish execution evidence, and the resource samples do not authorize
-publication. AY-I08 and AY-I23 remain conditional and excluded.
+publication. AY-I08 remains blocked until AY-I23 acceptance; AY-I23 replaces the old contracts and adds the composition suite.
 
 ## Standalone engineering assessment integration (AY-I25)
 

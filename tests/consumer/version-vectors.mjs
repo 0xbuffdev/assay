@@ -3,14 +3,15 @@ import { createHash } from "node:crypto";
 import * as assay from "@0xbuff/assay";
 
 // Authored bytes and fixed digests are independent of the source canonicalizer.
-// Semantics v0.0.3, policy all-required-v1. All fixtures are synthetic.
-const definitionV1 =
-  '{"assessmentId":"vector","criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":1}';
-const definitionV2 =
-  '{"assessmentId":"execution","criteria":[{"executionFact":"stdout","id":"out","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"ok"}},"visibility":"public"}],"policyVersion":"all-required-v1","revision":"rev1","schemaVersion":2}';
-const referenceV2 = '{"kind":"text","referenceId":"secret","schemaVersion":2,"value":"café\\n"}';
-const evidenceV2 =
-  '{"definition":{"assessmentId":"execution","revision":"rev1","revisionDigest":"sha256:198b7fa36aafa00a8bfc98768d81673d38d1decbfcf1a65e8162235f868368a3"},"observations":[{"completeness":"complete","criterionId":"out","evidenceRef":"fact-out","executionFact":"stdout","kind":"text","origin":{"kind":"independent","runRef":"run1","sourceRef":"fixture","termination":"exited"},"value":"ok"}],"schemaVersion":2}';
+// Semantics v0.0.4, policy composed-required-v1. All fixtures are synthetic.
+const literalVector =
+  '{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}';
+const executionVector =
+  '{"assessmentId":"execution","composition":{"groups":[{"children":[{"id":"out","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"executionFact":"stdout","id":"out","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"ok"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}';
+const referenceVector =
+  '{"kind":"text","referenceId":"secret","schemaVersion":3,"value":"café\\n"}';
+const evidenceVector =
+  '{"definition":{"assessmentId":"execution","revision":"rev1","revisionDigest":"sha256:4a14c1d05f85cfb9e78a1f0779702dc0cef28a1d084c0e475b21963b6764dc78"},"observations":[{"completeness":"complete","criterionId":"out","evidenceRef":"fact-out","executionFact":"stdout","kind":"text","origin":{"kind":"independent","runRef":"run1","sourceRef":"fixture","termination":"exited"},"value":"ok"}],"schemaVersion":3}';
 
 function independent(domain, bytes, expected) {
   const hash = createHash("sha256").update(`${domain}\n${bytes}`, "utf8").digest("hex");
@@ -28,75 +29,74 @@ function unsupported(result) {
   assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === "UNSUPPORTED_VERSION"));
 }
 
-assert.equal(assay.ASSAY_EVALUATOR_VERSION, "v0.0.3");
-assert.equal(assay.ASSAY_SCHEMA_VERSION, 1);
-assert.equal(assay.ASSAY_DEFINITION_DIGEST_VERSION, "v1");
+assert.equal(assay.ASSAY_EVALUATOR_VERSION, "v0.0.4");
+assert.equal(assay.ASSAY_SCHEMA_VERSION, 3);
 
-const v1Digest = independent(
-  "assay:definition:v1",
-  definitionV1,
-  "sha256:7be081910e17919c0b08bcff0543d80c7b8c540541b58bcb70630f5d561cfc2f",
+const literalDigest = independent(
+  "assay:definition:v3",
+  literalVector,
+  "sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798",
 );
-const v1 = unwrap(assay.createAssessmentDefinition(JSON.parse(definitionV1)));
-assert.equal(v1.revisionDigest, v1Digest);
-const v2Digest = independent(
-  "assay:definition:v2",
-  definitionV2,
-  "sha256:198b7fa36aafa00a8bfc98768d81673d38d1decbfcf1a65e8162235f868368a3",
+const literal = unwrap(assay.createAssessmentDefinition(JSON.parse(literalVector)));
+assert.equal(literal.revisionDigest, literalDigest);
+const executionDigest = independent(
+  "assay:definition:v3",
+  executionVector,
+  "sha256:4a14c1d05f85cfb9e78a1f0779702dc0cef28a1d084c0e475b21963b6764dc78",
 );
-const v2 = unwrap(assay.createAssessmentDefinition(JSON.parse(definitionV2)));
-assert.equal(v2.revisionDigest, v2Digest);
+const execution = unwrap(assay.createAssessmentDefinition(JSON.parse(executionVector)));
+assert.equal(execution.revisionDigest, executionDigest);
 const referenceDigest = independent(
-  "assay:reference:v2",
-  referenceV2,
-  "sha256:b76df28194a4dc2b9afda31ff4dd8061e358f17bfd2a41c7ce5b7ad80046ecf5",
+  "assay:reference:v3",
+  referenceVector,
+  "sha256:e28e007acf7ef464608360a68f53c40b2e949954d2dedff20448e68f52d0d18f",
 );
-const reference = unwrap(assay.createReferenceRecord(JSON.parse(referenceV2)));
+const reference = unwrap(assay.createReferenceRecord(JSON.parse(referenceVector)));
 assert.equal(reference.referenceDigest, referenceDigest);
 const evidenceDigest = independent(
-  "assay:evidence:v2",
-  evidenceV2,
-  "sha256:c23760b6496a44fc6d185165ab7f8015f60b47a15b7a6c78bc8358ddb1bb9d27",
+  "assay:evidence:v3",
+  evidenceVector,
+  "sha256:16625d5433f8726c15a707050e098eede00a82f99d0403f26480e5cac9535591",
 );
-const content = JSON.parse(evidenceV2);
+const content = JSON.parse(evidenceVector);
 const evidence = unwrap(
-  assay.createEvidenceBundle(v2, { schemaVersion: 2, observations: content.observations }),
+  assay.createEvidenceBundle(execution, { schemaVersion: 3, observations: content.observations }),
 );
 assert.equal(evidence.evidenceDigest, evidenceDigest);
 // Compare the complete JSON data contract, not the prototype of the sealed wrapper.
 const expectedEvidence = { ...content, evidenceDigest };
 assert.deepEqual(JSON.parse(JSON.stringify(evidence)), expectedEvidence);
-const verified = unwrap(assay.verifyEvidenceBundle(v2, evidence));
+const verified = unwrap(assay.verifyEvidenceBundle(execution, evidence));
 assert.deepEqual(JSON.parse(JSON.stringify(verified)), expectedEvidence);
 assert.equal(Object.getPrototypeOf(verified), null);
-const result = assay.evaluate(v2, evidence);
+const result = assay.evaluate(execution, evidence);
 assert.equal(result.outcome, "pass");
-assert.equal(result.schemaVersion, 2);
-assert.equal(result.policyVersion, "all-required-v1");
-assert.deepEqual(result.evaluator, { id: "assay", version: "v0.0.3" });
+assert.equal(result.schemaVersion, 3);
+assert.equal(result.policyVersion, "composed-required-v1");
+assert.deepEqual(result.evaluator, { id: "assay", version: "v0.0.4" });
 assert.equal(result.findings[0].reasonCode, "MATCH");
-assert.equal(result.findings[0].evaluatorVersion, "v0.0.3");
+assert.equal(result.findings[0].evaluatorVersion, "v0.0.4");
 assert.equal(result.evidenceDigest, evidenceDigest);
-assert.equal(result.definition.revisionDigest, v2Digest);
-assert.deepEqual(assay.evaluate(v2, evidence), result);
+assert.equal(result.definition.revisionDigest, executionDigest);
+assert.deepEqual(assay.evaluate(execution, evidence), result);
 assert.equal(assay.parseEvaluationResult(result).ok, true);
 
-for (const schemaVersion of [0, 3, "2"]) {
-  unsupported(assay.createAssessmentDefinition({ ...JSON.parse(definitionV1), schemaVersion }));
+for (const schemaVersion of [0, 1, 2, 4, "3"]) {
+  unsupported(assay.createAssessmentDefinition({ ...JSON.parse(literalVector), schemaVersion }));
 }
-for (const schemaVersion of [1, 3, "2"]) {
-  unsupported(assay.createReferenceRecord({ ...JSON.parse(referenceV2), schemaVersion }));
+for (const schemaVersion of [1, 2, 4, "3"]) {
+  unsupported(assay.createReferenceRecord({ ...JSON.parse(referenceVector), schemaVersion }));
   unsupported(assay.parseEvidenceBundle({ ...evidence, schemaVersion }));
   unsupported(assay.parseEvaluationResult({ ...result, schemaVersion }));
   unsupported(
-    assay.verifyReferenceBundle(v2, {
+    assay.verifyReferenceBundle(execution, {
       schemaVersion,
       definition: content.definition,
       references: [],
     }),
   );
 }
-assert.equal(assay.verifyAssessmentDefinition({ ...v1, schemaVersion: 2 }).ok, false);
+assert.equal(assay.verifyAssessmentDefinition({ ...literal, schemaVersion: 2 }).ok, false);
 assert.equal(
   assay.parseEvaluationResult({ ...result, evaluator: { id: "assay", version: "v0.0.2" } }).ok,
   false,
@@ -109,9 +109,88 @@ assert.equal(
   false,
 );
 assert.equal(
-  assay.createAssessmentDefinition({ ...JSON.parse(definitionV2), policyVersion: "future" }).ok,
+  assay.createAssessmentDefinition({ ...JSON.parse(executionVector), policyVersion: "future" }).ok,
   false,
 );
+// A current, otherwise-valid report must be accepted; only its version is mutated.
+const report = {
+  schemaVersion: 3,
+  definition: content.definition,
+  termination: "exited",
+  provenance: {
+    adapterId: "fixture",
+    adapterVersion: "v1",
+    runRef: "run1",
+    toolchainId: "node",
+    toolchainVersion: "v24",
+    capturedStdoutBytes: 2,
+    capturedStderrBytes: 0,
+    stdoutTruncated: false,
+    stderrTruncated: false,
+  },
+  observations: [
+    {
+      criterionId: "out",
+      evidenceRef: "collected-out",
+      kind: "text",
+      executionFact: "stdout",
+      completeness: "complete",
+      value: "ok",
+    },
+  ],
+};
+assert.equal(assay.parseObservationPortReport(report).ok, true);
+for (const schemaVersion of [1, 2, 4, "3"]) {
+  unsupported(assay.parseObservationPortReport({ ...report, schemaVersion }));
+}
+const starting = unwrap(
+  assay.createEvidenceBundle(execution, { schemaVersion: 3, observations: [] }),
+);
+const collected = await assay.collectObservations(execution, starting, {
+  observe: async () => report,
+});
+assert.equal(collected.ok, true);
+assert.equal(assay.evaluate(execution, collected.evidence).outcome, "pass");
+assert.equal(collected.receipt.evidenceDigest, collected.evidence.evidenceDigest);
+for (const schemaVersion of [1, 2]) {
+  let calls = 0;
+  const port = {
+    async observe() {
+      calls++;
+      return { ...report, schemaVersion };
+    },
+  };
+  const diagnostic = [{ path: "$.schemaVersion", code: "UNSUPPORTED_VERSION" }];
+  assert.deepEqual(await assay.collectObservations(execution, starting, port), {
+    ok: false,
+    outcome: "invalid_evidence",
+    diagnostics: diagnostic,
+  });
+  assert.equal(calls, 1);
+  assert.deepEqual(
+    await assay.collectObservations({ ...execution, schemaVersion }, starting, port),
+    { ok: false, outcome: "invalid_definition", diagnostics: diagnostic },
+  );
+  assert.deepEqual(
+    await assay.collectObservations(execution, { ...starting, schemaVersion }, port),
+    { ok: false, outcome: "invalid_evidence", diagnostics: diagnostic },
+  );
+  assert.equal(calls, 1);
+}
+assert.equal(assay.projectPublicResult(execution, result).ok, true);
+const retiredPolicy = { ...result, policyVersion: "all-required-v1" };
+assert.equal(
+  assay.createAssessmentDefinition({
+    ...JSON.parse(executionVector),
+    policyVersion: retiredPolicy.policyVersion,
+  }).ok,
+  false,
+);
+assert.equal(assay.parseEvaluationResult(retiredPolicy).ok, false);
+assert.deepEqual(assay.projectPublicResult(execution, retiredPolicy), {
+  ok: false,
+  reasonCode: "PUBLIC_PROJECTION_REJECTED",
+});
 console.log(
   "AY-I22 independent canonical profiles, version rejection and exact semantics verified",
 );

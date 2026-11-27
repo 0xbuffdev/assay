@@ -1,6 +1,6 @@
 import type { AssessmentDefinition, AssessmentDefinitionDraft } from "../contracts/definition";
 import type { ValidationResult } from "../contracts/validation";
-import { DEFINITION_DOMAINS } from "../contracts/version";
+import { DEFINITION_DOMAIN } from "../contracts/version";
 import {
   parseAssessmentDefinition,
   parseAssessmentDefinitionDraft,
@@ -8,19 +8,11 @@ import {
 import { canonical } from "./canonical";
 import { sha256 } from "./sha256";
 
-/**
- * Persistent schema-to-digest binding: schemaVersion: 1 ALWAYS uses digest v1.
- * Any change to the digest algorithm or canonical bytes requires a NEW schema
- * version. Never reinterpret an existing schema-1 record using a new profile.
- * This content identity does not authenticate a publisher or evidence origin.
- * See docs/integrity.md for the normative byte-level profile.
- */
-/** Historical schema-1 profile; schema-2 definitions use v2. */
-export const ASSAY_DEFINITION_DIGEST_VERSION = "v1" as const;
+/** Current-generation definition content identity; never reinterpret old bytes. */
 const encoder = new TextEncoder();
 
 function hashDraft(draft: AssessmentDefinitionDraft): string {
-  return sha256(encoder.encode(DEFINITION_DOMAINS[draft.schemaVersion] + canonical(draft)));
+  return sha256(encoder.encode(DEFINITION_DOMAIN + canonical(draft)));
 }
 
 /** Calculate a versioned content hash from a validated unsigned definition. */

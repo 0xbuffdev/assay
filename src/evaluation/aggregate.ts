@@ -1,22 +1,38 @@
 import type { AssessmentDefinition } from "../contracts/definition";
 import type { FindingOutcome, TechnicalOutcome, WarningCode } from "../contracts/result";
 
+const ALL_PRECEDENCE: readonly TechnicalOutcome[] = [
+  "fail",
+  "evaluation_error",
+  "inconclusive",
+  "pass",
+];
+const ANY_PRECEDENCE: readonly TechnicalOutcome[] = [
+  "pass",
+  "evaluation_error",
+  "inconclusive",
+  "fail",
+];
+
+/** Aggregate only a validated, bounded composition; no evidence is skipped. */
 export function aggregateRequired(
   definition: AssessmentDefinition,
   comparisons: ReadonlyMap<string, Readonly<{ outcome: FindingOutcome }>>,
 ): TechnicalOutcome {
-  // Validated definitions always have the supported policy and a required criterion.
-  if (definition.policyVersion !== "all-required-v1") return "evaluation_error";
-  const mandatory = definition.criteria
-    .filter((criterion) => criterion.mode === "required")
-    .map((criterion) => comparisons.get(criterion.id)?.outcome);
-  // Conjunction: one definite required failure is conclusive even if other
-  // required observations are missing. Advisory outcomes cannot compensate.
-  if (mandatory.length === 0) return "evaluation_error";
-  if (mandatory.includes("fail")) return "fail";
-  if (mandatory.includes("error")) return "evaluation_error";
-  if (mandatory.some((outcome) => outcome !== "pass")) return "inconclusive";
-  return "pass";
+  const groups = new Map(definition.composition.groups.map((group) => [group.id, group]));
+  function visit(id: string): TechnicalOutcome {
+    const group = groups.get(id);
+    if (!group) return "evaluation_error";
+    const order = group.operator === "all" ? ALL_PRECEDENCE : ANY_PRECEDENCE;
+    const outcomes = group.children.map((child): TechnicalOutcome => {
+      if (child.kind === "group") return visit(child.id);
+      const outcome = comparisons.get(child.id)?.outcome;
+      if (outcome === "error") return "evaluation_error";
+      return outcome ?? "inconclusive";
+    });
+    return order.find((outcome) => outcomes.includes(outcome)) ?? "evaluation_error";
+  }
+  return visit(definition.composition.rootGroupId);
 }
 
 /** Advisory uncertainty is reported separately and never changes the required verdict. */

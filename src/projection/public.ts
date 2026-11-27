@@ -1,5 +1,5 @@
 import { ASSAY_SCHEMA_VERSION } from "../contracts/common";
-import type { Criterion, DefinitionSchemaVersion } from "../contracts/definition";
+import type { Criterion } from "../contracts/definition";
 import type {
   PublicCriterionFinding,
   PublicProjectionResponse,
@@ -49,16 +49,12 @@ function numericOverflow(
 
 // Check facts about the record that are knowable without replaying evidence.
 // The current evaluator emits one evidence ref per observed criterion.
-function coherentFinding(
-  criterion: Criterion,
-  finding: CriterionFinding,
-  schemaVersion: DefinitionSchemaVersion,
-): boolean {
+function coherentFinding(criterion: Criterion, finding: CriterionFinding): boolean {
   if (finding.reasonCode === "EVIDENCE_MISSING") return finding.evidenceRefs.length === 0;
   if (finding.evidenceRefs.length !== 1) return false;
 
   const expected = "expected" in criterion.parameters ? criterion.parameters.expected : undefined;
-  const comparable = expected !== undefined && (expected.type === "literal" || schemaVersion === 2);
+  const comparable = expected !== undefined;
   switch (finding.reasonCode) {
     case "MATCH":
     case "VALUE_MISMATCH":
@@ -132,7 +128,7 @@ export function projectPublicResult(
       finding.criterionId !== criterion.id ||
       finding.evaluatorId !== result.evaluator.id ||
       finding.evaluatorVersion !== result.evaluator.version ||
-      !coherentFinding(criterion, finding, definition.schemaVersion)
+      !coherentFinding(criterion, finding)
     ) {
       return REJECTED;
     }

@@ -7,6 +7,7 @@ import type {
   SetScalar,
 } from "./common";
 import type { DefinitionReference } from "./definition";
+import type { SCHEMA_VERSION } from "./version";
 
 export type ObservationBase = Readonly<{
   criterionId: string;
@@ -91,7 +92,7 @@ export type Observation =
   | ExecutionObservation;
 
 export interface EvidenceBundleDraft {
-  readonly schemaVersion: 2;
+  readonly schemaVersion: typeof SCHEMA_VERSION;
   readonly artifactDigest?: string;
   readonly observations: readonly Observation[];
 }

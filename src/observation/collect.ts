@@ -11,6 +11,7 @@ import type {
   ObservationPortRequest,
 } from "../contracts/observation";
 import type { DiagnosticCode } from "../contracts/validation";
+import { SCHEMA_VERSION } from "../contracts/version";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { createEvidenceBundle, verifyEvidenceForDefinition } from "../integrity/evidence";
 import { validateEmptyReportOrigin } from "../validation/evidence";
@@ -169,7 +170,7 @@ export async function collectObservations<S extends ObservationAbortSignal>(
   }
 
   const request: ObservationPortRequest = Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: SCHEMA_VERSION,
     definition: Object.freeze({
       assessmentId: definition.assessmentId,
       revision: definition.revision,
@@ -243,7 +244,7 @@ export async function collectObservations<S extends ObservationAbortSignal>(
 
   if (signal?.aborted) return acquisitionFailure("OBSERVATION_CANCELLED");
   const parsedCombined = createEvidenceBundle(definition, {
-    schemaVersion: 2,
+    schemaVersion: SCHEMA_VERSION,
     ...(report.artifactDigest ? { artifactDigest: report.artifactDigest } : {}),
     observations: [...evidence.observations, ...returned],
   });

@@ -18,11 +18,13 @@ export { ASSAY_SCHEMA_VERSION, CONTRACT_LIMITS } from "./contracts/common";
 export type {
   AssessmentDefinition,
   AssessmentDefinitionDraft,
+  CompositionChild,
   Criterion,
   CriterionBase,
+  CriterionComposition,
+  CriterionGroup,
   CriterionMode,
   DefinitionReference,
-  DefinitionSchemaVersion,
   Expected,
   PolicyVersion,
   ReferenceVisibility,
@@ -77,7 +79,6 @@ export type {
 } from "./contracts/validation";
 export { evaluate } from "./evaluation/evaluate";
 export {
-  ASSAY_DEFINITION_DIGEST_VERSION,
   computeDefinitionDigest,
   createAssessmentDefinition,
   verifyAssessmentDefinition,

@@ -6,6 +6,7 @@ import {
   type EvaluationFailure,
   type EvaluationResponse,
 } from "../contracts/result";
+import { SCHEMA_VERSION } from "../contracts/version";
 import { verifyAssessmentDefinition } from "../integrity/definition";
 import { verifyEvidenceForDefinition } from "../integrity/evidence";
 import { verifyReferencesForDefinition } from "../integrity/reference";
@@ -100,7 +101,7 @@ export function evaluate(
   }
 
   return Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: SCHEMA_VERSION,
     evidenceDigest: evidence.evidenceDigest,
     ...(evidence.artifactDigest === undefined ? {} : { artifactDigest: evidence.artifactDigest }),
     outcome: aggregateRequired(definition, comparisons),

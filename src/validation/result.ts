@@ -7,6 +7,7 @@ import {
   type FindingOutcome,
 } from "../contracts/result";
 import type { ValidationResult } from "../contracts/validation";
+import { SCHEMA_VERSION } from "../contracts/version";
 import { choice, definitionRef, digest, finish, identifier, list, object, unique } from "./shared";
 
 /** Validate a technical finding record without granting authority to its claim. */
@@ -41,13 +42,13 @@ export function parseEvaluationResult(input: unknown): ValidationResult<Evaluati
       )
     )
       return;
-    if (data.schemaVersion !== 2) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
+    if (data.schemaVersion !== SCHEMA_VERSION) issues.add("$.schemaVersion", "UNSUPPORTED_VERSION");
     choice(data.outcome, ["pass", "fail", "inconclusive", "evaluation_error"], "$.outcome", issues);
     definitionRef(data.definition, "$.definition", issues);
     digest(data.evidenceDigest, "$.evidenceDigest", issues);
     if (Object.hasOwn(data, "artifactDigest"))
       digest(data.artifactDigest, "$.artifactDigest", issues);
-    choice(data.policyVersion, ["all-required-v1"], "$.policyVersion", issues);
+    choice(data.policyVersion, ["composed-required-v1"], "$.policyVersion", issues);
     if (object(data.evaluator, "$.evaluator", ["id", "version"], ["id", "version"], issues)) {
       choice(data.evaluator.id, [ASSAY_EVALUATOR_ID], "$.evaluator.id", issues);
       choice(data.evaluator.version, [ASSAY_EVALUATOR_VERSION], "$.evaluator.version", issues);

@@ -10,12 +10,12 @@ import {
 } from "../src/index";
 import { referenceOf, sealDefinition, sealEvidenceFixture } from "./fixtures/contracts";
 
-function definition(unit?: string): AssessmentDefinition<1> {
+function definition(unit?: string): AssessmentDefinition {
   return sealDefinition({
-    schemaVersion: 1,
+    schemaVersion: 3,
     assessmentId: "unit-integrity",
     revision: "rev1",
-    policyVersion: "all-required-v1",
+    policyVersion: "composed-required-v1",
     criteria: [
       {
         id: "distance",
@@ -34,7 +34,7 @@ function definition(unit?: string): AssessmentDefinition<1> {
 
 function evidence(unit?: string, rubric = definition(unit)): EvidenceBundle {
   return sealEvidenceFixture({
-    schemaVersion: 2,
+    schemaVersion: 3,
     definition: referenceOf(rubric),
     observations: [
       {
@@ -115,7 +115,7 @@ describe("AY-I05 numeric evidence unit integrity", () => {
       observe: async (request) => {
         expect(request.criteria).toEqual([{ criterionId: "distance", kind: "number", unit: "m" }]);
         return {
-          schemaVersion: 2,
+          schemaVersion: 3,
           definition: request.definition,
           provenance: {
             adapterId: "simulated",
