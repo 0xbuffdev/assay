@@ -2,14 +2,13 @@ import { describe, expect, it } from "vitest";
 import { aggregateRequired } from "../src/evaluation/aggregate";
 import {
   type AssessmentDefinition,
-  createAssessmentDefinition,
   createEvidenceBundle,
   evaluate,
   type FindingOutcome,
   parseEvaluationResult,
   projectPublicResult,
 } from "../src/index";
-import { definition } from "./fixtures/contracts";
+import { authorAll, createAllDefinition, definition } from "./fixtures/contracts";
 
 const outcomes = ["pass", "fail", "inconclusive", "error"] as const;
 const expected = [
@@ -20,14 +19,14 @@ const expected = [
 ] as const;
 
 const base = definition();
-const rubric: AssessmentDefinition = {
+const rubric: AssessmentDefinition = authorAll({
   ...base,
   criteria: [
     { ...base.criteria[0], id: "first", mode: "required" },
     { ...base.criteria[0], id: "second", mode: "required" },
     { ...base.criteria[0], id: "advisory", mode: "advisory" },
   ],
-};
+});
 
 describe("shared required aggregation", () => {
   it("preserves the full required precedence table regardless of advisory outcome", () => {
@@ -88,16 +87,16 @@ describe("AY-I16 evaluator and projection policy agreement", () => {
             input(second, "second", "required"),
             input(advisory, "advisory", "advisory"),
           ];
-          const created = createAssessmentDefinition({
-            schemaVersion: 1,
+          const created = createAllDefinition({
+            schemaVersion: 3,
             assessmentId: "truth-table",
             revision: "rev1",
-            policyVersion: "all-required-v1",
+            policyVersion: "composed-required-v1",
             criteria: entries.map((entry) => entry.criterion),
           });
           if (!created.ok) throw new Error("Invalid truth table definition");
           const prepared = createEvidenceBundle(created.value, {
-            schemaVersion: 2,
+            schemaVersion: 3,
             observations: entries.map((entry) => entry.observation),
           });
           if (!prepared.ok) throw new Error("Invalid truth table evidence");
