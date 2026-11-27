@@ -17,6 +17,7 @@ import {
   type ReferenceBundle,
   projectPublicResult,
   type PublicProjectionResponse,
+  type PublicReason,
   type PublicTechnicalResult,
   type AssessmentDefinitionDraft,
   verifyAssessmentDefinition,
@@ -103,8 +104,13 @@ if (projected.ok) {
   const publicTechnical: PublicTechnicalResult = projected.value;
   const outcome: "pass" | "fail" | "inconclusive" | "evaluation_error" | "withheld" =
     publicTechnical.outcome;
+  const feedback: PublicReason | undefined = publicTechnical.findings[0]?.reason;
+  void feedback;
   void outcome;
 }
+// @ts-expect-error raw technical reasons cannot be used as public reasons
+const invalidFeedback: PublicReason = "MATCH";
+void invalidFeedback;
 // @ts-expect-error a public projection never exposes raw evidence references
 const cannotExposeEvidence: PublicTechnicalResult["findings"][number]["evidenceRefs"] = [];
 // @ts-expect-error a public technical view never exposes private criterion reason codes

@@ -3,7 +3,7 @@ import type { FindingOutcome } from "./result";
 
 /**
  * A deliberately minimal learner-facing view. Public per-criterion outcomes
- * never carry evidence refs, expected values, evaluator messages or reasons.
+ * never carry evidence refs, expected values, evaluator messages or raw reasons.
  *
  * "withheld" means no overall technical verdict is published when the
  * underlying definition contains any restricted criterion, even an advisory.
@@ -16,9 +16,20 @@ export type PublicTechnicalOutcome =
   | "evaluation_error"
   | "withheld";
 
+/** Finite public feedback, independent of the privileged reason vocabulary. */
+export type PublicReason =
+  | "match"
+  | "mismatch"
+  | "missing_evidence"
+  | "incomplete_evidence"
+  | "review_needed"
+  | "unavailable"
+  | "evaluation_error";
+
 export interface PublicCriterionFinding {
   readonly criterionId: string;
   readonly outcome: FindingOutcome;
+  readonly reason: PublicReason;
 }
 
 export interface PublicTechnicalResult {

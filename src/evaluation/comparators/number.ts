@@ -3,6 +3,11 @@ import type { Criterion } from "../../contracts/definition";
 import type { Observation } from "../../contracts/evidence";
 import { type Comparison, FAILED, finding, PASSED, REFERENCE_UNAVAILABLE } from "./finding";
 
+/** Shared IEEE-754 relative bound used by comparison and result coherence. */
+export function relativeToleranceBound(expected: number, relative: number): number {
+  return relative * Math.abs(expected);
+}
+
 export function compareNumber(
   criterion: Extract<Criterion, { kind: "number_with_tolerance" }>,
   observation: Observation,
@@ -15,7 +20,7 @@ export function compareNumber(
   if (value === undefined) return REFERENCE_UNAVAILABLE;
 
   // Keep arithmetic overflows distinct from both a match and a wrong answer.
-  const relativeBound = tolerance.relative * Math.abs(value);
+  const relativeBound = relativeToleranceBound(value, tolerance.relative);
   if (!Number.isFinite(relativeBound))
     return finding({ outcome: "error", reasonCode: "NUMERIC_OVERFLOW" });
   const bound = Math.max(tolerance.absolute, relativeBound);

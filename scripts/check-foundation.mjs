@@ -215,7 +215,11 @@ for (const file of sourcePaths) {
         assert.equal(targetLayer, "contracts", "Aggregation must remain a pure contract operation");
       }
       if (layer === "projection" && targetLayer === "evaluation") {
-        assert.equal(target, "src/evaluation/aggregate.ts");
+        assert.ok(
+          target === "src/evaluation/aggregate.ts" ||
+            target === "src/evaluation/comparators/number.ts",
+          `Projection may share only aggregation and numeric bound semantics: ${target}`,
+        );
       }
       if (layer === "evaluation" && targetLayer === "integrity") {
         assert.equal(file, "src/evaluation/evaluate.ts");
