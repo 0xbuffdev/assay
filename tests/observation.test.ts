@@ -592,9 +592,8 @@ describe("AY-I19 cooperative cancellation", () => {
     expect(await collection).toEqual(cancelled);
   });
 
-  it("isolates native cancellation from stopping listeners and synthetic events", async () => {
+  it("ignores synthetic native events and handles late rejection", async () => {
     const controller = new AbortController();
-    controller.signal.addEventListener("abort", (event) => event.stopImmediatePropagation());
     let reject!: (reason: unknown) => void;
     const pending = new Promise<unknown>((_resolve, fail) => {
       reject = fail;
@@ -617,6 +616,19 @@ describe("AY-I19 cooperative cancellation", () => {
     remove.mockRestore();
     reject(new Error("PRIVATE_LATE_REJECTION"));
     await Promise.resolve();
+  });
+
+  it("settles native abort despite a previously registered stopping listener", async () => {
+    const controller = new AbortController();
+    controller.signal.addEventListener("abort", (event) => event.stopImmediatePropagation());
+    const collection = collectObservations(
+      definition(),
+      evidence(),
+      { observe: () => new Promise(() => {}) },
+      { signal: controller.signal },
+    );
+    controller.abort();
+    expect(await collection).toEqual(cancelled);
   });
 
   it("ignores structural synthetic notifications and removes the subscription", async () => {

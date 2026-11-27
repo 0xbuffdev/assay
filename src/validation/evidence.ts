@@ -93,15 +93,15 @@ export function validateObservations(
         Object.hasOwn(EXECUTION_FACT_KINDS, selector)
       ) {
         if (completeValues.has(selector)) {
-          if (!equalJsonValue(completeValues.get(selector), obs?.value))
+          if (!equalJsonValue(completeValues.get(selector), obs.value))
             issues.add(`${p}.value`, "MISMATCHED_ORIGIN");
         } else {
-          completeValues.set(selector, obs?.value);
+          completeValues.set(selector, obs.value);
         }
       }
       const completePath = {
         path: `${p}.completeness`,
-        fact: obs.executionFact,
+        fact: selector,
         termination: claim.termination,
       };
       if (
