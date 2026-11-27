@@ -31,10 +31,18 @@ export function createEvidenceBundle(
       revisionDigest: definition.value.revisionDigest,
     },
   };
-  const sealed = parseEvidenceBundle({ ...content, evidenceDigest: hashContent(content) });
-  if (!sealed.ok) return sealed;
-  const coverage = inspectValidatedCoverage(definition.value, sealed.value);
-  return coverage.ok ? sealed : coverage;
+  const bounded = parseEvidenceBundle({
+    ...content,
+    evidenceDigest: `sha256:${"0".repeat(64)}`,
+  });
+  if (!bounded.ok) return bounded;
+  const coverage = inspectValidatedCoverage(definition.value, bounded.value);
+  if (!coverage.ok) return coverage;
+  const { evidenceDigest: _placeholder, ...validatedContent } = bounded.value;
+  return Object.freeze({
+    ok: true,
+    value: Object.freeze({ ...validatedContent, evidenceDigest: hashContent(validatedContent) }),
+  });
 }
 
 /** Verify complete evidence content and lineage, never source authenticity. */

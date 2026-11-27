@@ -53,6 +53,7 @@ export function validateObservations(
   if (!list(observations, "$.observations", issues, CONTRACT_LIMITS.maxObservations)) return;
   const ids: unknown[] = [];
   const refs: unknown[] = [];
+  const runs = new Map<string, Record<string, unknown>>();
   for (const [i, obs] of observations.entries()) {
     const p = `$.observations[${i}]`;
     if (
@@ -87,6 +88,25 @@ export function validateObservations(
       if (Object.hasOwn(obs, "origin")) issues.add(`${p}.origin`, "UNEXPECTED_FIELD");
     } else {
       validateOrigin(obs, artifactDigest, p, issues);
+      const origin = obs.origin;
+      if (origin && typeof origin === "object" && !Array.isArray(origin)) {
+        const claim = origin as Record<string, unknown>;
+        if (typeof claim.sourceRef === "string" && typeof claim.runRef === "string") {
+          const key = JSON.stringify([claim.sourceRef, claim.runRef]);
+          const prior = runs.get(key);
+          if (
+            prior &&
+            (prior.kind !== claim.kind ||
+              prior.artifactDigest !== claim.artifactDigest ||
+              (prior.provenance !== undefined &&
+                claim.provenance !== undefined &&
+                JSON.stringify(prior.provenance) !== JSON.stringify(claim.provenance)))
+          ) {
+            issues.add(`${p}.origin`, "MISMATCHED_ORIGIN");
+          }
+          if (!prior || prior.provenance === undefined) runs.set(key, claim);
+        }
+      }
     }
     if (obs.kind === "text") {
       object(

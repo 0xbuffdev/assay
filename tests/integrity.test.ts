@@ -10,6 +10,7 @@ import {
   parseAssessmentDefinitionDraft,
   verifyAssessmentDefinition,
 } from "../src/index";
+import { sealEvidenceFixture } from "./fixtures/contracts";
 
 const vector = {
   schemaVersion: 1,
@@ -37,8 +38,8 @@ function seal(input: unknown) {
   return result.value;
 }
 function observed(revisionDigest: string, value = "café\n") {
-  return {
-    schemaVersion: 1,
+  return sealEvidenceFixture({
+    schemaVersion: 2,
     definition: { assessmentId: "vector", revision: "rev1", revisionDigest },
     observations: [
       {
@@ -49,7 +50,7 @@ function observed(revisionDigest: string, value = "café\n") {
         value,
       },
     ],
-  };
+  });
 }
 
 describe("AY-I06 versioned canonical definition integrity", () => {
@@ -307,7 +308,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
           definition: { revisionDigest: sealed.revisionDigest },
         });
         return {
-          schemaVersion: 1,
+          schemaVersion: 2,
           definition: {
             assessmentId: "vector",
             revision: "rev1",
@@ -338,7 +339,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     };
     const result = await collectObservations(
       sealed,
-      { ...observed(sealed.revisionDigest), observations: [] },
+      sealEvidenceFixture({ ...observed(sealed.revisionDigest), observations: [] }),
       port,
     );
     expect(port.observe).toHaveBeenCalledOnce();

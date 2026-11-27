@@ -8,7 +8,7 @@ import {
   type ObservationPort,
   parseEvidenceBundle,
 } from "../src/index";
-import { referenceOf, sealDefinition } from "./fixtures/contracts";
+import { referenceOf, sealDefinition, sealEvidenceFixture } from "./fixtures/contracts";
 
 function definition(unit?: string): AssessmentDefinition<1> {
   return sealDefinition({
@@ -33,8 +33,8 @@ function definition(unit?: string): AssessmentDefinition<1> {
 }
 
 function evidence(unit?: string, rubric = definition(unit)): EvidenceBundle {
-  return {
-    schemaVersion: 1,
+  return sealEvidenceFixture({
+    schemaVersion: 2,
     definition: referenceOf(rubric),
     observations: [
       {
@@ -46,7 +46,7 @@ function evidence(unit?: string, rubric = definition(unit)): EvidenceBundle {
         ...(unit === undefined ? {} : { unit }),
       },
     ],
-  };
+  });
 }
 
 describe("AY-I05 numeric evidence unit integrity", () => {
@@ -115,7 +115,7 @@ describe("AY-I05 numeric evidence unit integrity", () => {
       observe: async (request) => {
         expect(request.criteria).toEqual([{ criterionId: "distance", kind: "number", unit: "m" }]);
         return {
-          schemaVersion: 1,
+          schemaVersion: 2,
           definition: request.definition,
           provenance: {
             adapterId: "simulated",
@@ -141,7 +141,7 @@ describe("AY-I05 numeric evidence unit integrity", () => {
         };
       },
     };
-    const empty: EvidenceBundle = { ...evidence("m"), observations: [] };
+    const empty = sealEvidenceFixture({ ...evidence("m"), observations: [] });
     const result = await collectObservations(definition("m"), empty, port);
     expect(result.ok).toBe(false);
     if (!result.ok && "diagnostics" in result) {

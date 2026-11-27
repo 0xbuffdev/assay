@@ -17,6 +17,7 @@ import {
   evidence as exampleEvidence,
   referenceOf,
   sealDefinition,
+  sealEvidenceFixture,
 } from "./fixtures/contracts";
 
 const outputCriterion = {
@@ -34,17 +35,17 @@ function definition(): AssessmentDefinition<1> {
 
 function evidence(rubric = definition()): EvidenceBundle {
   const original = exampleEvidence();
-  return {
+  return sealEvidenceFixture({
     ...original,
     definition: referenceOf(rubric),
     observations: [],
     artifactDigest: digestA,
-  };
+  });
 }
 
 function report(overrides: Partial<ObservationPortReport> = {}): ObservationPortReport {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     definition: referenceOf(definition()),
     artifactDigest: digestA,
     provenance: {
@@ -105,11 +106,19 @@ describe("AY-I03 optional injected observation port", () => {
         },
       ],
     });
-    const observed: EvidenceBundle = {
+    const observed = sealEvidenceFixture({
       ...exampleEvidence(),
       definition: referenceOf(input),
       artifactDigest: digestA,
-    };
+      observations: exampleEvidence().observations.map((observation) => ({
+        ...observation,
+        origin: {
+          kind: "independent",
+          sourceRef: "local",
+          ...(observation.kind === "execution" ? { runRef: observation.runRef } : {}),
+        },
+      })),
+    });
     const callback = vi.fn(async (request: unknown) => {
       const serialized = JSON.stringify(request);
       expect(serialized).not.toContain("PRIVATE_TEST_REF");
@@ -120,7 +129,7 @@ describe("AY-I03 optional injected observation port", () => {
       expect(serialized).not.toContain("expected");
       expect(serialized).not.toContain("trusted");
       expect(request).toMatchObject({
-        schemaVersion: 1,
+        schemaVersion: 2,
         definition: referenceOf(input),
         artifactDigest: digestA,
         criteria: [{ criterionId: "members", kind: "set" }],
@@ -223,18 +232,19 @@ describe("AY-I03 optional injected observation port", () => {
     const observe = vi.fn(async () => {
       throw new Error("SHOULD_NOT_RUN");
     });
-    const starting: EvidenceBundle = {
+    const starting = sealEvidenceFixture({
       ...evidence(),
       observations: [
         {
           criterionId: "output",
           evidenceRef: "existing",
+          origin: { kind: "independent", sourceRef: "local" },
           kind: "text",
           value: "wrong",
           completeness: "complete",
         },
       ],
-    };
+    });
     const response = successful(await collectObservations(definition(), starting, { observe }));
     expect(response.receipt).toBeNull();
     expect(observe).not.toHaveBeenCalled();
@@ -375,11 +385,19 @@ describe("AY-I03 optional injected observation port", () => {
     expect(failed(incompatible).outcome).toBe("invalid_evidence");
 
     const root = sealDefinition(exampleDefinition());
-    const base: EvidenceBundle = {
+    const base = sealEvidenceFixture({
       ...exampleEvidence(),
       definition: referenceOf(root),
       artifactDigest: digestA,
-    };
+      observations: exampleEvidence().observations.map((observation) => ({
+        ...observation,
+        origin: {
+          kind: "independent",
+          sourceRef: "local",
+          ...(observation.kind === "execution" ? { runRef: observation.runRef } : {}),
+        },
+      })),
+    });
     // "members" is missing, while ev-output is already used by the base bundle.
     const reused = await collectObservations(
       root,
