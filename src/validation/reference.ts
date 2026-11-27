@@ -1,4 +1,3 @@
-import { SCHEMA_VERSION } from "../contracts/version";
 import { CONTRACT_LIMITS } from "../contracts/common";
 import type {
   ReferenceBundle,
@@ -21,6 +20,7 @@ import {
   setItems,
   textValue,
 } from "./shared";
+import { SCHEMA_VERSION } from "../contracts/version";
 
 function record(input: unknown, path: string, sealed: boolean, issues: Diagnostics): void {
   const common = ["schemaVersion", "referenceId", "kind", "value"];
