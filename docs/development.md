@@ -48,7 +48,7 @@ Use the [source organization](architecture.md#source-organization) to locate the
 
 Tests cover contract validation, comparator boundaries, deterministic replay, required/advisory precedence, evidence coverage, provenance, truncation, malformed inputs and protected-data disclosure. The distribution verifier checks executable ESM and declarations. The offline package verifier checks the exact archive, Apache-2.0 notice, dependencies, hostile inputs and installed ESM/TypeScript consumer. Both Ubuntu and Windows run these checks. The verifier invokes npm's JavaScript CLI through the active Node executable to avoid platform-specific shell shims.
 
-Assay is Apache-2.0 licensed. The public 0.0.1 package candidate remains unpublished. See the [release policy](releasing.md) for approval requirements.
+Assay is Apache-2.0 licensed. See the [release policy](releasing.md) for publication requirements.
 
 ## Version metadata and runtime compatibility
 

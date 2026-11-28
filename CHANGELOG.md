@@ -4,7 +4,7 @@ Notable changes to Assay are recorded here. The format follows [Keep a Changelog
 
 ## [Unreleased]
 
-First intended release: 0.0.1. No version has been published yet.
+## [0.0.1] - 2026-11-28
 
 ### Added
 
@@ -17,4 +17,5 @@ First intended release: 0.0.1. No version has been published yet.
 - Bounded JSON decoding, duplicate-key rejection, redacted validation diagnostics and separate invalid-input failures.
 - Node.js 24+ ESM and TypeScript support with no runtime dependencies.
 
-[Unreleased]: https://github.com/0xbuffdev/assay/tree/main
+[Unreleased]: https://github.com/0xbuffdev/assay/compare/v0.0.1...main
+[0.0.1]: https://github.com/0xbuffdev/assay/releases/tag/v0.0.1
