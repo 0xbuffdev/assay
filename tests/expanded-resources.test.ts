@@ -277,29 +277,51 @@ describe("AY-I27 expanded resource workloads", () => {
       }),
     );
     const fact = {
-      criterionId: "objective", evidenceRef: "fact", kind: "text", completeness: "complete",
-      value: "ok", origin: { kind: "independent", sourceRef: "fixture" },
+      criterionId: "objective",
+      evidenceRef: "fact",
+      kind: "text",
+      completeness: "complete",
+      value: "ok",
+      origin: { kind: "independent", sourceRef: "fixture" },
     };
     function reviews(lengths: readonly number[]) {
       return reviewCriteria.map((c, i) => ({
-        criterionId: c.id, evidenceRef: `obs-${c.id}`, kind: "qualitative_review",
+        criterionId: c.id,
+        evidenceRef: `obs-${c.id}`,
+        kind: "qualitative_review",
         completeness: "complete",
         origin: { kind: "artifact", artifactDigest, sourceRef: "fixture" },
         ...c.parameters,
         reviewer: {
-          kind: "model", providerId: "provider", modelId: "model", modelVersion: "rev1",
-          promptId: "prompt", promptVersion: "rev1",
+          kind: "model",
+          providerId: "provider",
+          modelId: "model",
+          modelVersion: "rev1",
+          promptId: "prompt",
+          promptVersion: "rev1",
         },
-        uncertainty: "unknown", feedback: "x".repeat(lengths[i]),
+        uncertainty: "unknown",
+        feedback: "x".repeat(lengths[i]),
         citations: Array.from({ length: 8 }, (_, j) => ({
-          artifactRef: "component", startByte: j, endByte: j + 1,
+          artifactRef: "component",
+          startByte: j,
+          endByte: j + 1,
         })),
       }));
     }
-    const lineage = { assessmentId: definition.assessmentId, revision: definition.revision, revisionDigest: definition.revisionDigest };
+    const lineage = {
+      assessmentId: definition.assessmentId,
+      revision: definition.revision,
+      revisionDigest: definition.revisionDigest,
+    };
     const references = { schemaVersion: 4, definition: lineage, references: [reference] };
     function content(lengths: readonly number[]) {
-      return { schemaVersion: 4, artifactDigest, definition: lineage, observations: [fact, ...reviews(lengths)] };
+      return {
+        schemaVersion: 4,
+        artifactDigest,
+        definition: lineage,
+        observations: [fact, ...reviews(lengths)],
+      };
     }
     function seal(lengths: readonly number[]) {
       const { definition: _lineage, ...draft } = content(lengths);
@@ -310,7 +332,10 @@ describe("AY-I27 expanded resource workloads", () => {
     // One maximal 4096-byte review, distribute the remainder without crossing
     // the individual cap. The last review stays below it for a +1 byte probe.
     const rest = available - 4096;
-    const lengths = [4096, ...Array.from({ length: 62 }, (_, i) => Math.floor(rest / 62) + (i < rest % 62 ? 1 : 0))];
+    const lengths = [
+      4096,
+      ...Array.from({ length: 62 }, (_, i) => Math.floor(rest / 62) + (i < rest % 62 ? 1 : 0)),
+    ];
     expect(lengths.every((n) => n > 0 && n <= 4096)).toBe(true);
     expect(lengths[62]).toBeLessThan(4096);
     const evidence = unwrap(seal(lengths));
@@ -319,25 +344,44 @@ describe("AY-I27 expanded resource workloads", () => {
     expect(shape(evidence).depth).toBeLessThanOrEqual(12);
     expect(evidence.evidenceDigest).toBe(independentEvidence(content(lengths)));
     const workload = {
-      criteria: 64, reviews: 63, citations: 504, maxFeedbackBytes: 4096, feedbackBytes: available,
-      definition: shape(definition), references: shape(references), evidence: shape(evidence),
+      criteria: 64,
+      reviews: 63,
+      citations: 504,
+      maxFeedbackBytes: 4096,
+      feedbackBytes: available,
+      definition: shape(definition),
+      references: shape(references),
+      evidence: shape(evidence),
       evidenceSerializedBytes: serializedBytes(evidence),
     };
-    measure("maximum review evidence sealing", workload, () => seal(lengths),
-      (checked) => expect(unwrap(checked).evidenceDigest).toBe(evidence.evidenceDigest));
-    measure("maximum review evidence verification and evaluation", workload, () => {
-      const verified = verifyEvidenceBundle(definition, evidence);
-      const result = evaluate(definition, evidence, references);
-      return { verified, result, projected: projectPublicResult(definition, result) };
-    }, ({ verified, result, projected }) => {
-      expect(verified.ok).toBe(true);
-      expect(result.outcome).toBe("pass");
-      if (!("findings" in result)) throw new Error("Expected complete review workload");
-      expect(result.findings).toHaveLength(64);
-      expect(result.findings.slice(1).every((f) => f.outcome === "inconclusive" && f.reasonCode === "REVIEW_REQUIRED")).toBe(true);
-      expect(unwrap(projected).outcome).toBe("withheld");
-      expect(unwrap(projected).findings).toHaveLength(63);
-    });
+    measure(
+      "maximum review evidence sealing",
+      workload,
+      () => seal(lengths),
+      (checked) => expect(unwrap(checked).evidenceDigest).toBe(evidence.evidenceDigest),
+    );
+    measure(
+      "maximum review evidence verification and evaluation",
+      workload,
+      () => {
+        const verified = verifyEvidenceBundle(definition, evidence);
+        const result = evaluate(definition, evidence, references);
+        return { verified, result, projected: projectPublicResult(definition, result) };
+      },
+      ({ verified, result, projected }) => {
+        expect(verified.ok).toBe(true);
+        expect(result.outcome).toBe("pass");
+        if (!("findings" in result)) throw new Error("Expected complete review workload");
+        expect(result.findings).toHaveLength(64);
+        expect(
+          result.findings
+            .slice(1)
+            .every((f) => f.outcome === "inconclusive" && f.reasonCode === "REVIEW_REQUIRED"),
+        ).toBe(true);
+        expect(unwrap(projected).outcome).toBe("withheld");
+        expect(unwrap(projected).findings).toHaveLength(63);
+      },
+    );
     const tooManyBytes = [...lengths];
     tooManyBytes[62]++;
     const overContent = content(tooManyBytes);
@@ -345,7 +389,8 @@ describe("AY-I27 expanded resource workloads", () => {
     expect(shape(over).snapshotBytes).toBe(CAP + 1);
     expect(seal(tooManyBytes).ok).toBe(false);
     expect(evaluate(definition, over, references)).toMatchObject({
-      outcome: "invalid_evidence", diagnostics: [{ code: "INPUT_TOO_LARGE" }],
+      outcome: "invalid_evidence",
+      diagnostics: [{ code: "INPUT_TOO_LARGE" }],
     });
 
     // The full snapshot can exceed the separate transport ceiling due to
@@ -356,12 +401,19 @@ describe("AY-I27 expanded resource workloads", () => {
       const json = JSON.stringify(record);
       return json + " ".repeat(CAP - Buffer.byteLength(json, "utf8"));
     });
-    expect(transports.reduce((sum, input) => sum + Buffer.byteLength(input, "utf8"), 0)).toBe(786_432);
-    measure("three maximum serialized records", { bytesPerRecord: CAP, combinedBytes: 786_432 }, () =>
-      transports.map((input) => unwrap(decodeSerializedRecord(input))), ([def, ev, refs]) =>
-      expect(evaluate(def, ev, refs).outcome).toBe("pass"));
-    for (const input of transports) expect(decodeSerializedRecord(`${input} `)).toEqual({
-      ok: false, diagnostics: [{ path: "$", code: "INPUT_TOO_LARGE" }],
-    });
+    expect(transports.reduce((sum, input) => sum + Buffer.byteLength(input, "utf8"), 0)).toBe(
+      786_432,
+    );
+    measure(
+      "three maximum serialized records",
+      { bytesPerRecord: CAP, combinedBytes: 786_432 },
+      () => transports.map((input) => unwrap(decodeSerializedRecord(input))),
+      ([def, ev, refs]) => expect(evaluate(def, ev, refs).outcome).toBe("pass"),
+    );
+    for (const input of transports)
+      expect(decodeSerializedRecord(`${input} `)).toEqual({
+        ok: false,
+        diagnostics: [{ path: "$", code: "INPUT_TOO_LARGE" }],
+      });
   }, 30000);
 });
