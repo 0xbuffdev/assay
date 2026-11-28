@@ -126,7 +126,10 @@ const opaque = { ok: false, reasonCode: "PUBLIC_PROJECTION_REJECTED" };
 function invalid(definition, result, outcome, code, canaries) {
   assert.equal(result.outcome, outcome);
   assert.deepEqual(Object.keys(result).sort(), ["diagnostics", "outcome"]);
-  assert.ok(result.diagnostics.some((diagnostic) => diagnostic.code === code));
+  assert.ok(
+    result.diagnostics.some((diagnostic) => diagnostic.code === code),
+    `Expected ${code}; received ${result.diagnostics.map((diagnostic) => diagnostic.code).join(", ")}`,
+  );
   for (const canary of canaries) assert.ok(!JSON.stringify(result).includes(canary));
   assert.deepEqual(projectPublicResult(definition, result), opaque);
 }
@@ -775,8 +778,8 @@ function resealExpanded(record, observations) {
   };
 }
 for (const [mutation, code] of [
-  [{ ...humanReview, verdict: "pass" }, "UNKNOWN_FIELD"],
-  [{ ...humanReview, reviewer: { ...humanReview.reviewer, trusted: true } }, "UNKNOWN_FIELD"],
+  [{ ...humanReview, verdict: "pass" }, "UNEXPECTED_FIELD"],
+  [{ ...humanReview, reviewer: { ...humanReview.reviewer, trusted: true } }, "UNEXPECTED_FIELD"],
   [{ ...humanReview, reviewPolicyVersion: "rev2" }, "MISMATCHED_OBSERVATION"],
   [{ ...humanReview, citations: [] }, "INVALID_VALUE"],
   [{ ...humanReview, feedback: "é".repeat(2049) }, "INPUT_TOO_LARGE"],
