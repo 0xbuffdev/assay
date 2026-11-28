@@ -114,6 +114,8 @@ for (const file of [
   "tests/foundation.test.ts",
   "tests/aggregation.test.ts",
   "tests/qualitative.test.ts",
+  "tests/expanded-conformance.test.ts",
+  "tests/expanded-resources.test.ts",
   "tests/objective-comparators.test.ts",
   "scripts/version-metadata.mjs",
   "tests/consumer/version-vectors.mjs",

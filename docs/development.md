@@ -116,6 +116,50 @@ acceptance, including any failed or unexecuted commands. Source review does
 not establish execution evidence, and the resource samples do not authorize
 publication. AY-I08 replaces generation 3 and adds qualitative contract and disclosure regressions. AY-I27 and AY-I28 remain independent expanded-candidate gates.
 
+## Expanded conformance and resource verification (AY-I27)
+
+The independent source tests `tests/expanded-conformance.test.ts` and
+`tests/expanded-resources.test.ts` supplement rather than replace AY-I24 and the
+ticket-local composition and review tests. They exercise current generation 4,
+evaluator v0.0.5, with no compatibility paths or new runtime exports.
+
+- Enumerate 2,048 four-leaf cases (all 256 outcome assignments for each of
+  eight operator combinations); use a set-membership precedence oracle rather
+  than the implementation fold. Independently serialize and hash all three
+  domains with Node crypto, verify authored leaf order, structural coverage,
+  warning, projection and cloned-input replay.
+- Probe hidden objective/review outcomes and serialized public-byte invariance;
+  reject independently sealed malformed alternatives and review claims,
+  graph mutations, duplicate serialized keys and forged projection results.
+- Measure a single graph with all five structural caps simultaneously
+  (64 groups, 64 required leaves, 64 root children, 127 edges, eight levels)
+  and reject adjacent graph-limit violations.
+- Measure 63 advisory reviews with 504 citations plus one required objective;
+  use independent snapshot accounting to hit 262144 counted bytes exactly
+  while one feedback record reaches 4096 bytes. Reject one additional byte.
+  Measure three valid records padded to 262144 serialized bytes each
+  (786432 combined); reject an extra byte on each individual decoder call.
+  The combined request transport cap remains host-enforced.
+
+Run the focused suites and the full unchanged gate:
+
+```sh
+git rev-parse HEAD
+node --version
+pnpm --version
+pnpm exec vitest run tests/expanded-conformance.test.ts tests/expanded-resources.test.ts
+pnpm check
+```
+
+CI reports one warm-up and five measured samples per resource workload with
+checkout SHA, Node, OS, architecture, elapsed time, heap/RSS deltas and cumulative
+process max RSS. Measurements are observations, not portable performance or
+memory guarantees; no timing or memory threshold is used for acceptance.
+Garbage collection, process history and machine load affect samples. Retain
+the actual run and exact reviewed tree identity on both platforms. These tests
+use synthetic inputs and do not establish provenance, actual citation validity,
+host isolation, release readiness or the separate AY-I28 installed scenarios.
+
 ## Standalone engineering assessment integration (AY-I25)
 
 The mandatory packed-consumer gate copies and executes
