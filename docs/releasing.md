@@ -10,8 +10,10 @@ technical implementation is ready for a separately reviewed **release
 candidate**, but registry ownership, contributor rights, release version,
 trusted publisher setup and human authorization have not been established.
 See the [canonical release decision](https://github.com/0xbuffdev/context/blob/main/repos/assay/reviews/2026-11-22-release-decision.md).
-The optional AY-I08 AI-feedback capability stays deferred until a consumer
-requires it; it is not a deterministic-core release blocker.
+The historical decision deferred AY-I08 for the original candidate. The accepted
+expanded-candidate amendment includes attributed advisory review and composed
+criteria; AY-I26 must reassess the expanded candidate after AY-I27 and AY-I28.
+The original publication NO-GO remains in force.
 
 AY-I04 adds an automated **release-candidate quality gate**, not a release
 action. This gate is read-only with respect to Git, GitHub releases and the
