@@ -75,7 +75,7 @@ no random seed, clock, network, provider service or new dependency is needed.
 | ASY-27, ASY-38 | `adversarial.test.ts`, `serialized.test.ts`, `resources.test.ts`: malformed transport mutations, decoded duplicate keys, hostile objects, bounded resource limits, redacted failures       |
 | ASY-28–31      | `conformance.test.ts`, existing evaluator and execution-fact suites: independent comparator outcomes, replay, closed results, required/advisory precedence, missing and truncated evidence |
 | ASY-32         | Foundation module/export checks and isolated packed consumer; no source layout or API changes                                                                                              |
-| ASY-33         | Attributed qualitative observations are advisory-only; manual/unverified review paths remain non-authoritative                                                                     |
+| ASY-33         | Attributed qualitative observations are advisory-only; manual/unverified review paths remain non-authoritative                                                                             |
 | ASY-34–36      | `adversarial.test.ts`, `observation.test.ts`: stream-specific truncation permutations, empty/unsolicited reports, scoped origins, cancellation and late settlement                         |
 | ASY-37         | `adversarial.test.ts`, `projection.test.ts`: repeated protected probes, criterion order and advisory/required permutations, opaque rejection, fixed public bytes across hidden outcomes    |
 | ASY-39         | `conformance.test.ts`, existing fixed integrity vectors and generated metadata gate: independent hashes, version identity, unsupported versions                                            |

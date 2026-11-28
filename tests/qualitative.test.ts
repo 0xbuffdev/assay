@@ -8,9 +8,9 @@ import {
   createReferenceRecord,
   evaluate,
   type Observation,
-  type QualitativeObservation,
   parseObservationPortReport,
   projectPublicResult,
+  type QualitativeObservation,
   verifyEvidenceBundle,
 } from "../src/index";
 import { digestA, digestB, referenceOf, sealEvidenceFixture } from "./fixtures/contracts";
@@ -110,14 +110,17 @@ describe("AY-I08 qualitative observations", () => {
       { ...review, executionFact: "stdout" },
       { ...review, authoritative: true },
       { ...review, parameters: { ...review.parameters, score: 1 } },
-      { ...review, parameters: { ...review.parameters, expected: { type: "literal", value: true } } },
+      {
+        ...review,
+        parameters: { ...review.parameters, expected: { type: "literal", value: true } },
+      },
       { ...review, parameters: { reviewPolicyId: "design", reviewPolicyVersion: "LATEST" } },
       { ...review, parameters: { reviewPolicyId: "invalid id", reviewPolicyVersion: "rev1" } },
       { ...review, parameters: { reviewPolicyId: "design" } },
     ]) {
-      expect(
-        createAssessmentDefinition({ ...authored, criteria: [objective, malformed] }).ok,
-      ).toBe(false);
+      expect(createAssessmentDefinition({ ...authored, criteria: [objective, malformed] }).ok).toBe(
+        false,
+      );
     }
     const onlyReview = {
       ...authored,
@@ -147,7 +150,8 @@ describe("AY-I08 qualitative observations", () => {
                 {
                   criterionId: "review",
                   outcome: "inconclusive",
-                  reasonCode: completeness === "complete" ? "REVIEW_REQUIRED" : "EVIDENCE_TRUNCATED",
+                  reasonCode:
+                    completeness === "complete" ? "REVIEW_REQUIRED" : "EVIDENCE_TRUNCATED",
                   evidenceRefs: [observation.evidenceRef],
                 },
               ],
@@ -201,9 +205,9 @@ describe("AY-I08 qualitative observations", () => {
     const forward = unwrap(bundle(def, [{ ...observation, citations }]));
     const reversed = unwrap(bundle(def, [{ ...observation, citations: [...citations].reverse() }]));
     expect(forward.evidenceDigest).not.toBe(reversed.evidenceDigest);
-    expect(
-      verifyEvidenceBundle(def, { ...evidence, observations: changed.observations }).ok,
-    ).toBe(false);
+    expect(verifyEvidenceBundle(def, { ...evidence, observations: changed.observations }).ok).toBe(
+      false,
+    );
   });
 
   it("enforces UTF-16, UTF-8 and citation limits including exact boundaries", () => {

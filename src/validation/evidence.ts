@@ -7,6 +7,7 @@ import {
 import type { EvidenceBundle, EvidenceBundleDraft, ObservationOrigin } from "../contracts/evidence";
 import type { ValidationResult } from "../contracts/validation";
 import { SCHEMA_VERSION } from "../contracts/version";
+import { validateQualitativeReview } from "./qualitative";
 import {
   booleanValue,
   choice,
@@ -23,8 +24,6 @@ import {
   textValue,
   unique,
 } from "./shared";
-
-import { validateQualitativeReview } from "./qualitative";
 
 /** Validate complete evidence shape, not digest integrity or authenticity. */
 export function parseEvidenceBundle(input: unknown): ValidationResult<EvidenceBundle> {

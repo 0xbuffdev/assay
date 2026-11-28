@@ -29,7 +29,12 @@ export function validateQualitativeReview(
   choice(observation.completeness, ["complete", "truncated"], `${path}.completeness`, issues);
   identifier(observation.reviewPolicyId, `${path}.reviewPolicyId`, issues);
   revision(observation.reviewPolicyVersion, `${path}.reviewPolicyVersion`, issues);
-  choice(observation.uncertainty, ["low", "medium", "high", "unknown"], `${path}.uncertainty`, issues);
+  choice(
+    observation.uncertainty,
+    ["low", "medium", "high", "unknown"],
+    `${path}.uncertainty`,
+    issues,
+  );
 
   const origin = observation.origin;
   const originPath = `${path}.origin`;
