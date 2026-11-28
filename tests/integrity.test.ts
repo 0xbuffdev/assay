@@ -12,7 +12,7 @@ import {
 import { authorAll, sealEvidenceFixture } from "./fixtures/contracts";
 
 const vector = authorAll({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "vector",
   revision: "rev1",
   policyVersion: "composed-required-v1",
@@ -27,9 +27,9 @@ const vector = authorAll({
   ],
 });
 
-const expected = "sha256:dfa86e4d4bd5fd5b9d1753eebdaca7ce2cc61c3843e5417e297d31d71f806798";
+const expected = "sha256:db53afe46dc26651f77a64613a6d059fdeefff1caeb0947c92c567db478f13a2";
 const canonical =
-  '{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":3}';
+  '{"assessmentId":"vector","composition":{"groups":[{"children":[{"id":"output","kind":"criterion"}],"id":"fixture-root","operator":"all"}],"rootGroupId":"fixture-root"},"criteria":[{"id":"output","kind":"exact_text","mode":"required","parameters":{"expected":{"type":"literal","value":"café\\n"}},"visibility":"public"}],"policyVersion":"composed-required-v1","revision":"rev1","schemaVersion":4}';
 
 function seal(input: unknown) {
   const result = createAssessmentDefinition(input);
@@ -38,7 +38,7 @@ function seal(input: unknown) {
 }
 function observed(revisionDigest: string, value = "café\n") {
   return sealEvidenceFixture({
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: { assessmentId: "vector", revision: "rev1", revisionDigest },
     observations: [
       {
@@ -55,7 +55,7 @@ function observed(revisionDigest: string, value = "café\n") {
 describe("AY-I06 versioned canonical definition integrity", () => {
   it("matches a fixed independent SHA-256 golden vector including UTF-8 and newline", () => {
     const reference = `sha256:${createHash("sha256")
-      .update(`assay:definition:v3\n${canonical}`, "utf8")
+      .update(`assay:definition:v4\n${canonical}`, "utf8")
       .digest("hex")}`;
     expect(reference).toBe(expected);
     const calculated = computeDefinitionDigest(vector);
@@ -68,11 +68,11 @@ describe("AY-I06 versioned canonical definition integrity", () => {
   });
 
   it("replays a current persisted definition and rejects old schema identities", () => {
-    expect(ASSAY_SCHEMA_VERSION).toBe(3);
+    expect(ASSAY_SCHEMA_VERSION).toBe(4);
     const stored = JSON.parse(canonical);
     const verified = verifyAssessmentDefinition({ ...stored, revisionDigest: expected });
     expect(verified).toMatchObject({ ok: true, value: { revisionDigest: expected } });
-    for (const schemaVersion of [1, 2, 4]) {
+    for (const schemaVersion of [1, 2, 3, 5]) {
       const rejected = verifyAssessmentDefinition({
         ...stored,
         revisionDigest: expected,
@@ -99,7 +99,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
       policyVersion: "composed-required-v1",
       revision: "rev1",
       assessmentId: "vector",
-      schemaVersion: 3,
+      schemaVersion: 4,
     });
     expect(seal(shuffled).revisionDigest).toBe(expected);
     const withSecond = {
@@ -234,7 +234,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
     expect(createAssessmentDefinition({ ...vector, criteria: [] }).ok).toBe(false);
     expect(computeDefinitionDigest({ ...vector, policyVersion: "latest" }).ok).toBe(false);
     expect(computeDefinitionDigest({ ...vector, policyVersion: "policy2" }).ok).toBe(false);
-    const poisoned = JSON.parse('{"schemaVersion":3,"__proto__":{"spoof":true}}');
+    const poisoned = JSON.parse('{"schemaVersion":4,"__proto__":{"spoof":true}}');
     expect(createAssessmentDefinition(poisoned).ok).toBe(false);
     let access = 0;
     const accessor = { ...vector };
@@ -290,7 +290,7 @@ describe("AY-I06 versioned canonical definition integrity", () => {
           definition: { revisionDigest: sealed.revisionDigest },
         });
         return {
-          schemaVersion: 3,
+          schemaVersion: 4,
           definition: {
             assessmentId: "vector",
             revision: "rev1",
@@ -384,10 +384,10 @@ describe("AY-I06 versioned canonical definition integrity", () => {
         ],
         policyVersion: "composed-required-v1",
         revision: "rev1",
-        schemaVersion: 3,
+        schemaVersion: 4,
       });
       const independent = `sha256:${createHash("sha256")
-        .update(`assay:definition:v3\n${encoded}`)
+        .update(`assay:definition:v4\n${encoded}`)
         .digest("hex")}`;
       expect(result.value).toBe(independent);
     }

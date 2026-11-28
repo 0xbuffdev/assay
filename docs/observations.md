@@ -52,7 +52,7 @@ import {
 } from "@0xbuff/assay";
 
 const created = createAssessmentDefinition({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "public-demo",
   revision: "rev1",
   policyVersion: "composed-required-v1",
@@ -74,7 +74,7 @@ if (!created.ok) throw new Error("Invalid authored definition");
 const definition = created.value;
 
 const prepared = createEvidenceBundle(definition, {
-  schemaVersion: 3,
+  schemaVersion: 4,
   observations: [],
 });
 if (!prepared.ok) throw new Error("Invalid evidence");
@@ -84,7 +84,7 @@ const mockPort = {
   async observe(request) {
     // request lists only public IDs, expected fact kinds and resource limits.
     return {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: request.definition,
       provenance: {
         adapterId: "fixture",
@@ -130,7 +130,7 @@ hash or proof of publisher identity.
 `ObservationPort<S>.observe(request: ObservationPortRequest, signal?: S): Promise<unknown>`
 is supplied **only** by the host. Its request is immutable and includes:
 
-- `schemaVersion: 3`, `definition` ID/revision/digest, optional caller
+- `schemaVersion: 4`, `definition` ID/revision/digest, optional caller
   `artifactDigest`, and `limits.maxCapturedBytes: 65536`.
 - A list of **missing public** criterion IDs and expected observation kinds
   (`text`, `number`, `set`, `boolean`, `json`, or `execution`). Public numeric criteria
@@ -263,4 +263,6 @@ timeout are applied. The host must arrange actual execution termination,
 isolation and resource limits; an aborted collector does not prove the
 provider stopped.
 
-Composition changes neither eligibility nor provenance: the collector requests all eligible missing public objective/execution facts in authored order, never group structure or protected IDs. It validates the generation-3 report and reseals generation-3 evidence. A leaf in an alternative is not skipped solely because another branch is decisive.
+Composition changes neither eligibility nor provenance: the collector requests all eligible missing public objective/execution facts in authored order, never group structure or protected IDs. It validates the generation-4 report and reseals generation-4 evidence. A leaf in an alternative is not skipped solely because another branch is decisive.
+
+Qualitative reviews are supplied by the host in evidence. The collector never requests them and rejects any report containing them. Existing valid reviews retain their exact content and order during resealing; the receipt lists only newly returned facts. No model client or reviewer callback is part of the port.

@@ -31,7 +31,7 @@ const property = criterion("property", "boolean_equality", "boolean_property", {
 const json = criterion("json", "json_equality", "structured_stdout", {
   expected: literal({ result: [null, false] }),
 });
-const draft = (criteria: unknown[], schemaVersion = 3) => ({
+const draft = (criteria: unknown[], schemaVersion = 4) => ({
   schemaVersion,
   assessmentId: "execution",
   revision: "rev1",
@@ -78,7 +78,7 @@ function definition(criteria: unknown[]) {
 
 function run(criteria: unknown[], observations: unknown[]) {
   const rubric = definition(criteria);
-  const evidence = createEvidenceBundle(rubric, { schemaVersion: 3, observations });
+  const evidence = createEvidenceBundle(rubric, { schemaVersion: 4, observations });
   if (!evidence.ok) return { outcome: evidence.domain };
   return evaluate(rubric, evidence.value);
 }
@@ -149,7 +149,7 @@ describe("typed execution facts", () => {
     for (const termination of ["timeout", "crash"]) {
       for (const value of ["ok", "wrong"]) {
         const sealed = createEvidenceBundle(rubric, {
-          schemaVersion: 3,
+          schemaVersion: 4,
           observations: [{ ...out, value, origin: { ...origin, termination } }],
         });
         if (!sealed.ok) throw new Error("Invalid evidence fixture");
@@ -210,7 +210,7 @@ describe("typed execution facts", () => {
 
   it("binds selection and origin into content digests and preserves protected comparisons", () => {
     const reference = createReferenceRecord({
-      schemaVersion: 3,
+      schemaVersion: 4,
       referenceId: "hidden",
       kind: "text",
       value: "secret-output-canary",
@@ -230,12 +230,12 @@ describe("typed execution facts", () => {
       },
     ]);
     const evidence = createEvidenceBundle(rubric, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       observations: [{ ...out, value: "secret-output-canary" }],
     });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
     const refs = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: evidence.value.definition,
       references: [reference.value],
     };
@@ -373,21 +373,21 @@ describe("typed execution facts", () => {
   it("matches independent canonical definition and evidence vectors", () => {
     const rubric = definition([stdout]);
     expect(rubric.revisionDigest).toBe(
-      "sha256:4a14c1d05f85cfb9e78a1f0779702dc0cef28a1d084c0e475b21963b6764dc78",
+      "sha256:544f401f9bf628c23dd0ef0fc1930beedc3a5df61eeb72b1ce03fe9ffd663609",
     );
     const evidence = createEvidenceBundle(rubric, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       observations: [out],
     });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
     expect(evidence.value.evidenceDigest).toBe(
-      "sha256:16625d5433f8726c15a707050e098eede00a82f99d0403f26480e5cac9535591",
+      "sha256:36925ad1aca4eaca670da8a2058d8c87e91c59c3d683b6a46ed4425e91f49e97",
     );
   });
 
   it("acquires selected facts through a scoped provider report", async () => {
     const rubric = definition([stdout]);
-    const evidence = createEvidenceBundle(rubric, { schemaVersion: 3, observations: [] });
+    const evidence = createEvidenceBundle(rubric, { schemaVersion: 4, observations: [] });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
     const collected = await collectObservations(rubric, evidence.value, {
       async observe(request) {
@@ -395,7 +395,7 @@ describe("typed execution facts", () => {
           { criterionId: stdout.id, kind: "text", executionFact: "stdout" },
         ]);
         return {
-          schemaVersion: 3,
+          schemaVersion: 4,
           definition: request.definition,
           termination: "exited",
           provenance: {
@@ -439,11 +439,11 @@ describe("AY-I19 scoped selected reports", () => {
     ] as const;
     for (const [check, observation, expected] of cases) {
       const rubric = definition([check]);
-      const empty = createEvidenceBundle(rubric, { schemaVersion: 3, observations: [] });
+      const empty = createEvidenceBundle(rubric, { schemaVersion: 4, observations: [] });
       if (!empty.ok) throw new Error("Invalid evidence fixture");
       const { origin: _origin, ...returned } = observation;
       const report = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: empty.value.definition,
         termination: "exited",
         provenance,
@@ -473,11 +473,11 @@ describe("AY-I19 scoped selected reports", () => {
 
   it("rejects missing termination, wrong selectors and report-level origin spoofing", async () => {
     const rubric = definition([stdout]);
-    const empty = createEvidenceBundle(rubric, { schemaVersion: 3, observations: [] });
+    const empty = createEvidenceBundle(rubric, { schemaVersion: 4, observations: [] });
     if (!empty.ok) throw new Error("Invalid evidence fixture");
     const { origin: _origin, ...returned } = out;
     const report = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: empty.value.definition,
       provenance,
       observations: [returned],
@@ -509,10 +509,10 @@ describe("AY-I19 scoped selected reports", () => {
 describe("AY-I19 empty report run claims", () => {
   it("rejects conflicting same-run termination and relevant truncation without changing evidence", async () => {
     const rubric = definition([stdout, { ...stderr, mode: "advisory" }]);
-    const initial = createEvidenceBundle(rubric, { schemaVersion: 3, observations: [out] });
+    const initial = createEvidenceBundle(rubric, { schemaVersion: 4, observations: [out] });
     if (!initial.ok) throw new Error("Invalid evidence fixture");
     const baseReport = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: initial.value.definition,
       termination: "exited",
       provenance: { ...provenance, stdoutTruncated: false },

@@ -58,7 +58,11 @@ export function inspectValidatedCoverage(
         observation.kind === "set" &&
         criterion.parameters.itemType === observation.itemType) ||
       (criterion.kind === "observed_execution" && observation.kind === "execution") ||
-      (criterion.kind === "manual_evidence" && observation.kind === "manual");
+      (criterion.kind === "manual_evidence" && observation.kind === "manual") ||
+      (criterion.kind === "qualitative_review" &&
+        observation.kind === "qualitative_review" &&
+        criterion.parameters.reviewPolicyId === observation.reviewPolicyId &&
+        criterion.parameters.reviewPolicyVersion === observation.reviewPolicyVersion);
     if (criterion.executionFact !== observation.executionFact) {
       issues.add(`${path}.executionFact`, "MISMATCHED_OBSERVATION");
     }

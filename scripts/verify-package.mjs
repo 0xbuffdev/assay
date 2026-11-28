@@ -228,6 +228,7 @@ try {
       "SECRET_ACCESS_TOKEN_IN_RUNNER_ERROR",
       "SENSITIVE_EXCEPTION",
       "AYI25_PRIVATE_",
+      "AYI08_PRIVATE_",
     ]) {
       assert.ok(!contents.includes(canary), "Test or private sentinel entered the shipped package");
     }

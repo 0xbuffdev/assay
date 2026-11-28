@@ -38,6 +38,9 @@ export type {
   ObservationFact,
   ObservationOrigin,
   ObservationPortProvenance,
+  QualitativeObservation,
+  QualitativeReviewer,
+  ReviewCitation,
 } from "./contracts/evidence";
 export type {
   ObservationAbortSignal,

@@ -42,7 +42,7 @@ function allComposition(criteria) {
 function seal(assessmentId, criteria) {
   return unwrap(
     createAssessmentDefinition({
-      schemaVersion: 3,
+      schemaVersion: 4,
       assessmentId,
       revision: "rev1",
       policyVersion: "composed-required-v1",
@@ -74,7 +74,7 @@ function fact(criterionId, kind, value, extra = {}) {
 function evidence(definition, observations, artifactDigest) {
   return unwrap(
     createEvidenceBundle(definition, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       observations,
       ...(artifactDigest === undefined ? {} : { artifactDigest }),
     }),
@@ -88,7 +88,7 @@ function decoded(record) {
 function complete(definition, observed, references, outcome, findings) {
   const result = evaluate(definition, observed, references);
   assert.equal(result.outcome, outcome);
-  assert.equal(result.schemaVersion, 3);
+  assert.equal(result.schemaVersion, 4);
   assert.equal(result.evaluator.version, ASSAY_EVALUATOR_VERSION);
   assert.equal(result.evidenceDigest, observed.evidenceDigest);
   assert.deepEqual(result.definition, { ...observed.definition });
@@ -117,7 +117,7 @@ function publicView(definition, result, outcome, findings) {
   const projection = projectPublicResult(definition, result);
   assert.deepEqual(projection, {
     ok: true,
-    value: { schemaVersion: 3, outcome, findings },
+    value: { schemaVersion: 4, outcome, findings },
   });
   return JSON.stringify(projection);
 }
@@ -175,7 +175,7 @@ publicView(calibration, missingSensor, "inconclusive", [
   publicFinding("status", "inconclusive", "missing_evidence"),
 ]);
 const wrongUnit = createEvidenceBundle(calibration, {
-  schemaVersion: 3,
+  schemaVersion: 4,
   observations: [{ ...sensorFacts[0], unit: "V" }, sensorFacts[1]],
 });
 assert.equal(wrongUnit.ok, false);
@@ -199,7 +199,7 @@ const protectedExpected = {
 };
 const reference = unwrap(
   createReferenceRecord({
-    schemaVersion: 3,
+    schemaVersion: 4,
     referenceId: hiddenRef,
     kind: "json",
     value: protectedExpected,
@@ -254,7 +254,7 @@ function initial(value = protectedExpected) {
 
 const starting = initial();
 const references = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   definition: starting.definition,
   references: [reference],
 };
@@ -299,7 +299,7 @@ function mockReport(
   assert.ok(!requestBytes.includes("expected"));
   assert.ok(!requestBytes.includes(JSON.stringify(publicOutput)));
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: request.definition,
     artifactDigest: request.artifactDigest,
     termination: "exited",

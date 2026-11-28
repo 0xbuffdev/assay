@@ -19,7 +19,7 @@ function errorCodes(input: ReturnType<typeof parseAssessmentDefinition>): string
 
 describe("AY-I01 versioned definition contracts", () => {
   it("has a stable schema and public bounds", () => {
-    expect(ASSAY_SCHEMA_VERSION).toBe(3);
+    expect(ASSAY_SCHEMA_VERSION).toBe(4);
     expect(CONTRACT_LIMITS.maxCriteria).toBe(64);
   });
 

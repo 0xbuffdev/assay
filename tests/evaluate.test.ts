@@ -582,7 +582,7 @@ describe("AY-I16 invalid advisory input and policy rejection", () => {
       ],
     });
     const evidence = sealEvidenceFixture({
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: referenceOf(rubric),
       observations: [
         complete("check", "text", "ok"),

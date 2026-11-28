@@ -19,12 +19,14 @@ const expected = [
 ] as const;
 
 const base = definition();
+const objective = base.criteria[0];
+if (objective.kind !== "exact_text") throw new Error("Invalid objective fixture");
 const rubric: AssessmentDefinition = authorAll({
   ...base,
   criteria: [
-    { ...base.criteria[0], id: "first", mode: "required" },
-    { ...base.criteria[0], id: "second", mode: "required" },
-    { ...base.criteria[0], id: "advisory", mode: "advisory" },
+    { ...objective, id: "first", mode: "required" },
+    { ...objective, id: "second", mode: "required" },
+    { ...objective, id: "advisory", mode: "advisory" },
   ],
 });
 
@@ -88,7 +90,7 @@ describe("AY-I16 evaluator and projection policy agreement", () => {
             input(advisory, "advisory", "advisory"),
           ];
           const created = createAllDefinition({
-            schemaVersion: 3,
+            schemaVersion: 4,
             assessmentId: "truth-table",
             revision: "rev1",
             policyVersion: "composed-required-v1",
@@ -96,7 +98,7 @@ describe("AY-I16 evaluator and projection policy agreement", () => {
           });
           if (!created.ok) throw new Error("Invalid truth table definition");
           const prepared = createEvidenceBundle(created.value, {
-            schemaVersion: 3,
+            schemaVersion: 4,
             observations: entries.map((entry) => entry.observation),
           });
           if (!prepared.ok) throw new Error("Invalid truth table evidence");

@@ -87,9 +87,48 @@ type ExecutionObservation = {
     }>;
 }[ExecutionValueKind];
 
+/** Host-supplied reviewer claims are not authenticated decision authority. */
+export type QualitativeReviewer =
+  | Readonly<{ kind: "human"; reviewerId: string; reviewerVersion: string }>
+  | Readonly<{
+      kind: "model";
+      providerId: string;
+      modelId: string;
+      modelVersion: string;
+      promptId: string;
+      promptVersion: string;
+    }>;
+
+export type ReviewCitation = Readonly<{
+  artifactRef: string;
+  startByte: number;
+  endByte: number;
+}>;
+
+export type QualitativeObservation = ObservationBase &
+  Readonly<{
+    kind: "qualitative_review";
+    executionFact?: never;
+    origin: Readonly<{
+      kind: "artifact";
+      artifactDigest: string;
+      sourceRef: string;
+      runRef?: never;
+      termination?: never;
+      provenance?: never;
+    }>;
+    reviewPolicyId: string;
+    reviewPolicyVersion: string;
+    reviewer: QualitativeReviewer;
+    uncertainty: "low" | "medium" | "high" | "unknown";
+    feedback: string;
+    citations: readonly ReviewCitation[];
+  }>;
+
 export type Observation =
   | (ObservationFact & Readonly<{ executionFact?: never; origin?: ObservationOrigin }>)
-  | ExecutionObservation;
+  | ExecutionObservation
+  | QualitativeObservation;
 
 export interface EvidenceBundleDraft {
   readonly schemaVersion: typeof SCHEMA_VERSION;

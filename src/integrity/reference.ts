@@ -62,7 +62,7 @@ function matchesKind(criterion: ObjectiveCriterion, record: ReferenceRecord): bo
 }
 
 /**
- * Verify supplied material against an exact schema-2 definition. An incomplete
+ * Verify supplied material against an exact current definition. An incomplete
  * bundle is allowed; validation does not resolve references or compare evidence.
  */
 export function verifyReferenceBundle(
@@ -94,7 +94,12 @@ export function verifyReferencesForDefinition(
 
   const declared = new Map<string, ObjectiveCriterion>();
   for (const criterion of definition.criteria) {
-    if (criterion.kind === "observed_execution" || criterion.kind === "manual_evidence") continue;
+    if (
+      criterion.kind === "observed_execution" ||
+      criterion.kind === "manual_evidence" ||
+      criterion.kind === "qualitative_review"
+    )
+      continue;
     if (criterion.parameters.expected.type === "reference") {
       declared.set(criterion.parameters.expected.referenceId, criterion);
     }

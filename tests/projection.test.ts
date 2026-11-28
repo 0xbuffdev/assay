@@ -36,7 +36,7 @@ const restricted: Criterion = {
 
 function sealed(criteria: readonly Criterion[]): AssessmentDefinition {
   const result = createAllDefinition({
-    schemaVersion: 3,
+    schemaVersion: 4,
     assessmentId: "projection",
     revision: "rev1",
     policyVersion: "composed-required-v1",
@@ -48,7 +48,7 @@ function sealed(criteria: readonly Criterion[]): AssessmentDefinition {
 
 function evidence(definition: AssessmentDefinition, output = "ok"): EvidenceBundle {
   return sealEvidenceFixture({
-    schemaVersion: 3,
+    schemaVersion: 4,
     definition: {
       assessmentId: definition.assessmentId,
       revision: definition.revision,
@@ -90,7 +90,7 @@ describe("AY-I20 safe technical feedback", () => {
       expect(response).toEqual({
         ok: true,
         value: {
-          schemaVersion: 3,
+          schemaVersion: 4,
           outcome,
           findings: [{ criterionId: "visible", outcome, reason }],
         },
@@ -171,7 +171,7 @@ describe("AY-I20 safe technical feedback", () => {
         value: expected,
       } as const;
       const prepared = createEvidenceBundle(definition, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         observations: [observation],
       });
       if (!prepared.ok) throw new Error("Invalid numeric evidence");
@@ -199,7 +199,7 @@ describe("AY-I20 safe technical feedback", () => {
       }
 
       for (const observations of [[], [{ ...observation, completeness: "truncated" }]]) {
-        const partial = createEvidenceBundle(definition, { schemaVersion: 3, observations });
+        const partial = createEvidenceBundle(definition, { schemaVersion: 4, observations });
         if (!partial.ok) throw new Error("Invalid partial evidence");
         const unresolved = evaluate(definition, partial.value);
         expect(unresolved.outcome).toBe("inconclusive");
@@ -223,14 +223,14 @@ describe("AY-I20 safe technical feedback", () => {
       [Number.MAX_VALUE, 2, true, true],
     ] as const) {
       const record = createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "numeric-reference",
         kind: "number",
         value,
       });
       if (!record.ok) throw new Error("Invalid numeric reference");
       const created = createAllDefinition({
-        schemaVersion: 3,
+        schemaVersion: 4,
         assessmentId: "projection",
         revision: "rev1",
         policyVersion: "composed-required-v1",
@@ -252,7 +252,7 @@ describe("AY-I20 safe technical feedback", () => {
       if (!created.ok) throw new Error("Invalid numeric definition");
       const definition = created.value;
       const prepared = createEvidenceBundle(definition, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         observations: [
           {
             criterionId: "visible",
@@ -265,7 +265,7 @@ describe("AY-I20 safe technical feedback", () => {
       });
       if (!prepared.ok) throw new Error("Invalid numeric evidence");
       const result = evaluate(definition, prepared.value, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: prepared.value.definition,
         references: [record.value],
       });
@@ -308,7 +308,7 @@ describe("AY-I20 safe technical feedback", () => {
     expect(view).toEqual({
       ok: true,
       value: {
-        schemaVersion: 3,
+        schemaVersion: 4,
         outcome: "withheld",
         findings: [{ criterionId: "visible", outcome: "pass", reason: "match" }],
       },
@@ -336,7 +336,7 @@ describe("AY-I20 safe technical feedback", () => {
 
   it("returns identical public bytes for protected passes, failures, missing facts and errors", () => {
     const record = createReferenceRecord({
-      schemaVersion: 3,
+      schemaVersion: 4,
       referenceId: "SECRET_REFERENCE_CANARY",
       kind: "text",
       value: "SECRET_EXPECTED_CANARY",
@@ -353,7 +353,7 @@ describe("AY-I20 safe technical feedback", () => {
       },
     };
     const created = createAllDefinition({
-      schemaVersion: 3,
+      schemaVersion: 4,
       assessmentId: "projection",
       revision: "rev1",
       policyVersion: "composed-required-v1",
@@ -362,7 +362,7 @@ describe("AY-I20 safe technical feedback", () => {
     if (!created.ok) throw new Error("Invalid definition fixture");
     const definition = created.value;
     const reference = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: evidence(definition).definition,
       references: [record.value],
     };
@@ -373,7 +373,7 @@ describe("AY-I20 safe technical feedback", () => {
       [undefined, "inconclusive"],
     ] as const) {
       const prepared = createEvidenceBundle(definition, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         observations: [
           ...evidence(definition).observations,
           ...(value === undefined
@@ -563,7 +563,7 @@ describe("AY-I20 safe technical feedback", () => {
       expect(response).toEqual({
         ok: true,
         value: {
-          schemaVersion: 3,
+          schemaVersion: 4,
           outcome: overall,
           findings: [{ criterionId: "visible", outcome, reason: feedback }],
         },

@@ -15,7 +15,7 @@ import { authorAll, createAllDefinition } from "./fixtures/contracts";
 const base = { id: "check", mode: "required", visibility: "public" } as const;
 const literal = (value: unknown) => ({ type: "literal", value });
 const draft = (kind: string, parameters: unknown, visibility = "public") => ({
-  schemaVersion: 3,
+  schemaVersion: 4,
   assessmentId: "objective",
   revision: "rev1",
   policyVersion: "composed-required-v1",
@@ -38,7 +38,7 @@ const interval = (min: number, max: number, minInclusive = true, maxInclusive = 
 function compare(kind: string, parameters: unknown, observations: unknown[]) {
   const definition = createAllDefinition(draft(kind, parameters));
   if (!definition.ok) return definition.domain;
-  const evidence = createEvidenceBundle(definition.value, { schemaVersion: 3, observations });
+  const evidence = createEvidenceBundle(definition.value, { schemaVersion: 4, observations });
   if (!evidence.ok) return evidence.domain;
   return evaluate(definition.value, evidence.value).outcome;
 }
@@ -164,7 +164,7 @@ describe("schema-2 objective comparators", () => {
     ];
     for (const test of cases) {
       const reference = createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "secret-ref",
         kind: test.refKind,
         value: test.expected,
@@ -185,12 +185,12 @@ describe("schema-2 objective comparators", () => {
       );
       if (!definition.ok) throw new Error("Invalid definition fixture");
       const evidence = createEvidenceBundle(definition.value, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         observations: [fact(test.factKind, test.actual)],
       });
       if (!evidence.ok) throw new Error("Invalid evidence fixture");
       const bundle = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: evidence.value.definition,
         references: [reference.value],
       };
@@ -206,7 +206,7 @@ describe("schema-2 objective comparators", () => {
       );
       expect(projectPublicResult(definition.value, result)).toEqual({
         ok: true,
-        value: { schemaVersion: 3, outcome: "withheld", findings: [] },
+        value: { schemaVersion: 4, outcome: "withheld", findings: [] },
       });
       expect(JSON.stringify(result)).not.toContain("private-canary");
     }
@@ -216,7 +216,7 @@ describe("schema-2 objective comparators", () => {
 describe("AY-I17 integration regressions", () => {
   it("applies the key-length limit to all own structured properties", () => {
     const reference = createReferenceRecord({
-      schemaVersion: 3,
+      schemaVersion: 4,
       referenceId: "json-ref",
       kind: "json",
       value: null,
@@ -233,7 +233,7 @@ describe("AY-I17 integration regressions", () => {
     );
     if (!definition.ok) throw new Error("Invalid definition fixture");
     const evidence = createEvidenceBundle(definition.value, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       observations: [fact("json", null)],
     });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
@@ -249,13 +249,13 @@ describe("AY-I17 integration regressions", () => {
         });
         const sealed = createAllDefinition(authored);
         const referenceDraft = {
-          schemaVersion: 3,
+          schemaVersion: 4,
           referenceId: "json-ref",
           kind: "json",
           value,
         };
         const prepared = createEvidenceBundle(definition.value, {
-          schemaVersion: 3,
+          schemaVersion: 4,
           observations: [fact("json", value)],
         });
         const parsedEvidence = parseEvidenceBundle({
@@ -285,7 +285,7 @@ describe("AY-I17 integration regressions", () => {
           );
           if (!bound.ok) throw new Error("Invalid bound fixture");
           const bundle = {
-            schemaVersion: 3,
+            schemaVersion: 4,
             definition: {
               assessmentId: bound.value.assessmentId,
               revision: bound.value.revision,
@@ -296,7 +296,7 @@ describe("AY-I17 integration regressions", () => {
           expect(verifyReferenceBundle(bound.value, bundle).ok).toBe(true);
         } else {
           const bundle = {
-            schemaVersion: 3,
+            schemaVersion: 4,
             definition: evidence.value.definition,
             references: [{ ...reference.value, value }],
           };
@@ -318,7 +318,7 @@ describe("AY-I17 integration regressions", () => {
     ];
     for (const record of records) {
       const reference = createReferenceRecord({
-        schemaVersion: 3,
+        schemaVersion: 4,
         referenceId: "quantity",
         ...record,
       });
@@ -339,12 +339,12 @@ describe("AY-I17 integration regressions", () => {
       );
       if (!definition.ok) throw new Error("Invalid definition fixture");
       const evidence = createEvidenceBundle(definition.value, {
-        schemaVersion: 3,
+        schemaVersion: 4,
         observations: [{ ...fact("number", 1), unit: "m" }],
       });
       if (!evidence.ok) throw new Error("Invalid evidence fixture");
       const bundle = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         definition: evidence.value.definition,
         references: [reference.value],
       };
@@ -363,7 +363,7 @@ describe("AY-I17 integration regressions", () => {
 
   it("collects only public typed facts and rejects invalid or incomplete reports", async () => {
     const reference = createReferenceRecord({
-      schemaVersion: 3,
+      schemaVersion: 4,
       referenceId: "private-ref",
       kind: "json",
       value: { answer: "private-canary" },
@@ -408,7 +408,7 @@ describe("AY-I17 integration regressions", () => {
     });
     if (!definition.ok) throw new Error("Invalid definition fixture");
     const evidence = createEvidenceBundle(definition.value, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       observations: [],
     });
     if (!evidence.ok) throw new Error("Invalid evidence fixture");
@@ -438,7 +438,7 @@ describe("AY-I17 integration regressions", () => {
       stderrTruncated: false,
     };
     const report = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       definition: evidence.value.definition,
       provenance,
       observations: facts,
@@ -446,7 +446,7 @@ describe("AY-I17 integration regressions", () => {
     const collected = await collectObservations(definition.value, evidence.value, {
       async observe(request) {
         expect(request).toEqual({
-          schemaVersion: 3,
+          schemaVersion: 4,
           definition: report.definition,
           criteria: [
             { criterionId: "flag", kind: "boolean" },

@@ -1,7 +1,7 @@
 import type { Criterion } from "../contracts/definition";
 import type { Observation } from "../contracts/evidence";
 import type { ReferenceRecord } from "../contracts/reference";
-import type { Comparison } from "./comparators/finding";
+import { type Comparison, finding } from "./comparators/finding";
 import { compareNumber, compareRange } from "./comparators/number";
 import { compareExecution, compareManual } from "./comparators/review";
 import { compareSet } from "./comparators/set";
@@ -68,5 +68,7 @@ export function compare(
       return compareExecution(criterion, observation);
     case "manual_evidence":
       return compareManual(observation);
+    case "qualitative_review":
+      return finding({ outcome: "inconclusive", reasonCode: "REVIEW_REQUIRED" });
   }
 }

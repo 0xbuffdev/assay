@@ -36,7 +36,7 @@ const publicFact = {
 function definition(criteria: readonly unknown[]) {
   return unwrap(
     createAllDefinition({
-      schemaVersion: 3,
+      schemaVersion: 4,
       assessmentId: "adversarial",
       revision: "v1",
       policyVersion: "composed-required-v1",
@@ -83,7 +83,7 @@ describe("AY-I24 generated adversarial boundary cases", () => {
   it("rejects unknown fields, accessors, cycles and unsafe keys without executing getters", () => {
     const rubric = definition([publicCriterion]);
     const evidence = unwrap(
-      createEvidenceBundle(rubric, { schemaVersion: 3, observations: [publicFact] }),
+      createEvidenceBundle(rubric, { schemaVersion: 4, observations: [publicFact] }),
     );
     let calls = 0;
     const accessor = Object.defineProperty({ ...rubric }, "PRIVATE_CANARY", {
@@ -118,7 +118,7 @@ describe("AY-I24 generated adversarial boundary cases", () => {
     const expectedPublic = {
       ok: true,
       value: {
-        schemaVersion: 3,
+        schemaVersion: 4,
         outcome: "withheld",
         findings: [{ criterionId: "public", outcome: "pass", reason: "match" }],
       },
@@ -127,7 +127,7 @@ describe("AY-I24 generated adversarial boundary cases", () => {
     for (const expected of [1, Number.MAX_VALUE]) {
       const reference = unwrap(
         createReferenceRecord({
-          schemaVersion: 3,
+          schemaVersion: 4,
           referenceId: "PRIVATE_REFERENCE_CANARY",
           kind: "number",
           value: expected,
@@ -178,12 +178,12 @@ describe("AY-I24 generated adversarial boundary cases", () => {
           for (const probe of probes) {
             const evidence = unwrap(
               createEvidenceBundle(rubric, {
-                schemaVersion: 3,
+                schemaVersion: 4,
                 observations: [publicFact, ...probe.facts],
               }),
             );
             const references = {
-              schemaVersion: 3,
+              schemaVersion: 4,
               definition: evidence.definition,
               references: [reference],
             };
@@ -221,7 +221,7 @@ describe("AY-I24 generated adversarial boundary cases", () => {
   it("checks stream-specific truncation and empty reports through acquisition", async () => {
     for (const executionFact of ["stdout", "stderr"] as const) {
       const rubric = definition([{ ...publicCriterion, executionFact }]);
-      const existing = unwrap(createEvidenceBundle(rubric, { schemaVersion: 3, observations: [] }));
+      const existing = unwrap(createEvidenceBundle(rubric, { schemaVersion: 4, observations: [] }));
       for (const stdoutTruncated of [false, true]) {
         for (const stderrTruncated of [false, true]) {
           const provenance = {
@@ -236,7 +236,7 @@ describe("AY-I24 generated adversarial boundary cases", () => {
             stderrTruncated,
           };
           const report = {
-            schemaVersion: 3,
+            schemaVersion: 4,
             definition: existing.definition,
             provenance,
             termination: "exited",

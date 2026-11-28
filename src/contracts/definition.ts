@@ -94,6 +94,13 @@ export type Criterion =
       Readonly<{
         kind: "manual_evidence";
         parameters: Readonly<{ review: "required" }>;
+      }>)
+  | (CriterionBase &
+      ExecutionSelection<never> &
+      Readonly<{
+        kind: "qualitative_review";
+        mode: "advisory";
+        parameters: Readonly<{ reviewPolicyId: string; reviewPolicyVersion: string }>;
       }>);
 
 /** Authored definition before deterministic content hashing. */

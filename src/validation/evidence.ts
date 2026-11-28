@@ -7,6 +7,7 @@ import {
 import type { EvidenceBundle, EvidenceBundleDraft, ObservationOrigin } from "../contracts/evidence";
 import type { ValidationResult } from "../contracts/validation";
 import { SCHEMA_VERSION } from "../contracts/version";
+import { validateQualitativeReview } from "./qualitative";
 import {
   booleanValue,
   choice,
@@ -142,6 +143,16 @@ export function validateObservations(
 
   for (const [i, obs] of observations.entries()) {
     const p = `$.observations[${i}]`;
+    if (obs !== null && typeof obs === "object" && !Array.isArray(obs)) {
+      const review = obs as Record<string, unknown>;
+      if (review.kind === "qualitative_review") {
+        ids.push(review.criterionId);
+        refs.push(review.evidenceRef);
+        if (report) issues.add(`${p}.kind`, "INVALID_VALUE");
+        else validateQualitativeReview(review, artifactDigest, p, issues);
+        continue;
+      }
+    }
     if (
       !object(
         obs,
