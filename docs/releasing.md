@@ -2,7 +2,7 @@
 
 Assay uses Apache-2.0 and Semantic Versioning. Version 0.0.1 is the first intended public npm package. The package manifest is prepared for public access; no package has been published. Before 1.0.0, consumers should pin the version they tested.
 
-The [release preparation decision](https://github.com/0xbuffdev/context/blob/main/repos/assay/reviews/2026-11-28-release-preparation.md) authorizes metadata and documentation changes. The [AY-I09 publication hold](https://github.com/0xbuffdev/context/blob/main/repos/assay/reviews/2026-11-22-release-decision.md) remains in force.
+The [release preparation decision](https://github.com/0xbuffdev/context/blob/main/repos/assay/reviews/2026-11-28-release-preparation.md) authorizes metadata and documentation changes. The [publication hold](https://github.com/0xbuffdev/context/blob/main/repos/assay/reviews/2026-11-22-release-decision.md) remains in force.
 
 ## Candidate verification
 

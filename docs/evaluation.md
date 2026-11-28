@@ -1,4 +1,4 @@
-# Deterministic technical evaluation (AY-I02)
+# Deterministic technical evaluation
 
 The full technical `EvaluationResult` may include restricted criterion IDs, evidence
 references and aggregate conclusions influenced by protected checks. It is an
@@ -91,14 +91,14 @@ bound).
 
 ## Comparison semantics
 
-| Criterion               | Exact behavior                                                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `exact_text`            | JavaScript UTF-16 code-unit equality (`===`); no hidden whitespace, case, line-ending or Unicode transformation                      |
-| `normalized_text`       | Applies only explicitly declared transformations, in the fixed order below, to both actual and expected values                       |
-| `number_with_tolerance` | Absolute difference <= `max(absoluteTolerance, relativeTolerance * abs(expected))`, inclusive; no coercion                           |
-| `set_equivalence`       | Scalar equality within a declared string/number/boolean type, with authored order and duplicate policies                             |
-| `observed_execution`    | Always inconclusive even if the AY-I03 optional observation port reports `confirmed`; the port does **not** authenticate correctness |
-| `manual_evidence`       | Always inconclusive pending authorized review; presence of a document is never correctness                                           |
+| Criterion               | Exact behavior                                                                                                                |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `exact_text`            | JavaScript UTF-16 code-unit equality (`===`); no hidden whitespace, case, line-ending or Unicode transformation               |
+| `normalized_text`       | Applies only explicitly declared transformations, in the fixed order below, to both actual and expected values                |
+| `number_with_tolerance` | Absolute difference <= `max(absoluteTolerance, relativeTolerance * abs(expected))`, inclusive; no coercion                    |
+| `set_equivalence`       | Scalar equality within a declared string/number/boolean type, with authored order and duplicate policies                      |
+| `observed_execution`    | Always inconclusive even if the optional observation port reports `confirmed`; the port does **not** authenticate correctness |
+| `manual_evidence`       | Always inconclusive pending authorized review; presence of a document is never correctness                                    |
 
 **Normalized text transformation order:**
 
@@ -162,8 +162,7 @@ ID, kind, digest, unit or set item type. Invalid reference material returns
 `invalid_reference` with value-free diagnostics and no findings.
 Objective reference declarations require content digests; supplied bundles must bind the exact definition identity.
 
-AY-I03 adds an [optional port for bounded typed observation collection](observations.md)
-and claimed run/adapter provenance. Resolving restricted references, proving
+The [optional observation port](observations.md) collects bounded typed facts and claimed run/adapter provenance. Resolving restricted references, proving
 execution origin and recording authorized review decisions still require an
 independent host-owned security boundary, not the comparator or the port.
 
@@ -183,13 +182,9 @@ observation port receives neither the bundle nor expected values. Evidence and r
 
 ## Verification
 
-Run `pnpm check`: frozen toolchain, contracts, TypeScript typechecking,
-read-only Biome checks, Vitest golden/negative fixtures, and tsdown ESM/type
-bundling with compiled-package self-import verification. AY-I04 will add a
-separate packed-tarball consumer test. No release, npm publication or
-credential authority is implied by source success.
+Run `pnpm check` for source validation, typechecking, style, tests, build and independent offline installed-package verification. See [development](development.md) for details.
 
-## AY-I17 objective comparisons (schema 4)
+## Additional objective comparisons
 
 - `boolean_equality` compares a `boolean` observation with a strict boolean expectation.
 - `number_range` compares a `number` observation against an expected interval
@@ -208,10 +203,9 @@ boolean false is a real expected value, not an unavailable reference.
 Missing or truncated observations are inconclusive. Malformed inputs fail at
 validation, before any comparison. Restricted literals remain forbidden.
 
-The current generation admits these kinds alongside the original objective comparators.
 The structural result parser admits only the current evaluator version.
 
-## AY-I18 typed execution facts (schema 4)
+## Typed execution facts
 
 An objective criterion may declare an optional top-level `executionFact`.
 The supplied observation must declare the same selector and typed value.
@@ -254,14 +248,7 @@ Conflicting termination claims are invalid; a complete observation cannot
 omit termination for a run known to have timed out or crashed. An exited run or zero exit
 status alone is not proof of other required output or properties.
 
-Generic criteria
-and observations, and assertion-only `observed_execution`, retain their
-meaning. Assertions remain inconclusive even if confirmed. The schema-4
-canonical algorithm hashes every supplied field, including the new
-selector and origin termination, without changing historical bytes.
-Evaluator semantics are now `v0.0.5`.
+Assertion-only `observed_execution` criteria remain inconclusive even if confirmed. The schema-4 canonical algorithm includes the selector and origin termination in the digest.
 
-Selected execution facts are supplied directly through
-`createEvidenceBundle` and evaluated synchronously; the existing collector
-does not request them until AY-I19 specifies their report/request contract.
+Supply selected execution facts through `createEvidenceBundle`, or use [the optional collector](observations.md#selected-execution-facts-and-cancellation) for eligible missing public facts. Evaluation remains synchronous.
 The host owns authentication, capture accuracy, execution and isolation.

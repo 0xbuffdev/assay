@@ -46,14 +46,13 @@ Use the [source organization](architecture.md#source-organization) to locate the
 
 ## Scope of the current checks
 
-The tests verify versioned definitions, observations, findings, safety bounds and evidence coverage. The dist verifier checks that tsdown emitted executable ESM and declarations; it also smoke-tests deterministic comparison using the built ESM package. AY-I01 tests cover strict schema validation, bounded inputs, deterministic diagnostics and evidence coverage; AY-I02 tests cover comparator boundaries, replay, required/advisory precedence and unverified evidence. AY-I03 tests cover mock ports, provenance consistency, truncation, forged trust flags, restricted inputs, unsafe text and thrown provider errors. AY-I04 adds a standalone offline tarball installation, exact archive allowlist and Apache-2.0 notice audit, hostile-input ESM consumer, and isolated TypeScript declaration consumer. The pack check runs in `pnpm check` and as its own CI step after `pnpm build` on Ubuntu and Windows. It starts npm's JavaScript CLI through the active Node executable (never a Windows `.cmd` shim or shell invocation).
+Tests cover contract validation, comparator boundaries, deterministic replay, required/advisory precedence, evidence coverage, provenance, truncation, malformed inputs and protected-data disclosure. The distribution verifier checks executable ESM and declarations. The offline package verifier checks the exact archive, Apache-2.0 notice, dependencies, hostile inputs and installed ESM/TypeScript consumer. Both Ubuntu and Windows run these checks. The verifier invokes npm's JavaScript CLI through the active Node executable to avoid platform-specific shell shims.
 
 Assay is Apache-2.0 licensed. The public 0.0.1 package candidate remains unpublished. See the [release policy](releasing.md) for approval requirements.
 
 ## Version metadata and runtime compatibility
 
-AY-I22 separates package release (`package.json`) from evaluator semantics and
-canonical domains (authored in `scripts/version-metadata.mjs`). The generated
+The package version lives in `package.json`; evaluator semantics and canonical domains are defined in `scripts/version-metadata.mjs`. The generated
 `src/contracts/version.ts` is checked in for source consumers. Run
 `pnpm generate:version` only after an approved identity change; foundation and
 build verification reject stale generated metadata without rewriting it.
@@ -61,7 +60,7 @@ The package manifest remains the public package-version authority, while the
 existing evaluator export and technical result identify evaluator semantics.
 See [version compatibility](integrity.md#version-contract).
 
-## Conformance and adversarial verification (AY-I24)
+## Conformance and adversarial verification
 
 The conformance suite targets evaluator semantics `v0.0.5` and the sole generation-4 canonical profiles.
 It uses only synthetic records and the public source entry point. Node's
@@ -70,18 +69,17 @@ canonical hashes; fixed authored byte/hash vectors in the existing integrity
 suites remain the compatibility anchors. Generated corpora are deterministic:
 no random seed, clock, network, provider service or new dependency is needed.
 
-| Requirement    | Verification in the mandatory Vitest/foundation/package gates                                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ASY-27, ASY-38 | `adversarial.test.ts`, `serialized.test.ts`, `resources.test.ts`: malformed transport mutations, decoded duplicate keys, hostile objects, bounded resource limits, redacted failures       |
-| ASY-28–31      | `conformance.test.ts`, existing evaluator and execution-fact suites: independent comparator outcomes, replay, closed results, required/advisory precedence, missing and truncated evidence |
-| ASY-32         | Foundation module/export checks and isolated packed consumer; no source layout or API changes                                                                                              |
-| ASY-33         | Attributed qualitative observations are advisory-only; manual/unverified review paths remain non-authoritative                                                                             |
-| ASY-34–36      | `adversarial.test.ts`, `observation.test.ts`: stream-specific truncation permutations, empty/unsolicited reports, scoped origins, cancellation and late settlement                         |
-| ASY-37         | `adversarial.test.ts`, `projection.test.ts`: repeated protected probes, criterion order and advisory/required permutations, opaque rejection, fixed public bytes across hidden outcomes    |
-| ASY-39         | `conformance.test.ts`, existing fixed integrity vectors and generated metadata gate: independent hashes, version identity, unsupported versions                                            |
-| ASY-40         | All preceding checks plus exact installed ESM/TypeScript and archive verification; realistic additional standalone assessment integration is AY-I25                                        |
+The mandatory suites cover:
 
-Run the new suites independently, or use the full quality gate:
+- Malformed transport, duplicate keys, hostile objects, resource bounds and redacted failures: `adversarial.test.ts`, `serialized.test.ts`, `resources.test.ts`.
+- Independent comparator outcomes, replay, closed results, composition, missing and truncated evidence: `conformance.test.ts` and evaluator suites.
+- Module boundaries, exports, archive contents and installed ESM/TypeScript: foundation and packed-consumer checks.
+- Advisory-only qualitative observations and non-authoritative manual review.
+- Stream truncation, unsolicited reports, scoped origins, cancellation and late settlement: `adversarial.test.ts` and `observation.test.ts`.
+- Protected outcome permutations, opaque rejection and invariant public bytes: `adversarial.test.ts` and `projection.test.ts`.
+- Independent hashes, fixed canonical vectors, version identity and unsupported versions: integrity suites, `conformance.test.ts` and generated metadata checks.
+
+Run the focused suites or the full check:
 
 ```sh
 git rev-parse HEAD
@@ -114,14 +112,12 @@ not a proof of worst-case complexity, a memory ceiling or host isolation.
 Preserve the actual CI run and reviewed-head/tree identity when reporting
 acceptance, including any failed or unexecuted commands. Source review does
 not establish execution evidence, and the resource samples do not authorize
-publication. AY-I08 replaces generation 3 and adds qualitative contract and disclosure regressions. AY-I27 and AY-I28 independently verify the expanded candidate.
+publication.
 
-## Expanded conformance and resource verification (AY-I27)
+## Expanded conformance and resource verification
 
 The independent source tests `tests/expanded-conformance.test.ts` and
-`tests/expanded-resources.test.ts` supplement rather than replace AY-I24 and the
-ticket-local composition and review tests. They exercise current generation 4,
-evaluator v0.0.5, with no compatibility paths or new runtime exports.
+`tests/expanded-resources.test.ts` supplement the comparator, composition and review suites. They exercise schema 4 and evaluator v0.0.5.
 
 - Enumerate 2,048 four-leaf cases (all 256 outcome assignments for each of
   eight operator combinations); use a set-membership precedence oracle rather
@@ -158,11 +154,11 @@ memory guarantees; no timing or memory threshold is used for acceptance.
 Garbage collection, process history and machine load affect samples. Retain
 the actual run and exact reviewed tree identity on both platforms. These tests
 use synthetic inputs and do not establish provenance, actual citation validity,
-host isolation, release readiness or the separate AY-I28 installed scenarios.
+host isolation or release readiness. Installed-package scenarios run separately.
 
-## Standalone engineering assessment integration (AY-I25)
+## Standalone engineering assessment integration
 
-The mandatory packed-consumer gate copies and executes
+The packed-consumer check copies and executes
 `tests/consumer/standalone-assessments.mjs` outside this repository against the
 same offline-installed tarball as the existing ESM and TypeScript fixtures.
 The fixture imports only the package root and Node built-ins. Its records are
@@ -244,12 +240,11 @@ The verifier retains the original exact archive allowlist, offline
 no-script install, dependency/license checks and isolated declaration
 typecheck. Its standalone-assessment success marker must appear on both
 Ubuntu and Windows. The temporary installation is removed after verification;
-no registry publication or release version selection is part of AY-I25.
+the check does not select a release version or publish to the registry.
 
-## Expanded standalone assessment integration (AY-I28)
+## Expanded standalone assessment integration
 
-The existing mandatory offline packed-consumer gate also runs the expanded
-assessment scenarios in `tests/consumer/standalone-assessments.mjs` and compiles
+The offline packed-consumer check also runs expanded assessment scenarios in `tests/consumer/standalone-assessments.mjs` and compiles
 `tests/consumer/consumer.ts.txt` against the same installed declarations. A
 synthetic design-check assessment requires a common output and either of two
 explicit demonstrations, including a protected content-bound alternative.
@@ -264,10 +259,7 @@ claims, independently resealed malformed review and alternate-branch records,
 reference tampering, serialized replay, forged projections and port omission.
 The installed declaration fixture checks typed composition, protected reference,
 review and manual observations, public result shape and negative type cases.
-The verifier requires both AY-I25 and AY-I28 runtime success markers, checks
-the additional synthetic canary in shipped payloads, and retains the original
-exact archive and license gates. No additional runtime dependency or export is
-needed. Run `pnpm check` on the exact candidate on Ubuntu and Windows; record
+The verifier requires success markers for both sets of runtime scenarios and scans compiled payloads for synthetic private canaries. It also enforces the exact archive and license checks. Run `pnpm check` on the exact candidate on Ubuntu and Windows; record
 actual source SHA and CI output, including the isolated TypeScript marker.
 The examples do not prove real reviewer authority, actual citation validity,
 execution isolation or academic credit. Release approval is a separate decision.

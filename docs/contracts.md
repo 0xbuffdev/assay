@@ -1,9 +1,6 @@
-# Versioned Assay contracts (AY-I01)
+# Versioned contracts
 
-Assay validates versioned assessment definitions, bounded typed evidence and
-technical finding records. AY-I02 adds deterministic literal comparisons
-through `evaluate` as described in [evaluation](evaluation.md); it still does
-**not execute submitted code, authenticate evidence, declare competence or award academic credit**.
+Assay validates assessment definitions, bounded typed evidence and technical findings. The [evaluator](evaluation.md) compares literal or content-bound reference expectations against observations. Execution, evidence authentication and formal credit remain host responsibilities.
 
 ## Minimal example
 
@@ -62,13 +59,12 @@ the canonical hash. Evaluation, acquisition and public projection verify it
 automatically; `verifyAssessmentDefinition` is available for explicit checks.
 **The host** must authenticate the publisher and independently decide
 whether that definition or digest is authorized; a matching hash alone cannot
-establish origin or grading authority. The source package remains unreleased;
-the import shown represents the future package entry.
+establish origin or grading authority.
 
 ## Definition rules
 
 - A definition has `schemaVersion: 4`, `assessmentId`, immutable
-  `revision` and `revisionDigest`, `policyVersion` an explicit `composition`, and 1–64 criteria.
+  `revision` and `revisionDigest`, `policyVersion`, an explicit `composition`, and 1–64 criteria.
 - At least one criterion must be `required`. IDs must be distinct; the
   sentinel revision `latest` is not a stable identity.
 - The digest syntax is lowercase `sha256:` followed by 64 hex digits.
@@ -86,7 +82,7 @@ the import shown represents the future package entry.
   endpoint inclusion. Neither coerces strings to numbers. For both kinds, numeric
   observations carry the criterion's exact optional `unit` identifier, including
   deliberate absence. A mismatch returns `invalid_evidence` before comparison,
-  without unit conversion. See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-4).
+  without unit conversion. See [evaluation semantics](evaluation.md#additional-objective-comparisons).
 - Set criteria declare element type, ordering and duplicate policy.
 - Execution criteria declare assertion and reference IDs, **not** an embedded
   command or code runner.
@@ -94,18 +90,16 @@ the import shown represents the future package entry.
   requirement. Restricted criteria require reference IDs rather than embedding
   private literal expected answers.
 
-These are **validated shapes** consumed by the AY-I02
-[deterministic comparator](evaluation.md). AY-I03 additionally provides the [optional observation port](observations.md)
-with bounded claimed provenance and protected-reference redaction. Verified
+The [evaluator](evaluation.md) consumes these validated shapes. The [optional observation port](observations.md) accepts bounded provenance claims and excludes protected references from requests. Verified
 execution trust and protected answer resolution remain host responsibilities.
 
-## Criterion composition (AY-I23)
+## Criterion composition
 
 The sole policy is `composed-required-v1`. The required `composition` object contains `rootGroupId` and an authored array of groups, each with an ID, operator `all` or `any`, and nonempty children. Each child has exactly `kind: "criterion" | "group"` and `id`. IDs are disjoint and unique across groups and criteria; root has no parent, every other group exactly one, all are reachable, and cycles and sharing are forbidden. Every required criterion must appear once; advisory criteria cannot be included. Ordinary conjunction is one explicit all group.
 
 The composition is bounded to 64 groups, 64 children per group, eight group levels and 127 child edges. All ordinary snapshot limits still apply. Authored order participates in the definition digest. See [aggregation semantics](evaluation.md#required-versus-advisory-decisions).
 
-## Content-bound reference contracts (AY-I13)
+## Content-bound reference contracts
 
 Use `createReferenceRecord` to construct a frozen, privileged schema-4 reference
 record and `verifyReferenceBundle` to validate separately supplied records
@@ -117,11 +111,10 @@ wrong-kind, wrong-unit or tampered references are invalid input, not learner
 failure. Definitions cannot repeat an objective reference ID in schema 4.
 An empty or partial bundle is permitted, not a completeness claim.
 
-AY-I14 adds optional reference bundles to `evaluate(definition, evidence, references?)`.
+Pass an optional reference bundle to `evaluate(definition, evidence, references?)`.
 Valid supplied records use the same objective comparator as literals; missing
 records are inconclusive, and malformed material returns an `invalid_reference`
-failure envelope. Execution assertions retain ID-only metadata and remain non-authoritative;
-AY-I18 owns their replacement with typed execution facts. See
+failure envelope. Execution assertions retain ID-only metadata and remain non-authoritative. Use [typed execution facts](evaluation.md#typed-execution-facts) for direct objective comparisons. See
 [the canonical profiles](integrity.md#current-generation-reference-integrity).
 
 ## Evidence rules
@@ -162,7 +155,7 @@ The library cannot establish that submitted observation values came from
 a trustworthy runner. A caller cannot turn `evidenceRef`, `revisionDigest`
 or `runRef` strings into authenticated proof by naming them.
 
-## Attributed qualitative observations (AY-I08)
+## Attributed qualitative observations
 
 A `qualitative_review` criterion is advisory-only, public or restricted, with no execution selector and exactly `reviewPolicyId` and `reviewPolicyVersion` parameters. It is not a binding composition leaf. Review observations have the common criterion ID, evidence reference, completeness and kind plus a matching review policy, artifact-only origin, reviewer, uncertainty, feedback and citations.
 
@@ -192,13 +185,7 @@ It is **structural validation, not attestation**:
 parsing a caller-supplied `"pass"` is not verification of correctness or
 official credit.
 
-There are no grade, enrollment, credential, learner identity or entitlement
-fields in the public contracts. Unknown fields are errors. AY-I02 now returns
-real criterion-level findings for complete local literal comparisons through
-[`evaluate`](evaluation.md). Unresolved reference IDs, unverified execution
-claims and manual review remain inconclusive; verified observation integration
-and restricted-reference handling belong to AY-I03. Technical findings do not
-authenticate evidence or award official credit.
+The public contracts contain no grade, enrollment, credential, learner identity or entitlement fields. Unknown fields are rejected. Unavailable reference records, unverified execution assertions and required manual review remain inconclusive. Technical findings do not authenticate evidence or award official credit.
 
 ## Validation and safety limits
 
@@ -284,18 +271,4 @@ versioned technical findings or an invalid-input diagnostic envelope as
 documented in [evaluation](evaluation.md). No compatibility layer is promised
 for unshipped versions.
 
-Run `pnpm check` to validate the frozen dependency tree, TypeScript, Biome,
-Vitest and the tsdown ESM/type-declaration build. No package release is
-authorized by this milestone.
-
-AY-I17 adds current `boolean_equality`, `number_range`, and
-`json_equality` criteria, with matching typed observation/reference contracts.
-The shared snapshot bounds apply to the entire definition, reference bundle,
-or evidence bundle, including nested JSON values; prohibited keys, non-finite
-numbers, cycles and accessors are rejected. The separate AY-I21 decoder handles raw JSON text.
-See [evaluation semantics](evaluation.md#ay-i17-objective-comparisons-schema-4).
-
-AY-I18 adds an optional schema-4 criterion `executionFact` and matching
-selected observation with a required scoped run origin and termination.
-See the [closed selector and completeness contract](evaluation.md#ay-i18-typed-execution-facts-schema-4).
-Assertion-only execution and manual artifacts remain non-authoritative.
+The shared snapshot bounds apply to the entire definition, reference bundle and evidence bundle, including nested JSON values. The validator rejects prohibited keys, non-finite numbers, cycles and accessors. Use `decodeSerializedRecord` for raw JSON text. See [additional objective comparisons](evaluation.md#additional-objective-comparisons) and [typed execution facts](evaluation.md#typed-execution-facts) for the matching observation and reference contracts. Assertion-only execution and manual artifacts remain non-authoritative.
