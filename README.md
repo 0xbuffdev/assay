@@ -6,15 +6,13 @@ The host supplies the evidence and authorizes the criteria. Assay does not execu
 
 ## Installation
 
-Requires Node.js 24 or later and ESM. Version 0.0.1 is the first planned npm release; it has not been published.
-
-After publication:
+Requires Node.js 24 or later and ESM. Install version 0.0.1 from npm:
 
 ```sh
 npm install @0xbuff/assay@0.0.1
 ```
 
-Until then, [build from source](#development).
+For an unreleased revision, [build from source](#development).
 
 ## Quick start
 

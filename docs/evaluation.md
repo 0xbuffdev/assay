@@ -66,8 +66,6 @@ const assessment = evaluate(definition, evidence);
 // This is not official credit and does not authenticate evidence.
 ```
 
-The package candidate is 0.0.1. Until publication, use the exported entry from a local build.
-
 ## Return values
 
 For valid definitions and evidence, `evaluate` returns an immutable,
