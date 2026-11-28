@@ -245,3 +245,29 @@ no-script install, dependency/license checks and isolated declaration
 typecheck. Its standalone-assessment success marker must appear on both
 Ubuntu and Windows. The temporary installation is removed after verification;
 no registry publication or release version selection is part of AY-I25.
+
+## Expanded standalone assessment integration (AY-I28)
+
+The existing mandatory offline packed-consumer gate also runs the expanded
+assessment scenarios in `tests/consumer/standalone-assessments.mjs` and compiles
+`tests/consumer/consumer.ts.txt` against the same installed declarations. A
+synthetic design-check assessment requires a common output and either of two
+explicit demonstrations, including a protected content-bound alternative.
+Provider-free evaluation retains every leaf outcome and cannot bypass the
+common output. Public projection withholds the aggregate and omits protected
+branch and review material even when the hidden outcome changes.
+
+A separate all-public design defense requires manual evidence; favorable
+attributed review remains advisory, and absent, truncated and complete review
+records cannot satisfy the manual leaf. The scenarios exercise human/model
+claims, independently resealed malformed review and alternate-branch records,
+reference tampering, serialized replay, forged projections and port omission.
+The installed declaration fixture checks typed composition, protected reference,
+review and manual observations, public result shape and negative type cases.
+The verifier requires both AY-I25 and AY-I28 runtime success markers, checks
+the additional synthetic canary in shipped payloads, and retains the original
+exact archive and license gates. No additional runtime dependency or export is
+needed. Run `pnpm check` on the exact candidate on Ubuntu and Windows; record
+actual source SHA and CI output, including the isolated TypeScript marker.
+The examples do not prove real reviewer authority, actual citation validity,
+execution isolation or academic credit. Release approval is a separate decision.

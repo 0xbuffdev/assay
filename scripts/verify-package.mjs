@@ -230,6 +230,7 @@ try {
       "AYI25_PRIVATE_",
       "AYI08_PRIVATE_",
       "AYI27_PRIVATE_",
+      "AYI28_PRIVATE_",
     ]) {
       assert.ok(!contents.includes(canary), "Test or private sentinel entered the shipped package");
     }
@@ -249,7 +250,10 @@ try {
     path.join(consumerDir, "standalone-assessments.mjs"),
     await readFile(path.join(fixtureDir, "standalone-assessments.mjs"), "utf8"),
   );
-  console.log(command(process.execPath, ["standalone-assessments.mjs"], consumerDir).trim());
+  const scenarioOutput = command(process.execPath, ["standalone-assessments.mjs"], consumerDir);
+  assert.match(scenarioOutput, /AY-I25 installed standalone assessment scenarios passed/);
+  assert.match(scenarioOutput, /AY-I28 installed expanded assessment scenarios passed/);
+  console.log(scenarioOutput.trim());
 
   await writeFile(
     path.join(consumerDir, "consumer.ts"),
@@ -280,6 +284,7 @@ try {
   // The compiler executable comes from the authoring dev toolchain. Its
   // module/type resolution starts in the isolated consumer directory.
   command(process.execPath, [compiler, "--project", "tsconfig.json"], consumerDir);
+  console.log("AY-I28 installed expanded TypeScript contracts verified");
   console.log(
     "AY-I04 packed consumer verified: exact file allowlist, Apache-2.0, no runtime deps, " +
       "offline no-script install, public ESM API, hostile cases and isolated TypeScript declarations",

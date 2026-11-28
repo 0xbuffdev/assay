@@ -498,3 +498,107 @@ void reviewEvidenceDraft;
 void independentReview;
 void portReview;
 void oldDraft;
+
+
+// AY-I28: an actual installed declaration consumer authors an expanded
+// assessment and uses its typed records without ambient Node/DOM types.
+const expandedComposition: import("@0xbuff/assay").CriterionComposition = {
+  rootGroupId: "root",
+  groups: [
+    { id: "root", operator: "all", children: [
+      { kind: "criterion", id: "output" },
+      { kind: "group", id: "alternatives" },
+      { kind: "criterion", id: "defense" },
+    ] },
+    { id: "alternatives", operator: "any", children: [
+      { kind: "criterion", id: "measurement" },
+      { kind: "criterion", id: "protected" },
+    ] },
+  ],
+};
+const expandedReferenceDraft: ReferenceRecordDraft = {
+  schemaVersion: 4, referenceId: "protected-reference", kind: "number", value: 50,
+};
+const expandedReference = createReferenceRecord(expandedReferenceDraft);
+if (expandedReference.ok) {
+  const expandedDraft: AssessmentDefinitionDraft = {
+    schemaVersion: 4, assessmentId: "typed-design-check", revision: "rev1",
+    policyVersion: "composed-required-v1", composition: expandedComposition,
+    criteria: [
+      { id: "output", kind: "exact_text", mode: "required", visibility: "public", parameters: { expected: { type: "literal", value: "ok" } } },
+      { id: "measurement", kind: "number_range", mode: "required", visibility: "public", parameters: { expected: { type: "literal", value: { min: 10, max: 20, minInclusive: true, maxInclusive: true } }, unit: "ms" } },
+      { id: "protected", kind: "number_with_tolerance", mode: "required", visibility: "restricted", parameters: { expected: { type: "reference", referenceId: expandedReference.value.referenceId, referenceDigest: expandedReference.value.referenceDigest }, tolerance: { absolute: 0, relative: 0 } } },
+      { id: "defense", kind: "manual_evidence", mode: "required", visibility: "public", parameters: { review: "required" } },
+      qualitativeCriterion,
+    ],
+  };
+  const expandedDefinition = createAssessmentDefinition(expandedDraft);
+  const artifactDigest = typedReview.origin.artifactDigest;
+  const modelClaim: import("@0xbuff/assay").QualitativeReviewer = {
+    kind: "model", providerId: "provider", modelId: "model", modelVersion: "rev1", promptId: "prompt", promptVersion: "rev1",
+  };
+  const citation: import("@0xbuff/assay").ReviewCitation = { artifactRef: "file", startByte: 0, endByte: 5 };
+  const modelObservation: import("@0xbuff/assay").QualitativeObservation = {
+    ...typedReview, reviewer: modelClaim, citations: [citation], uncertainty: "low",
+  };
+  const manualObservation: import("@0xbuff/assay").Observation = {
+    criterionId: "defense", evidenceRef: "manual", kind: "manual", completeness: "complete",
+    artifactRefs: ["file"], origin: { kind: "artifact", artifactDigest, sourceRef: "fixture" },
+  };
+  const facts: EvidenceBundleDraft = {
+    schemaVersion: 4, artifactDigest,
+    observations: [
+      { criterionId: "output", evidenceRef: "out", kind: "text", value: "ok", completeness: "complete", origin: { kind: "independent", sourceRef: "fixture" } },
+      { criterionId: "measurement", evidenceRef: "measurement", kind: "number", value: 15, unit: "ms", completeness: "complete", origin: { kind: "independent", sourceRef: "fixture" } },
+      modelObservation, manualObservation,
+    ],
+  };
+  if (expandedDefinition.ok) {
+    const sealed = createEvidenceBundle(expandedDefinition.value, facts);
+    if (sealed.ok) {
+      const bound: ReferenceBundle = {
+        schemaVersion: 4, definition: sealed.value.definition, references: [expandedReference.value],
+      };
+      const response: EvaluationResponse = evaluate(expandedDefinition.value, sealed.value, bound);
+      if ("findings" in response) {
+        const complete: import("@0xbuff/assay").EvaluationResult = response;
+        const projected: PublicProjectionResponse = projectPublicResult(expandedDefinition.value, complete);
+        if (projected.ok) {
+          const publicResult: PublicTechnicalResult = projected.value;
+          const publicReason: PublicReason = publicResult.findings[0].reason;
+          void publicReason;
+          // @ts-expect-error public views never expose group topology
+          void publicResult.composition;
+          // @ts-expect-error public findings never expose review feedback
+          void publicResult.findings[0].feedback;
+          // @ts-expect-error public findings never expose evidence references
+          void publicResult.findings[0].evidenceRefs;
+        }
+      }
+    }
+  }
+  // @ts-expect-error the model reviewer claim must identify its prompt version
+  const incompleteReviewer: import("@0xbuff/assay").QualitativeReviewer = { kind: "model", providerId: "p", modelId: "m", modelVersion: "rev1", promptId: "prompt" };
+  // @ts-expect-error a review observation cannot include a binding verdict
+  const authoritativeReview: import("@0xbuff/assay").QualitativeObservation = { ...modelObservation, verdict: "pass" };
+  // @ts-expect-error a review observation cannot be acquired as a report fact
+  const badReportFact: import("@0xbuff/assay").ObservationPortReport["observations"][number] = modelObservation;
+  // @ts-expect-error qualitative review is not a public port request kind
+  const badRequestKind: import("@0xbuff/assay").ObservationPortCriterion = { criterionId: "review", kind: "qualitative_review" };
+  // @ts-expect-error a manual artifact cannot be a provider report fact
+  const badManualReportFact: import("@0xbuff/assay").ObservationPortReport["observations"][number] = manualObservation;
+  // @ts-expect-error an attributed review is not a required comparator
+  const badRequiredReview: Criterion = { ...qualitativeCriterion, mode: "required" };
+  // @ts-expect-error an expression operator is explicitly closed
+  const badGroup: import("@0xbuff/assay").CriterionGroup = { id: "root", operator: "weighted", children: [{ kind: "criterion", id: "output" }] };
+  // @ts-expect-error the superseded policy cannot be authored
+  const oldPolicy: PolicyVersion = "all-required-v1";
+  void incompleteReviewer;
+  void authoritativeReview;
+  void badReportFact;
+  void badRequestKind;
+  void badManualReportFact;
+  void badRequiredReview;
+  void badGroup;
+  void oldPolicy;
+}
