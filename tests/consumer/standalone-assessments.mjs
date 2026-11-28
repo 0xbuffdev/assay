@@ -478,7 +478,6 @@ publicView(inventory, publicFail, "withheld", [
 assert.deepEqual(projectPublicResult(inventory, { ...pass, outcome: "fail" }), opaque);
 console.log("AY-I25 installed standalone assessment scenarios passed (synthetic facts only)");
 
-
 // AY-I28: an offline design-check exercise requires correct output AND one
 // of two explicitly sufficient demonstrations. The private reference is
 // supplied by the host, never acquired from a reviewer or public fact port.
@@ -788,7 +787,11 @@ for (const [mutation, code] of [
 ]) {
   const observations = [outputFact, measurementFact, protectedFact, mutation, modelReview];
   assert.equal(
-    createEvidenceBundle(composed, { schemaVersion: 4, artifactDigest: expandedArtifact, observations }).ok,
+    createEvidenceBundle(composed, {
+      schemaVersion: 4,
+      artifactDigest: expandedArtifact,
+      observations,
+    }).ok,
     false,
   );
   invalid(
