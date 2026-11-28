@@ -1,5 +1,5 @@
-# Code of Conduct
+# Code of conduct
 
-Keep project discussion professional and focused on technical substance. Critique ideas and code rather than people. Harassment, threats, abuse, personal data disclosure and posting confidential assessment materials are not permitted.
+Discuss technical issues respectfully. Critique code and ideas rather than people. Harassment, threats, abuse, disclosure of personal data and posting confidential assessment material are not permitted.
 
-Maintainers may moderate inappropriate issues, comments and reviews. Use GitHub's reporting features for platform abuse and the confidential process in [SECURITY.md](SECURITY.md) for vulnerabilities.
+Maintainers may moderate issues, comments and reviews that violate these expectations. Use GitHub's reporting features for platform abuse and the [security policy](SECURITY.md) for vulnerability reports.

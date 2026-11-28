@@ -1,7 +1,7 @@
 # Security policy
 
-There is no supported Assay release yet. Potential risks include fail-open evaluation, malformed/unbounded evidence, forged provenance, secret-reference disclosure, denial of service and dependency compromise.
+Assay has no published release yet. Report vulnerabilities involving incorrect evaluation, malformed or oversized evidence, forged provenance, restricted-data disclosure or dependency compromise.
 
-Do not disclose exploits, credentials, private tests, learner work or protected grading definitions in public issues, PRs or discussions. Use GitHub's private **Security → Report a vulnerability** facility if enabled. Otherwise open a short, non-sensitive issue requesting a confidential reporting route, without vulnerability details.
+Use GitHub's [private vulnerability reporting](https://github.com/0xbuffdev/assay/security/advisories/new) if enabled. Otherwise, open a non-sensitive issue requesting a confidential reporting route. Do not include exploit details, credentials, learner work or protected references in public issues or pull requests.
 
-No response-time, certification or bug-bounty commitment is made at this pre-release stage.
+Include the affected commit or version, a minimal synthetic reproduction and the impact. No response-time or bug-bounty commitment is made.

@@ -1,18 +1,21 @@
-# Contributing to Assay
+# Contributing
 
-Assay is licensed under the [Apache License, Version 2.0](LICENSE). Non-sensitive ideas and issues are welcome. Propose significant code changes in an issue first; external pull requests remain subject to maintainer review and acceptance. Contributions intentionally submitted for inclusion are handled under Section 5 of Apache-2.0 unless explicitly stated otherwise or covered by a separate agreement.
+Assay welcomes reproducible bug reports, documentation corrections and technical proposals. Open an issue before changing a public contract or architecture. Use the [security policy](SECURITY.md) for confidential reports.
 
-Read the [public specification](https://github.com/0xbuffdev/context/blob/main/repos/assay/specs/0001-evaluation-core.md) and the current implementation ticket before suggesting behavior.
+## Development
 
-For maintainer-approved source work, use Node.js 24+ with pinned pnpm:
+Install Node.js 24+ and pnpm 11.2.2, then run:
 
 ```sh
 corepack enable
 pnpm install --frozen-lockfile
 pnpm check
-pnpm test
 ```
 
-The full `pnpm check` includes offline packed-consumer acceptance after the ESM/type build. It creates and deletes only a temporary local tarball; no npm publication occurs.
+Use a focused branch and add tests for changed behavior. The full check includes typechecking, Biome, Vitest, the build and the offline installed-package tests. See [development](docs/development.md) and the [accepted specifications](https://github.com/0xbuffdev/context/tree/main/repos/assay).
 
-Keep changes in one branch and PR per accepted ticket, cover malformed and incomplete evidence, and state actual verification. Do not introduce a hosted-service requirement or claim that an advisory finding is official credit. Follow [SECURITY.md](SECURITY.md) for sensitive reports instead of opening public issues.
+## Pull requests
+
+Explain the intended behavior, relevant ticket or issue, and the checks you ran. Use synthetic fixtures, retain the zero-runtime-dependency boundary and keep protected material out of public changes. Contract changes require maintainer approval.
+
+Contributions intentionally submitted for inclusion follow Section 5 of the [Apache License 2.0](LICENSE), unless explicitly stated otherwise or covered by a separate agreement.
