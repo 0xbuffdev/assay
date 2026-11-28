@@ -477,3 +477,439 @@ publicView(inventory, publicFail, "withheld", [
 ]);
 assert.deepEqual(projectPublicResult(inventory, { ...pass, outcome: "fail" }), opaque);
 console.log("AY-I25 installed standalone assessment scenarios passed (synthetic facts only)");
+
+
+// AY-I28: an offline design-check exercise requires correct output AND one
+// of two explicitly sufficient demonstrations. The private reference is
+// supplied by the host, never acquired from a reviewer or public fact port.
+const expandedHidden = "AYI28_PRIVATE_BRANCH";
+const expandedReview = "AYI28_PRIVATE_REVIEW";
+const expandedReference = unwrap(
+  createReferenceRecord({
+    schemaVersion: 4,
+    referenceId: "AYI28_PRIVATE_REFERENCE",
+    kind: "number",
+    value: 50,
+  }),
+);
+const expandedArtifact = `sha256:${createHash("sha256").update("synthetic-design-artifact").digest("hex")}`;
+const common = criterion("output", "exact_text", { expected: literal("ok") });
+const alternative = criterion("measurement", "number_range", {
+  expected: literal({ min: 10, max: 20, minInclusive: true, maxInclusive: true }),
+  unit: "ms",
+});
+const protectedAlternative = criterion(
+  expandedHidden,
+  "number_with_tolerance",
+  {
+    expected: {
+      type: "reference",
+      referenceId: expandedReference.referenceId,
+      referenceDigest: expandedReference.referenceDigest,
+    },
+    tolerance: { absolute: 0, relative: 0 },
+  },
+  { visibility: "restricted" },
+);
+const reviewPolicy = { reviewPolicyId: "design-review", reviewPolicyVersion: "rev1" };
+const publicAdvice = criterion("explanation", "qualitative_review", reviewPolicy, {
+  mode: "advisory",
+});
+const hiddenAdvice = { ...publicAdvice, id: expandedReview, visibility: "restricted" };
+const requiredManual = criterion("design-defense", "manual_evidence", { review: "required" });
+const composedDraft = {
+  schemaVersion: 4,
+  assessmentId: "design-check",
+  revision: "rev1",
+  policyVersion: "composed-required-v1",
+  criteria: [common, alternative, protectedAlternative, publicAdvice, hiddenAdvice],
+  composition: {
+    rootGroupId: "root",
+    groups: [
+      {
+        id: "AYI28_PRIVATE_GROUP",
+        operator: "any",
+        children: [
+          { kind: "criterion", id: expandedHidden },
+          { kind: "criterion", id: "measurement" },
+        ],
+      },
+      {
+        id: "root",
+        operator: "all",
+        children: [
+          { kind: "criterion", id: "output" },
+          { kind: "group", id: "AYI28_PRIVATE_GROUP" },
+        ],
+      },
+    ],
+  },
+};
+const composed = unwrap(createAssessmentDefinition(composedDraft));
+const independentOrigin = { kind: "independent", sourceRef: "fixture" };
+const expandedOrigin = {
+  kind: "artifact",
+  artifactDigest: expandedArtifact,
+  sourceRef: "AYI28_PRIVATE_SOURCE",
+};
+const outputFact = fact("output", "text", "ok", { origin: independentOrigin });
+const measurementFact = fact("measurement", "number", 15, {
+  unit: "ms",
+  origin: independentOrigin,
+});
+const protectedFact = fact(expandedHidden, "number", 50, {
+  evidenceRef: "AYI28_PRIVATE_FACT",
+  origin: expandedOrigin,
+});
+const humanReview = {
+  criterionId: "explanation",
+  evidenceRef: "AYI28_PRIVATE_PUBLIC_REVIEW_REF",
+  kind: "qualitative_review",
+  completeness: "complete",
+  origin: expandedOrigin,
+  ...reviewPolicy,
+  reviewer: { kind: "human", reviewerId: "AYI28_PRIVATE_HUMAN", reviewerVersion: "rev1" },
+  uncertainty: "unknown",
+  feedback: "AYI28_PRIVATE_FEEDBACK: explanation requires independent review.",
+  citations: [{ artifactRef: "AYI28_PRIVATE_CITATION", startByte: 0, endByte: 10 }],
+};
+const modelReview = {
+  ...humanReview,
+  criterionId: expandedReview,
+  evidenceRef: "AYI28_PRIVATE_MODEL_REVIEW_REF",
+  reviewer: {
+    kind: "model",
+    providerId: "AYI28_PRIVATE_PROVIDER",
+    modelId: "AYI28_PRIVATE_MODEL",
+    modelVersion: "rev1",
+    promptId: "AYI28_PRIVATE_PROMPT",
+    promptVersion: "rev2",
+  },
+  uncertainty: "low",
+  feedback: "AYI28_PRIVATE_MODEL_FEEDBACK: favorable explanation.",
+};
+function expandedEvidence(definition, observations) {
+  return evidence(definition, observations, expandedArtifact);
+}
+const composedEvidence = expandedEvidence(composed, [
+  outputFact,
+  measurementFact,
+  protectedFact,
+  humanReview,
+  modelReview,
+]);
+const composedReferences = {
+  schemaVersion: 4,
+  definition: composedEvidence.definition,
+  references: [expandedReference],
+};
+const expandedCanaries = [
+  "AYI28_PRIVATE_",
+  expandedArtifact,
+  composed.revisionDigest,
+  composedEvidence.evidenceDigest,
+  expandedReference.referenceDigest,
+  outputFact.evidenceRef,
+  measurementFact.evidenceRef,
+];
+const outputPass = finding("output", "pass", "MATCH");
+const measurementPass = finding("measurement", "pass", "MATCH");
+const measurementFail = finding("measurement", "fail", "VALUE_MISMATCH");
+const hiddenPass = finding(expandedHidden, "pass", "MATCH");
+const hiddenFail = finding(expandedHidden, "fail", "VALUE_MISMATCH");
+const hiddenMissing = finding(expandedHidden, "inconclusive", "EVIDENCE_MISSING");
+const reviewNeeded = finding("explanation", "inconclusive", "REVIEW_REQUIRED");
+const hiddenNeeded = finding(expandedReview, "inconclusive", "REVIEW_REQUIRED");
+const hiddenAbsent = finding(expandedReview, "inconclusive", "EVIDENCE_MISSING");
+const hiddenTruncated = finding(expandedReview, "inconclusive", "EVIDENCE_TRUNCATED");
+const publicExpanded = [
+  publicFinding("output", "pass", "match"),
+  publicFinding("measurement", "pass", "match"),
+  publicFinding("explanation", "inconclusive", "review_needed"),
+];
+const expandedPass = complete(
+  decoded(composed),
+  decoded(composedEvidence),
+  decoded(composedReferences),
+  "pass",
+  [outputPass, measurementPass, hiddenPass, reviewNeeded, hiddenNeeded],
+);
+assert.deepEqual(expandedPass.warnings, ["ADVISORY_UNRESOLVED"]);
+assert.equal(verifyEvidenceBundle(composed, composedEvidence).ok, true);
+assert.equal(verifyReferenceBundle(composed, composedReferences).ok, true);
+const expandedPublicBytes = publicView(composed, expandedPass, "withheld", publicExpanded);
+for (const secret of expandedCanaries) assert.ok(!expandedPublicBytes.includes(secret));
+for (const key of ["feedback", "reviewer", "citations"]) {
+  assert.ok(!JSON.stringify(expandedPass).includes(key));
+}
+
+// Public alternative wins without a protected fact or available reference;
+// every valid leaf retains its own outcome. Hidden review changes never leak.
+for (const [privateFacts, privateFinding, reviewFacts, reviewFinding, suppliedReferences] of [
+  [[{ ...protectedFact, value: 49 }], hiddenFail, [], hiddenAbsent, composedReferences],
+  [[], hiddenMissing, [modelReview], hiddenNeeded, composedReferences],
+  [
+    [protectedFact],
+    finding(expandedHidden, "inconclusive", "REFERENCE_UNAVAILABLE"),
+    [{ ...modelReview, completeness: "truncated" }],
+    hiddenTruncated,
+    undefined,
+  ],
+]) {
+  const record = expandedEvidence(composed, [
+    outputFact,
+    measurementFact,
+    ...privateFacts,
+    humanReview,
+    ...reviewFacts,
+  ]);
+  const result = complete(composed, record, suppliedReferences, "pass", [
+    outputPass,
+    measurementPass,
+    privateFinding,
+    reviewNeeded,
+    reviewFinding,
+  ]);
+  assert.equal(publicView(composed, result, "withheld", publicExpanded), expandedPublicBytes);
+  assert.equal(
+    JSON.stringify(evaluate(decoded(composed), decoded(record), suppliedReferences)),
+    JSON.stringify(result),
+  );
+}
+
+// Private alternative wins if the measurement fails. A common output
+// failure cannot be bypassed by either alternative. Both alternatives fail
+// when both are observed but wrong; no usable alternative stays unresolved.
+const failedMeasurement = { ...measurementFact, value: 21 };
+const privateWinnerEvidence = expandedEvidence(composed, [
+  outputFact,
+  failedMeasurement,
+  protectedFact,
+  humanReview,
+  modelReview,
+]);
+const privateWinner = complete(composed, privateWinnerEvidence, composedReferences, "pass", [
+  outputPass,
+  measurementFail,
+  hiddenPass,
+  reviewNeeded,
+  hiddenNeeded,
+]);
+const failedAlternatives = complete(
+  composed,
+  expandedEvidence(composed, [
+    outputFact,
+    failedMeasurement,
+    { ...protectedFact, value: 49 },
+    humanReview,
+    modelReview,
+  ]),
+  composedReferences,
+  "fail",
+  [outputPass, measurementFail, hiddenFail, reviewNeeded, hiddenNeeded],
+);
+const missingAlternative = complete(
+  composed,
+  expandedEvidence(composed, [outputFact, failedMeasurement, humanReview, modelReview]),
+  composedReferences,
+  "inconclusive",
+  [outputPass, measurementFail, hiddenMissing, reviewNeeded, hiddenNeeded],
+);
+const publicFailedMeasurement = [
+  publicExpanded[0],
+  publicFinding("measurement", "fail", "mismatch"),
+  publicExpanded[2],
+];
+const privateWinnerBytes = publicView(composed, privateWinner, "withheld", publicFailedMeasurement);
+for (const result of [failedAlternatives, missingAlternative]) {
+  assert.equal(
+    publicView(composed, result, "withheld", publicFailedMeasurement),
+    privateWinnerBytes,
+  );
+}
+complete(
+  composed,
+  expandedEvidence(composed, [
+    { ...outputFact, value: "wrong" },
+    measurementFact,
+    protectedFact,
+    humanReview,
+    modelReview,
+  ]),
+  composedReferences,
+  "fail",
+  [
+    finding("output", "fail", "VALUE_MISMATCH"),
+    measurementPass,
+    hiddenPass,
+    reviewNeeded,
+    hiddenNeeded,
+  ],
+);
+assert.deepEqual(projectPublicResult(composed, { ...expandedPass, outcome: "fail" }), opaque);
+assert.deepEqual(
+  projectPublicResult(composed, {
+    ...expandedPass,
+    findings: expandedPass.findings.map((item) =>
+      item.criterionId === "explanation" ? { ...item, outcome: "pass", reasonCode: "MATCH" } : item,
+    ),
+  }),
+  opaque,
+);
+
+// Malformed material is invalid even in a nondecisive branch. Independent
+// canonical resealing removes digest mismatch as an alternative explanation.
+function resealExpanded(record, observations) {
+  const { evidenceDigest: _digest, ...content } = record;
+  const changed = { ...content, observations };
+  const keys = new Set();
+  JSON.stringify(changed, (_key, item) => {
+    if (item !== null && typeof item === "object" && !Array.isArray(item)) {
+      for (const key of Object.keys(item)) keys.add(key);
+    }
+    return item;
+  });
+  const bytes = JSON.stringify(changed, [...keys].sort());
+  return {
+    ...changed,
+    evidenceDigest: `sha256:${createHash("sha256").update("assay:evidence:v4\n").update(bytes).digest("hex")}`,
+  };
+}
+for (const [mutation, code] of [
+  [{ ...humanReview, verdict: "pass" }, "UNKNOWN_FIELD"],
+  [{ ...humanReview, reviewer: { ...humanReview.reviewer, trusted: true } }, "UNKNOWN_FIELD"],
+  [{ ...humanReview, reviewPolicyVersion: "rev2" }, "MISMATCHED_OBSERVATION"],
+  [{ ...humanReview, citations: [] }, "INVALID_VALUE"],
+  [{ ...humanReview, feedback: "é".repeat(2049) }, "INPUT_TOO_LARGE"],
+  [
+    { ...humanReview, origin: { ...expandedOrigin, artifactDigest: `sha256:${"f".repeat(64)}` } },
+    "MISMATCHED_ORIGIN",
+  ],
+]) {
+  const observations = [outputFact, measurementFact, protectedFact, mutation, modelReview];
+  assert.equal(
+    createEvidenceBundle(composed, { schemaVersion: 4, artifactDigest: expandedArtifact, observations }).ok,
+    false,
+  );
+  invalid(
+    composed,
+    evaluate(composed, resealExpanded(composedEvidence, observations), composedReferences),
+    "invalid_evidence",
+    code,
+    expandedCanaries,
+  );
+}
+invalid(
+  composed,
+  evaluate(
+    composed,
+    resealExpanded(composedEvidence, [
+      outputFact,
+      measurementFact,
+      { ...protectedFact, unit: "ms" },
+      humanReview,
+      modelReview,
+    ]),
+    composedReferences,
+  ),
+  "invalid_evidence",
+  "MISMATCHED_OBSERVATION",
+  expandedCanaries,
+);
+invalid(
+  composed,
+  evaluate(composed, composedEvidence, {
+    ...composedReferences,
+    references: [{ ...expandedReference, value: 51 }],
+  }),
+  "invalid_reference",
+  "REFERENCE_DIGEST_MISMATCH",
+  expandedCanaries,
+);
+
+// Material subjective work is a separate required manual leaf, not an
+// authoritative model verdict. A submitted artifact and favorable advisory
+// feedback cannot satisfy that leaf. No observation provider is required.
+const defense = unwrap(
+  createAssessmentDefinition({
+    ...composedDraft,
+    assessmentId: "design-defense",
+    criteria: [common, alternative, publicAdvice, requiredManual],
+    composition: {
+      rootGroupId: "root",
+      groups: [
+        {
+          id: "root",
+          operator: "all",
+          children: [
+            { kind: "criterion", id: "output" },
+            { kind: "criterion", id: "measurement" },
+            { kind: "criterion", id: "design-defense" },
+          ],
+        },
+      ],
+    },
+  }),
+);
+const manualFact = {
+  criterionId: "design-defense",
+  evidenceRef: "AYI28_PRIVATE_MANUAL_REF",
+  kind: "manual",
+  completeness: "complete",
+  artifactRefs: ["AYI28_PRIVATE_DESIGN"],
+  origin: expandedOrigin,
+};
+const manualNeeded = finding("design-defense", "inconclusive", "REVIEW_REQUIRED");
+for (const [reviews, reviewFinding, publicReason] of [
+  [[humanReview], reviewNeeded, "review_needed"],
+  [
+    [{ ...humanReview, completeness: "truncated" }],
+    finding("explanation", "inconclusive", "EVIDENCE_TRUNCATED"),
+    "incomplete_evidence",
+  ],
+  [[], finding("explanation", "inconclusive", "EVIDENCE_MISSING"), "missing_evidence"],
+]) {
+  const record = expandedEvidence(defense, [outputFact, measurementFact, ...reviews, manualFact]);
+  const result = complete(defense, record, undefined, "inconclusive", [
+    outputPass,
+    measurementPass,
+    reviewFinding,
+    manualNeeded,
+  ]);
+  const publicBytes = publicView(defense, result, "inconclusive", [
+    publicExpanded[0],
+    publicExpanded[1],
+    publicFinding("explanation", "inconclusive", publicReason),
+    publicFinding("design-defense", "inconclusive", "review_needed"),
+  ]);
+  assert.ok(!publicBytes.includes("AYI28_PRIVATE_"));
+}
+const manualAbsent = complete(
+  defense,
+  expandedEvidence(defense, [outputFact, measurementFact, humanReview]),
+  undefined,
+  "inconclusive",
+  [
+    outputPass,
+    measurementPass,
+    reviewNeeded,
+    finding("design-defense", "inconclusive", "EVIDENCE_MISSING"),
+  ],
+);
+assert.equal(unwrap(projectPublicResult(defense, manualAbsent)).outcome, "inconclusive");
+
+// No eligible public objective is missing: absent protected/manual/review
+// material does not trigger a port request. An injected port is optional.
+let expandedCalls = 0;
+const noEligible = expandedEvidence(defense, [outputFact, measurementFact]);
+const noAcquisition = await collectObservations(defense, noEligible, {
+  async observe() {
+    expandedCalls++;
+    throw new Error("Unexpected port request");
+  },
+});
+assert.equal(expandedCalls, 0);
+assert.equal(noAcquisition.ok, true);
+assert.equal(noAcquisition.receipt, null);
+assert.equal(JSON.stringify(decoded(noAcquisition.evidence)), JSON.stringify(decoded(noEligible)));
+console.log("AY-I28 installed expanded assessment scenarios passed (synthetic facts only)");
