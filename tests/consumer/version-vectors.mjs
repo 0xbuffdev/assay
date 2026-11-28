@@ -279,5 +279,11 @@ const noRequest = await assay.collectObservations(qualitative, reviewEvidence, {
 assert.equal(reviewPortCalls, 0);
 assert.equal(noRequest.ok, true);
 assert.equal(noRequest.receipt, null);
-assert.deepEqual(noRequest.evidence, reviewEvidence);
+// Compare every JSON field, not the prototype of the verified snapshot.
+assert.deepEqual(
+  JSON.parse(JSON.stringify(noRequest.evidence)),
+  JSON.parse(JSON.stringify(reviewEvidence)),
+);
+assert.equal(noRequest.evidence.evidenceDigest, reviewEvidence.evidenceDigest);
+assert.equal(assay.verifyEvidenceBundle(qualitative, noRequest.evidence).ok, true);
 console.log("AY-I08 installed qualitative review contract verified");
