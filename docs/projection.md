@@ -27,15 +27,15 @@ A successful call returns:
 
 ## Public reason allowlist
 
-| Public reason         | Meaning                                                      | Built-in technical reasons                                           |
-| --------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------- |
-| `match`               | Observed fact matches the declared comparison                | `MATCH`                                                              |
-| `mismatch`            | Observed fact does not match                                 | `VALUE_MISMATCH`                                                     |
-| `missing_evidence`    | Required observation or manual artifact is absent            | `EVIDENCE_MISSING`, `ARTIFACT_MISSING`                               |
-| `incomplete_evidence` | Capture, assertion or execution is incomplete                | `EVIDENCE_TRUNCATED`, `ASSERTION_INCOMPLETE`, `EXECUTION_INCOMPLETE` |
-| `review_needed`       | Manual evidence requires review                              | `REVIEW_REQUIRED`                                                    |
-| `unavailable`         | Reference or independently verified execution is unavailable | `REFERENCE_UNAVAILABLE`, `EXECUTION_UNVERIFIED`                      |
-| `evaluation_error`    | Evaluation could not complete                                | `COMPARATOR_ERROR`, `NUMERIC_OVERFLOW`                               |
+| Public reason         | Meaning                                                           | Built-in technical reasons                                           |
+| --------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `match`               | Observed fact matches the declared comparison                     | `MATCH`                                                              |
+| `mismatch`            | Observed fact does not match                                      | `VALUE_MISMATCH`                                                     |
+| `missing_evidence`    | Observation or manual artifact is absent                          | `EVIDENCE_MISSING`, `ARTIFACT_MISSING`                               |
+| `incomplete_evidence` | Capture, assertion, execution or review is incomplete             | `EVIDENCE_TRUNCATED`, `ASSERTION_INCOMPLETE`, `EXECUTION_INCOMPLETE` |
+| `review_needed`       | Manual evidence or valid complete qualitative review needs review | `REVIEW_REQUIRED`                                                    |
+| `unavailable`         | Reference or independently verified execution is unavailable      | `REFERENCE_UNAVAILABLE`, `EXECUTION_UNVERIFIED`                      |
+| `evaluation_error`    | Evaluation could not complete                                     | `COMPARATOR_ERROR`, `NUMERIC_OVERFLOW`                               |
 
 The mapping is exhaustive over the supported technical taxonomy. It is applied
 only to public findings after validation of the full record, never to hidden

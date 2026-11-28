@@ -128,8 +128,11 @@ AY-I18 owns their replacement with typed execution facts. See
 
 `parseEvidenceBundle` accepts `schemaVersion: 4`, an assessment identity,
 a required evidenceDigest, an optional artifact digest, and observations tagged `text`, `number`,
-`set`, `boolean`, `json`, `execution` or `manual`. Each observation declares a criterion
-ID, unique evidence reference and completeness (`complete` or `truncated`).
+`set`, `boolean`, `json`, `execution`, `manual` or `qualitative_review`. Each observation
+declares a criterion ID, unique evidence reference and completeness (`complete` or `truncated`).
+Qualitative reviews are host-supplied, artifact-bound observations for matching
+advisory-only criteria; the bundle artifact digest and review policy must agree.
+They are excluded from observation port reports.
 Use `createEvidenceBundle(definition, draft)` to derive definition lineage and
 seal content. A structural parse checks digest syntax, not integrity;
 `verifyEvidenceBundle`, evaluation and acquisition recompute it. Unsigned or superseded-generation bundles are rejected. Unknown fields, bogus `trusted` claims, duplicate observation IDs, unsupported
