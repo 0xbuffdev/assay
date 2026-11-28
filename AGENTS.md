@@ -56,4 +56,4 @@ Flag fail-open evaluation, invalid outcome/lineage handling, nondeterministic co
 ## Pull requests and release
 
 - Include the ticket (when applicable), requirement coverage, changes, tests and exact outstanding limitations in the PR. Do not mark work complete before required review, merge and acceptance evidence.
-- Preserve Apache-2.0 licensing and copyright notices. Keep `private: true` and the unreleased package state until the independent release decision explicitly authorizes a change. No publication, version tag, deployment, signing on behalf of the maintainer, merge, or repository ownership/visibility change without explicit authorization.
+- Preserve Apache-2.0 licensing and copyright notices. The approved public `0.0.1` preparation is limited to metadata, documentation and verification. Follow the [release policy](docs/releasing.md); publishable metadata does not authorize publication. No publication, version tag, deployment, signing on behalf of the maintainer, merge, or repository ownership/visibility change without explicit authorization.

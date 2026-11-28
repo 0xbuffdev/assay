@@ -261,6 +261,17 @@ try {
   assert.match(scenarioOutput, /AY-I28 installed expanded assessment scenarios passed/);
   console.log(scenarioOutput.trim());
 
+  // Execute the exact shipped README example against the installed entry.
+  const readme = await readFile(path.join(installed, "README.md"), "utf8");
+  const quickStart = /## Quick start\r?\n[\s\S]*?```ts\r?\n([\s\S]*?)\r?\n```/.exec(readme)?.[1];
+  assert.ok(quickStart, "The shipped README must include its quick-start example");
+  await writeFile(path.join(consumerDir, "quick-start.mjs"), quickStart);
+  assert.equal(command(process.execPath, ["quick-start.mjs"], consumerDir).trim(), "pass");
+  // A separate tiny host console declaration keeps the package typecheck free of DOM/Node types.
+  await writeFile(
+    path.join(consumerDir, "quick-start.ts"),
+    `declare const console: { log(value: unknown): void };\n${quickStart}`,
+  );
   await writeFile(
     path.join(consumerDir, "consumer.ts"),
     await readFile(path.join(fixtureDir, "consumer.ts.txt"), "utf8"),
@@ -279,7 +290,7 @@ try {
           types: [],
           lib: ["ES2022"],
         },
-        include: ["consumer.ts"],
+        include: ["consumer.ts", "quick-start.ts"],
       },
       null,
       2,

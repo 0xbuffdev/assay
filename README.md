@@ -78,7 +78,8 @@ if (!evidence.ok) throw new Error("Invalid evidence");
 
 const result = evaluate(definition.value, evidence.value);
 const view = projectPublicResult(definition.value, result);
-// view.value.outcome is "pass" when view.ok is true.
+if (!view.ok) throw new Error("Projection rejected");
+console.log(view.value.outcome); // pass
 ```
 
 A missing measurement is inconclusive. An out-of-range measurement fails; a mismatched unit makes the evidence invalid.
