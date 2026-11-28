@@ -48,7 +48,9 @@ function bytes(value: unknown): string {
 }
 
 function digest(domain: "definition" | "reference" | "evidence", value: unknown): string {
-  return `sha256:${createHash("sha256").update(`assay:${domain}:v4\n${bytes(value)}`).digest("hex")}`;
+  return `sha256:${createHash("sha256")
+    .update(`assay:${domain}:v4\n${bytes(value)}`)
+    .digest("hex")}`;
 }
 
 function review(variant: number, visibility: "public" | "restricted" = "public") {
@@ -143,7 +145,7 @@ const leaf = (id: string) => ({ kind: "criterion", id });
 const child = (id: string) => ({ kind: "group", id });
 
 function nestedFixture(values: readonly State[], variant: number, hidden = false) {
-  const ops = (["all", "any"] as const);
+  const ops = ["all", "any"] as const;
   const root = ops[variant & 1];
   const left = ops[(variant >> 1) & 1];
   const right = ops[(variant >> 2) & 1];
@@ -157,7 +159,10 @@ function nestedFixture(values: readonly State[], variant: number, hidden = false
     { id: "root", operator: root, children: [child(groupId), child("left")] },
     { id: groupId, operator: right, children: [leaf(ids[2]), leaf(ids[3])] },
   ];
-  const draft = authored([...entries.map((entry) => entry.criterion), qualitative.criterion], groups);
+  const draft = authored(
+    [...entries.map((entry) => entry.criterion), qualitative.criterion],
+    groups,
+  );
   const definition = unwrap(createAssessmentDefinition(draft));
   expect(definition.revisionDigest).toBe(digest("definition", draft));
   const observations = entries.map((entry) => entry.observation);
@@ -172,7 +177,9 @@ function nestedFixture(values: readonly State[], variant: number, hidden = false
     revisionDigest: definition.revisionDigest,
   };
   const evidence = unwrap(createEvidenceBundle(definition, evidenceDraft));
-  expect(evidence.evidenceDigest).toBe(digest("evidence", { ...evidenceDraft, definition: lineage }));
+  expect(evidence.evidenceDigest).toBe(
+    digest("evidence", { ...evidenceDraft, definition: lineage }),
+  );
   const references = {
     schemaVersion: 4,
     definition: lineage,
@@ -207,7 +214,11 @@ describe("AY-I27 independent expanded conformance", () => {
           "inconclusive",
         ]);
         expect(result.findings[4].reasonCode).toBe(
-          variant === 0 ? "EVIDENCE_MISSING" : variant === 2 ? "EVIDENCE_TRUNCATED" : "REVIEW_REQUIRED",
+          variant === 0
+            ? "EVIDENCE_MISSING"
+            : variant === 2
+              ? "EVIDENCE_TRUNCATED"
+              : "REVIEW_REQUIRED",
         );
         expect(result.warnings).toEqual(["ADVISORY_UNRESOLVED"]);
         const coverage = unwrap(inspectEvidenceCoverage(f.definition, f.evidence));
@@ -220,11 +231,15 @@ describe("AY-I27 independent expanded conformance", () => {
         expect(publicResult.outcome).toBe(variant % 2 === 1 ? "withheld" : f.root);
         expect(publicResult.findings).toHaveLength(variant % 2 === 1 ? 3 : 5);
         expect(JSON.stringify(publicResult)).not.toContain(privatePrefix);
-        expect(JSON.stringify(evaluate(
-          structuredClone(f.definition),
-          structuredClone(f.evidence),
-          structuredClone(f.references),
-        ))).toBe(JSON.stringify(result));
+        expect(
+          JSON.stringify(
+            evaluate(
+              structuredClone(f.definition),
+              structuredClone(f.evidence),
+              structuredClone(f.references),
+            ),
+          ),
+        ).toBe(JSON.stringify(result));
       }
     }
   }, 30000);
@@ -250,14 +265,19 @@ describe("AY-I27 independent expanded conformance", () => {
             { criterionId: "c", outcome: "pass", reason: "match" },
           ],
         });
-        expect(projectPublicResult(f.definition, {
-          ...result,
-          outcome: result.outcome === "pass" ? "fail" : "pass",
-        })).toEqual(rejected);
+        expect(
+          projectPublicResult(f.definition, {
+            ...result,
+            outcome: result.outcome === "pass" ? "fail" : "pass",
+          }),
+        ).toEqual(rejected);
         const fakeReview = { ...result.findings[4], outcome: "pass", reasonCode: "MATCH" };
-        expect(projectPublicResult(f.definition, {
-          ...result, findings: [...result.findings.slice(0, 4), fakeReview],
-        })).toEqual(rejected);
+        expect(
+          projectPublicResult(f.definition, {
+            ...result,
+            findings: [...result.findings.slice(0, 4), fakeReview],
+          }),
+        ).toEqual(rejected);
       }
     }
     expect(outputs.size).toBe(1);
@@ -284,15 +304,23 @@ describe("AY-I27 independent expanded conformance", () => {
       [4, { ...reviewInput, completeness: "truncated", citations: [] }],
     ] as const;
     for (const [index, mutation] of cases) {
-      const changed = { ...content, observations: content.observations.map((o, i) => i === index ? mutation : o) };
+      const changed = {
+        ...content,
+        observations: content.observations.map((o, i) => (i === index ? mutation : o)),
+      };
       const sealed = { ...changed, evidenceDigest: digest("evidence", changed) };
       const response = evaluate(f.definition, sealed, f.references);
       expect(response.outcome).toBe("invalid_evidence");
       expect(response).not.toHaveProperty("findings");
       expect(JSON.stringify(response)).not.toContain(privatePrefix);
-      const wrongReference = { ...f.references, references: f.references.references.map((r) => ({ ...r, value: 9 })) };
+      const wrongReference = {
+        ...f.references,
+        references: f.references.references.map((r) => ({ ...r, value: 9 })),
+      };
       expect(evaluate(f.definition, sealed, wrongReference).outcome).toBe("invalid_reference");
-      expect(evaluate({ ...f.definition, schemaVersion: 3 }, sealed, wrongReference).outcome).toBe("invalid_definition");
+      expect(evaluate({ ...f.definition, schemaVersion: 3 }, sealed, wrongReference).outcome).toBe(
+        "invalid_definition",
+      );
     }
     for (const target of ["feedback", "reviewer", "citations"]) {
       // JSON duplicate names are rejected before the typed validator can lose them.
@@ -305,12 +333,17 @@ describe("AY-I27 independent expanded conformance", () => {
     const graph = f.draft.composition.groups;
     for (const groups of [
       [...graph, { id: "unused", operator: "all", children: [leaf("a")] }],
-      graph.map((g) => g.id === "root" ? { ...g, children: [child("root")] } : g),
-      graph.map((g) => g.id === "root" ? { ...g, children: [...g.children, child("left")] } : g),
-      graph.map((g) => g.id === "left" ? { ...g, children: [leaf(f.qualitative.criterion.id)] } : g),
+      graph.map((g) => (g.id === "root" ? { ...g, children: [child("root")] } : g)),
+      graph.map((g) => (g.id === "root" ? { ...g, children: [...g.children, child("left")] } : g)),
+      graph.map((g) =>
+        g.id === "left" ? { ...g, children: [leaf(f.qualitative.criterion.id)] } : g,
+      ),
     ]) {
       const input = { ...f.draft, composition: { rootGroupId: "root", groups } };
-      const response = evaluate({ ...input, revisionDigest: digest("definition", input) }, f.evidence);
+      const response = evaluate(
+        { ...input, revisionDigest: digest("definition", input) },
+        f.evidence,
+      );
       expect(response.outcome).toBe("invalid_definition");
       expect(JSON.stringify(response)).not.toContain(privatePrefix);
     }

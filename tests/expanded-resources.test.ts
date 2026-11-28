@@ -51,7 +51,10 @@ function independentEvidence(content: unknown): string {
     }
     return item;
   });
-  return `sha256:${createHash("sha256").update("assay:evidence:v4\n").update(JSON.stringify(content, [...keys].sort()), "utf8").digest("hex")}`;
+  return `sha256:${createHash("sha256")
+    .update("assay:evidence:v4\n")
+    .update(JSON.stringify(content, [...keys].sort()), "utf8")
+    .digest("hex")}`;
 }
 
 function serializedBytes(value: unknown): number {
@@ -76,12 +79,21 @@ function measure<T>(name: string, workload: unknown, run: () => T, verify: (resu
   }
   // One line makes the machine-specific observations reproducible in CI logs.
   // RSS high water is cumulative; no elapsed-time or heap threshold is imposed.
-  console.info("AY-I27 measurement", JSON.stringify({
-    name, workload, commit: process.env.GITHUB_SHA ?? "local: record git rev-parse HEAD",
-    node: process.version, platform: process.platform, arch: process.arch, osRelease: release(),
-    samples, maxElapsedMs: Math.max(...samples.map((sample) => sample.elapsedMs)),
-    processMaxRssKiB: process.resourceUsage().maxRSS,
-  }));
+  console.info(
+    "AY-I27 measurement",
+    JSON.stringify({
+      name,
+      workload,
+      commit: process.env.GITHUB_SHA ?? "local: record git rev-parse HEAD",
+      node: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      osRelease: release(),
+      samples,
+      maxElapsedMs: Math.max(...samples.map((sample) => sample.elapsedMs)),
+      processMaxRssKiB: process.resourceUsage().maxRSS,
+    }),
+  );
 }
 
 const leaf = (id: string) => ({ kind: "criterion", id });
@@ -90,14 +102,18 @@ const child = (id: string) => ({ kind: "group", id });
 describe("AY-I27 expanded resource workloads", () => {
   it("measures the simultaneous graph limits and adjacent violations", () => {
     const criteria = Array.from({ length: 64 }, (_, i) => ({
-      id: `c${i}`, kind: "exact_text", mode: "required", visibility: "public",
+      id: `c${i}`,
+      kind: "exact_text",
+      mode: "required",
+      visibility: "public",
       parameters: { expected: { type: "literal", value: "ok" } },
     }));
     // Root: 7 direct leaves, 56 singleton children and one chain of 7 groups.
     // Thus 64 groups, 64 leaves, 64 root children, 127 edges, depth 8.
     const groups = [
       {
-        id: "root", operator: "all",
+        id: "root",
+        operator: "all",
         children: [
           ...criteria.slice(0, 7).map((c) => leaf(c.id)),
           ...Array.from({ length: 56 }, (_, i) => child(`single${i}`)),
@@ -105,16 +121,22 @@ describe("AY-I27 expanded resource workloads", () => {
         ],
       },
       ...Array.from({ length: 56 }, (_, i) => ({
-        id: `single${i}`, operator: i % 2 ? "any" : "all", children: [leaf(`c${i + 7}`)],
+        id: `single${i}`,
+        operator: i % 2 ? "any" : "all",
+        children: [leaf(`c${i + 7}`)],
       })),
       ...Array.from({ length: 7 }, (_, i) => ({
-        id: `chain${i}`, operator: i % 2 ? "all" : "any",
+        id: `chain${i}`,
+        operator: i % 2 ? "all" : "any",
         children: [i === 6 ? leaf("c63") : child(`chain${i + 1}`)],
       })),
     ];
     const authored = {
-      schemaVersion: 4, assessmentId: "max-graph", revision: "rev1",
-      policyVersion: "composed-required-v1", criteria,
+      schemaVersion: 4,
+      assessmentId: "max-graph",
+      revision: "rev1",
+      policyVersion: "composed-required-v1",
+      criteria,
       composition: { rootGroupId: "root", groups },
     };
     expect(groups).toHaveLength(64);
@@ -125,16 +147,26 @@ describe("AY-I27 expanded resource workloads", () => {
     const draft = {
       schemaVersion: 4,
       observations: criteria.map((c) => ({
-        criterionId: c.id, evidenceRef: `obs-${c.id}`, kind: "text", completeness: "complete", value: "ok",
+        criterionId: c.id,
+        evidenceRef: `obs-${c.id}`,
+        kind: "text",
+        completeness: "complete",
+        value: "ok",
       })),
     };
     const evidence = unwrap(createEvidenceBundle(definition, draft));
     const result = evaluate(definition, evidence);
     expect(result.outcome).toBe("pass");
     const workload = {
-      groups: 64, requiredLeaves: 64, rootChildren: 64, edges: 127, groupDepth: 8,
-      definition: shape(definition), evidence: shape(evidence),
-      definitionSerializedBytes: serializedBytes(definition), evidenceSerializedBytes: serializedBytes(evidence),
+      groups: 64,
+      requiredLeaves: 64,
+      rootChildren: 64,
+      edges: 127,
+      groupDepth: 8,
+      definition: shape(definition),
+      evidence: shape(evidence),
+      definitionSerializedBytes: serializedBytes(definition),
+      evidenceSerializedBytes: serializedBytes(evidence),
     };
     measure("maximum graph sealing", workload, () => createAssessmentDefinition(authored),
       (checked) => expect(unwrap(checked).revisionDigest).toBe(definition.revisionDigest));
@@ -265,7 +297,7 @@ describe("AY-I27 expanded resource workloads", () => {
     measure("three maximum serialized records", { bytesPerRecord: CAP, combinedBytes: 786_432 }, () =>
       transports.map((input) => unwrap(decodeSerializedRecord(input))), ([def, ev, refs]) =>
       expect(evaluate(def, ev, refs).outcome).toBe("pass"));
-    for (const input of transports) expect(decodeSerializedRecord(input + " ")).toEqual({
+    for (const input of transports) expect(decodeSerializedRecord(`${input} `)).toEqual({
       ok: false, diagnostics: [{ path: "$", code: "INPUT_TOO_LARGE" }],
     });
   }, 30000);
