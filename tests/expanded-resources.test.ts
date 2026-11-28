@@ -168,51 +168,114 @@ describe("AY-I27 expanded resource workloads", () => {
       definitionSerializedBytes: serializedBytes(definition),
       evidenceSerializedBytes: serializedBytes(evidence),
     };
-    measure("maximum graph sealing", workload, () => createAssessmentDefinition(authored),
-      (checked) => expect(unwrap(checked).revisionDigest).toBe(definition.revisionDigest));
-    measure("maximum graph evaluation and projection", workload, () => {
-      const full = evaluate(definition, evidence);
-      return { full, projected: projectPublicResult(definition, full) };
-    }, ({ full, projected }) => {
-      expect(full).toEqual(result);
-      expect(unwrap(projected).findings).toHaveLength(64);
-      expect(unwrap(projected).outcome).toBe("pass");
+    measure(
+      "maximum graph sealing",
+      workload,
+      () => createAssessmentDefinition(authored),
+      (checked) => expect(unwrap(checked).revisionDigest).toBe(definition.revisionDigest),
+    );
+    measure(
+      "maximum graph evaluation and projection",
+      workload,
+      () => {
+        const full = evaluate(definition, evidence);
+        return { full, projected: projectPublicResult(definition, full) };
+      },
+      ({ full, projected }) => {
+        expect(full).toEqual(result);
+        expect(unwrap(projected).findings).toHaveLength(64);
+        expect(unwrap(projected).outcome).toBe("pass");
+      },
+    );
+    const overEdges = groups.map((g) =>
+      g.id === "single0" ? { ...g, children: [...g.children, leaf("c7")] } : g,
+    );
+    expect(
+      createAssessmentDefinition({
+        ...authored,
+        composition: { ...authored.composition, groups: overEdges },
+      }),
+    ).toMatchObject({
+      ok: false,
+      diagnostics: [{ path: "$.composition", code: "TOO_MANY_ITEMS" }],
     });
-    const overEdges = groups.map((g) => g.id === "single0" ? { ...g, children: [...g.children, leaf("c7")] } : g);
-    expect(createAssessmentDefinition({
-      ...authored, composition: { ...authored.composition, groups: overEdges },
-    })).toMatchObject({ ok: false, diagnostics: [{ path: "$.composition", code: "TOO_MANY_ITEMS" }] });
-    const deeper = groups.map((g) => g.id === "root"
-      ? { ...g, children: g.children.filter((c) => c.id !== "single0") }
-      : g.id === "chain6" ? { ...g, children: [...g.children, child("single0")] } : g);
-    expect(createAssessmentDefinition({
-      ...authored, composition: { ...authored.composition, groups: deeper },
-    }).ok).toBe(false);
+    const deeper = groups.map((g) =>
+      g.id === "root"
+        ? { ...g, children: g.children.filter((c) => c.id !== "single0") }
+        : g.id === "chain6"
+          ? { ...g, children: [...g.children, child("single0")] }
+          : g,
+    );
+    expect(
+      createAssessmentDefinition({
+        ...authored,
+        composition: { ...authored.composition, groups: deeper },
+      }).ok,
+    ).toBe(false);
     for (const invalid of [
       { ...authored, criteria: [...criteria, { ...criteria[0], id: "extra" }] },
-      { ...authored, composition: { ...authored.composition, groups: [...groups, { ...groups[1], id: "extra" }] } },
-      { ...authored, composition: { ...authored.composition, groups: groups.map((g) => g.id === "root"
-        ? { ...g, children: [...g.children, leaf("c0")] } : g) } },
-    ]) expect(createAssessmentDefinition(invalid).ok).toBe(false);
+      {
+        ...authored,
+        composition: {
+          ...authored.composition,
+          groups: [...groups, { ...groups[1], id: "extra" }],
+        },
+      },
+      {
+        ...authored,
+        composition: {
+          ...authored.composition,
+          groups: groups.map((g) =>
+            g.id === "root" ? { ...g, children: [...g.children, leaf("c0")] } : g,
+          ),
+        },
+      },
+    ])
+      expect(createAssessmentDefinition(invalid).ok).toBe(false);
   });
 
   it("measures 63 maximum-citation reviews at the exact combined evidence snapshot limit", () => {
-    const reference = unwrap(createReferenceRecord({
-      schemaVersion: 4, referenceId: "protected", kind: "text", value: "ok",
-    }));
+    const reference = unwrap(
+      createReferenceRecord({
+        schemaVersion: 4,
+        referenceId: "protected",
+        kind: "text",
+        value: "ok",
+      }),
+    );
     const objective = {
-      id: "objective", kind: "exact_text", mode: "required", visibility: "restricted",
-      parameters: { expected: { type: "reference", referenceId: reference.referenceId, referenceDigest: reference.referenceDigest } },
+      id: "objective",
+      kind: "exact_text",
+      mode: "required",
+      visibility: "restricted",
+      parameters: {
+        expected: {
+          type: "reference",
+          referenceId: reference.referenceId,
+          referenceDigest: reference.referenceDigest,
+        },
+      },
     };
     const reviewCriteria = Array.from({ length: 63 }, (_, i) => ({
-      id: `review${i}`, kind: "qualitative_review", mode: "advisory", visibility: "public",
+      id: `review${i}`,
+      kind: "qualitative_review",
+      mode: "advisory",
+      visibility: "public",
       parameters: { reviewPolicyId: "design", reviewPolicyVersion: "rev1" },
     }));
-    const definition = unwrap(createAssessmentDefinition({
-      schemaVersion: 4, assessmentId: "max-review", revision: "rev1",
-      policyVersion: "composed-required-v1", criteria: [objective, ...reviewCriteria],
-      composition: { rootGroupId: "root", groups: [{ id: "root", operator: "all", children: [leaf("objective")] }] },
-    }));
+    const definition = unwrap(
+      createAssessmentDefinition({
+        schemaVersion: 4,
+        assessmentId: "max-review",
+        revision: "rev1",
+        policyVersion: "composed-required-v1",
+        criteria: [objective, ...reviewCriteria],
+        composition: {
+          rootGroupId: "root",
+          groups: [{ id: "root", operator: "all", children: [leaf("objective")] }],
+        },
+      }),
+    );
     const fact = {
       criterionId: "objective", evidenceRef: "fact", kind: "text", completeness: "complete",
       value: "ok", origin: { kind: "independent", sourceRef: "fixture" },
