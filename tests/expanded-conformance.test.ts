@@ -129,7 +129,7 @@ function numeric(id: string, state: State, restricted = false) {
   };
 }
 
-function authored(criteria: readonly unknown[], groups: readonly unknown[]) {
+function authored<G>(criteria: readonly unknown[], groups: readonly G[]) {
   return {
     schemaVersion: 4,
     assessmentId: "expanded-conformance",
