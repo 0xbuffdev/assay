@@ -1,4 +1,4 @@
-# Learner-safe technical result projection (AY-I07, AY-I20)
+# Public technical result projection
 
 Assay's full `EvaluationResult` is an **authorized technical record**, not a learner response. It may contain restricted criterion identifiers, observation evidence references, comparator reason codes, aggregate results influenced by hidden checks and warnings. Returning that entire object from a learner API could disclose protected assessment details or enable an answer oracle.
 
@@ -96,7 +96,7 @@ const response = projectPublicResult(definition, technical);
 
 ## Validation, source integrity and limits
 
-1. The definition **must** have a verifiable, supported schema canonical content digest. The function uses `verifyAssessmentDefinition` from AY-I06 before reading any findings. An attacker cannot change a restricted criterion to public while keeping the old digest.
+1. The definition **must** have a verifiable, supported schema canonical content digest. The function uses `verifyAssessmentDefinition` before reading any findings. An attacker cannot change a restricted criterion to public while keeping the old digest.
 2. The complete result must pass `parseEvaluationResult` bounded shape checks, match the **exact** assessment ID, revision, digest and policy version, and have exactly one finding per criterion in its original order. Every finding must agree with the supported evaluator identity/version and a closed outcome/reason pair. Its reason must be compatible with the criterion kind, reference declaration and any known numeric tolerance bound; a literal overflow cannot claim match or mismatch, and a bound that cannot overflow cannot claim numeric overflow. Unknown reference values are not inferred; an absent observation has no evidence reference, other findings have exactly one, and evidence references cannot repeat across findings. The shared aggregation and advisory warning calculation must agree with the complete result. The result carries a mandatory evidence digest and optional artifact digest; projection checks their shape but has no evidence input with which to authenticate them. The host must retain and verify the exact evidence.
 3. The full technical aggregate must match the explicit required group tree under the shared composition semantics. Forged `pass`, omitted/extra/reordered findings, mismatched lineage or unsupported fields are rejected with **one opaque error**.
 4. For public criteria, the function constructs **only** `criterionId`, technical `outcome` and the mapped public `reason`; for restricted ones, it copies **nothing**. The full aggregate is never copied directly, and hidden/advisory warning flags are dropped.

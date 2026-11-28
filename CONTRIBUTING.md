@@ -16,6 +16,6 @@ Use a focused branch and add tests for changed behavior. The full check includes
 
 ## Pull requests
 
-Explain the intended behavior, relevant ticket or issue, and the checks you ran. Use synthetic fixtures, retain the zero-runtime-dependency boundary and keep protected material out of public changes. Contract changes require maintainer approval.
+Explain the intended behavior, relevant issue or proposal, and the checks you ran. Use synthetic fixtures, retain the zero-runtime-dependency boundary and keep protected material out of public changes. Contract changes require maintainer approval.
 
 Contributions intentionally submitted for inclusion follow Section 5 of the [Apache License 2.0](LICENSE), unless explicitly stated otherwise or covered by a separate agreement.

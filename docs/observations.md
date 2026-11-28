@@ -1,9 +1,6 @@
-# Optional observation ports and provenance (AY-I03)
+# Optional observation ports and provenance
 
-Assay can evaluate caller-supplied local evidence without a runner. **An
-execution provider is optional**. AY-I03 adds `collectObservations` for hosts
-that choose to inject their own observation port, plus
-`parseObservationPortReport` for closed validation of the returned facts.
+Assay evaluates caller-supplied local evidence without a runner. Hosts can inject an optional observation port through `collectObservations`. Use `parseObservationPortReport` to validate returned facts against the closed report contract.
 
 The port does **not** authenticate a runner, safely sandbox untrusted code,
 resolve restricted references, sign results, grant credit, or become an
@@ -219,17 +216,14 @@ implies official assessment credit.
 - **No implicit provider use.** The package imports no runner, LLM or
   private application. A host chooses whether to call the async collector.
   The pure `evaluate` API remains synchronous and independent.
-- **No release or formal credit authorization.** AY-I04 handles packed
-  external consumer and security acceptance. A local mock cannot prove
-  host isolation, executor controls, real artifact provenance or academic
-  admission.
+- A local mock cannot prove host isolation, executor controls, real artifact provenance or academic admission. See [development](development.md) for installed-package verification.
 
 These limits are tested with simulated runner reports, missing references,
 truncated streams, forged markers, wrong revision/digest, malicious HTML
 text, and provider failures. Tests intentionally contain **no real hidden
 test sources, secrets or learner data**.
 
-## Selected execution facts and cancellation (AY-I19)
+## Selected execution facts and cancellation
 
 Selected public criteria are eligible for acquisition. A report echoes the
 selector on each selected observation and supplies a top-level
