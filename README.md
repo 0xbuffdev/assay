@@ -118,12 +118,12 @@ The collector requests eligible missing public facts without expected answers or
 
 ## Documentation
 
-| Guide | Contents |
-| --- | --- |
-| [Contracts](https://github.com/0xbuffdev/assay/blob/main/docs/contracts.md) | Input and result types, validation limits |
-| [Evaluation](https://github.com/0xbuffdev/assay/blob/main/docs/evaluation.md) | Comparators, composition and outcomes |
-| [Integrity](https://github.com/0xbuffdev/assay/blob/main/docs/integrity.md) | Digests, evidence lineage and versions |
-| [Observations](https://github.com/0xbuffdev/assay/blob/main/docs/observations.md) | Acquisition and claimed provenance |
+| Guide                                                                                | Contents                                  |
+| ------------------------------------------------------------------------------------ | ----------------------------------------- |
+| [Contracts](https://github.com/0xbuffdev/assay/blob/main/docs/contracts.md)          | Input and result types, validation limits |
+| [Evaluation](https://github.com/0xbuffdev/assay/blob/main/docs/evaluation.md)        | Comparators, composition and outcomes     |
+| [Integrity](https://github.com/0xbuffdev/assay/blob/main/docs/integrity.md)          | Digests, evidence lineage and versions    |
+| [Observations](https://github.com/0xbuffdev/assay/blob/main/docs/observations.md)    | Acquisition and claimed provenance        |
 | [Public projection](https://github.com/0xbuffdev/assay/blob/main/docs/projection.md) | Safe disclosure and host responsibilities |
 
 The current contract uses schema 4, evaluator semantics `v0.0.5` and policy `composed-required-v1`. Earlier development schemas are unsupported. Use `decodeSerializedRecord` before validating untrusted JSON; enforce transport limits in the host.

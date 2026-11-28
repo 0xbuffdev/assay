@@ -308,7 +308,9 @@ try {
       name: item.name,
       version: item.version,
       bytes: (await readFile(archive)).byteLength,
-      sha256: createHash("sha256").update(await readFile(archive)).digest("hex"),
+      sha256: createHash("sha256")
+        .update(await readFile(archive))
+        .digest("hex"),
       files: item.files.map(({ path, size }) => ({ path, size })),
     }),
   );
