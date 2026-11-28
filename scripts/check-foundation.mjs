@@ -116,6 +116,9 @@ for (const file of [
   "tests/foundation.test.ts",
   "tests/aggregation.test.ts",
   "tests/qualitative.test.ts",
+  "tests/conformance.test.ts",
+  "tests/adversarial.test.ts",
+  "tests/resources.test.ts",
   "tests/expanded-conformance.test.ts",
   "tests/expanded-resources.test.ts",
   "tests/objective-comparators.test.ts",
@@ -126,9 +129,14 @@ for (const file of [
   "scripts/verify-package.mjs",
   "tests/consumer/consumer.mjs",
   "tests/consumer/consumer.ts.txt",
+  "scripts/test-foundation-presence.mjs",
+  "scripts/release-preflight.sh",
+  "tests/release-preflight.sh",
+  ".github/workflows/release.yml",
   ".github/workflows/ci.yml",
 ]) {
-  assert.ok((await stat(locate(file))).isFile(), `Missing required file: ${file}`);
+  const info = await stat(locate(file)).catch(() => undefined);
+  assert.ok(info?.isFile(), `Missing required file: ${file}`);
 }
 
 const entry = await readFile(locate("src/index.ts"), "utf8");
