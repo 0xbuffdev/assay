@@ -1,6 +1,6 @@
 # Development
 
-Assay is a single TypeScript/ESM package. Its foundation has **no runtime dependencies** and exports validated data contracts, evidence-coverage inspection, pure deterministic objective comparison, and optional injected observation collection. There are still no runtime dependencies. The build tools are development-only.
+Assay is a TypeScript/ESM package with no runtime dependencies. Its public entry exposes validation, integrity, deterministic evaluation, optional observation collection and public projection. Build tools are development dependencies.
 
 ## Toolchain
 
@@ -26,7 +26,7 @@ pnpm verify:package
 # See docs/integrity.md for authored definition digest vectors and guarded APIs
 ```
 
-To apply formatting run `pnpm format`. `pnpm check` runs all foundation, type, style, test and build checks. CI executes equivalent read-only checks; no workflow publishes a package.
+To apply formatting run `pnpm format`. `pnpm check` runs the foundation, type, style, test, build and offline package checks. CI executes equivalent read-only checks; no workflow publishes a package.
 
 ## Import convention
 
@@ -38,7 +38,7 @@ import { validateDefinition } from "./validation/definition";
 
 Do not write relative `.js` specifiers in TypeScript source. The build produces valid ESM files in `dist/`, and the package export map uses the generated `dist/index.js` and `dist/index.d.ts`. That emitted filename is not a source import style.
 
-`tsdown.config.ts` uses the same general tsdown entry/build setup as Throughline, but no React, MDX, compiler extension adapter, browser UI or CLI is needed. `vitest.config.ts` targets Node tests only.
+`tsdown.config.ts` builds the ESM entry and declarations. `vitest.config.ts` targets Node tests.
 
 ## Internal modules
 
@@ -48,7 +48,7 @@ Use the [source organization](architecture.md#source-organization) to locate the
 
 The tests verify versioned definitions, observations, findings, safety bounds and evidence coverage. The dist verifier checks that tsdown emitted executable ESM and declarations; it also smoke-tests deterministic comparison using the built ESM package. AY-I01 tests cover strict schema validation, bounded inputs, deterministic diagnostics and evidence coverage; AY-I02 tests cover comparator boundaries, replay, required/advisory precedence and unverified evidence. AY-I03 tests cover mock ports, provenance consistency, truncation, forged trust flags, restricted inputs, unsafe text and thrown provider errors. AY-I04 adds a standalone offline tarball installation, exact archive allowlist and Apache-2.0 notice audit, hostile-input ESM consumer, and isolated TypeScript declaration consumer. The pack check runs in `pnpm check` and as its own CI step after `pnpm build` on Ubuntu and Windows. It starts npm's JavaScript CLI through the active Node executable (never a Windows `.cmd` shim or shell invocation).
 
-Assay source is Apache-2.0 licensed; the npm package remains unpublished and deliberately unpublishable until separately approved. The package remains `private: true`. A green packed-consumer check is not release authorization.
+Assay is Apache-2.0 licensed. The public 0.0.1 package candidate remains unpublished. See the [release policy](releasing.md) for approval requirements.
 
 ## Version metadata and runtime compatibility
 
@@ -114,7 +114,7 @@ not a proof of worst-case complexity, a memory ceiling or host isolation.
 Preserve the actual CI run and reviewed-head/tree identity when reporting
 acceptance, including any failed or unexecuted commands. Source review does
 not establish execution evidence, and the resource samples do not authorize
-publication. AY-I08 replaces generation 3 and adds qualitative contract and disclosure regressions. AY-I27 and AY-I28 remain independent expanded-candidate gates.
+publication. AY-I08 replaces generation 3 and adds qualitative contract and disclosure regressions. AY-I27 and AY-I28 independently verify the expanded candidate.
 
 ## Expanded conformance and resource verification (AY-I27)
 

@@ -1,8 +1,8 @@
 {
   "name": "@0xbuff/assay",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Standalone deterministic technical evaluation of versioned criteria and bounded evidence",
-  "private": true,
+  "private": false,
   "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@11.2.2",
@@ -51,5 +51,9 @@
     "tsdown": "0.23.7",
     "typescript": "5.9.3",
     "vitest": "4.1.12"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }

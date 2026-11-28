@@ -4,7 +4,7 @@ Assay verifies content identity, not authentication. The host must independently
 
 ## Version contract
 
-AY-I08 replaces generation 3, not its historical bytes. Every versioned public record uses schema generation **4**, including definitions, reference records and bundles, evidence, complete results, public projections, and observation port requests/reports. The sole binding policy is `composed-required-v1`. Evaluator semantics are `v0.0.5`; package version remains private `0.0.0` and the supported runtime is Node 24+ ESM. There is no runtime compatibility adapter, alias, automatic upgrade, or legacy policy path. Older records are explicitly rejected, not rehashed. Historical vectors remain in Git history.
+Every versioned public record uses schema generation **4**, including definitions, reference records and bundles, evidence, complete results, public projections, and observation port requests/reports. The sole binding policy is `composed-required-v1`. Evaluator semantics are `v0.0.5`; the first intended package version is `0.0.1`, and the supported runtime is Node 24+ ESM. There is no runtime compatibility adapter, alias, automatic upgrade, or legacy policy path. Older records are explicitly rejected, not rehashed. Historical vectors remain in Git history.
 
 `ASSAY_SCHEMA_VERSION` identifies the sole current generation. The generated version metadata is derived from the authored identities in the version generator and the manifest; the evaluator identity is separate from the package release. A future contract generation must select distinct canonical domains, update generated metadata and independently verify new vectors. Do not edit generated files or silently reinterpret old records.
 

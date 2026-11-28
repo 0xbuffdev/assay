@@ -13,7 +13,9 @@ const ts = JSON.parse(await readFile(locate("tsconfig.json"), "utf8"));
 
 assert.equal(pkg.name, "@0xbuff/assay");
 assert.equal(pkg.type, "module");
-assert.equal(pkg.private, true, "Never publish before independent release approval");
+assert.equal(pkg.version, "0.0.1", "Approved first release candidate");
+assert.equal(pkg.private, false, "Approved publishable package metadata");
+assert.deepEqual(pkg.publishConfig, { access: "public", registry: "https://registry.npmjs.org/" });
 assert.equal(pkg.license, "Apache-2.0", "Assay source must retain its approved license");
 assert.deepEqual(Object.keys(pkg.exports), ["."]);
 assert.equal(pkg.exports["."].types, "./dist/index.d.ts");

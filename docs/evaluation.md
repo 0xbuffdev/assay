@@ -66,9 +66,7 @@ const assessment = evaluate(definition, evidence);
 // This is not official credit and does not authenticate evidence.
 ```
 
-The package remains unpublished and cannot be installed from npm yet. The
-example describes its exported source package entry after a separately
-approved release.
+The package candidate is 0.0.1. Until publication, use the exported entry from a local build.
 
 ## Return values
 
@@ -79,7 +77,7 @@ one finding per criterion in authored order, evaluator version, and bounded,
 value-free warnings. Findings use `pass`, `fail`, `inconclusive` or `error`
 and closed, outcome-specific uppercase reason codes. The sole warning is
 `ADVISORY_UNRESOLVED`. Evaluator semantics version `v0.0.5` identifies this
-closed contract; the package remains unreleased at version 0.0.0.
+closed contract, independently of the npm package version.
 
 An invalid definition, reference bundle or evidence bundle returns a distinct
 `EvaluationFailure` envelope with `outcome: "invalid_definition"` or

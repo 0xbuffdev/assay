@@ -1,14 +1,16 @@
-## Purpose and accepted ticket
+## Purpose
 
-## Observable changes
+Link the ticket or issue and describe the intended behavior.
 
-## Validation actually run
+## Changes
 
-Include negative/security tests and independently reproduced results where applicable.
+## Verification
 
-## Trust and release checks
+Record the tested commit, commands, results and anything not run. Include relevant negative and security tests.
 
-- [ ] No learner records, credentials, protected references or private grading definitions
-- [ ] Pure evaluation core has no mandatory hosted service, executor or AI dependency
-- [ ] Documentation does not claim unimplemented behavior
-- [ ] No license grant, npm publication, release tag or merge without separate maintainer approval
+## Checklist
+
+- [ ] No learner records, credentials or protected references
+- [ ] Public contracts and documentation match implemented behavior
+- [ ] Existing quality and offline package checks are preserved
+- [ ] No unauthorized publication, tag, deployment or merge

@@ -1,148 +1,134 @@
 # Assay
 
-**Deterministic technical evaluation from explicit criteria and bounded evidence.**
+Assay compares technical evidence against explicit, versioned criteria and returns reproducible findings. Use it in assessment systems, engineering exercises and other tools that need to distinguish a correct result from an incorrect or unresolved one.
 
-Assay is a standalone TypeScript library for checking technical observations against versioned assessment definitions. It produces reproducible criterion-level findings, distinguishes missing evidence from incorrect results, and can construct a deliberately restricted public-facing view.
+The host supplies the evidence and authorizes the criteria. Assay does not execute submitted programs, authenticate observations, assign grades or issue credentials. The library runs offline and has no runtime dependencies.
 
-Assay evaluates evidence; it does **not** execute learner code, authenticate a submitted observation, fetch protected reference answers, issue grades or award credentials. Those responsibilities stay with the application using it.
+## Installation
 
-**Availability:** The Apache-2.0 source is public. The npm package is **not published**; its source version remains 0.0.0 with the private publication guard enabled. There is no supported npm install command yet.
+Requires Node.js 24 or later and ESM. Version 0.0.1 is the first planned npm release; it has not been published.
 
-## How it works
+After publication:
 
-1. **Define the requirements.** Author typed criteria for exact or normalized text, numeric values with explicit tolerances and units, sets, booleans, structured JSON, selected execution facts, manual evidence, or advisory-only `qualitative_review` criteria for attributed, artifact-bound review observations. Every assessment needs at least one required criterion and an explicit bounded composition of `all` and `any` groups.
-2. **Bind the definition to its content.** Use [definition integrity](docs/integrity.md) to create or verify a deterministic, versioned SHA-256 digest. A hash identifies content; it does not authenticate its publisher.
-3. **Supply observations.** Seal bounded, typed evidence with `createEvidenceBundle` or use an [optional injected observation port](docs/observations.md). Qualitative review observations must be supplied by the host, not the observation port. A provider's claimed provenance is not independent proof of execution.
-4. **Evaluate.** Supply an optional content-bound reference bundle from authorized host storage alongside the definition and evidence. Compare observations using the deterministic [evaluation semantics](docs/evaluation.md). The explicit composition determines the technical outcome from required findings; advisory findings cannot manufacture a pass. Invalid, missing and truncated evidence are handled distinctly.
-5. **Present only appropriate findings.** The full technical record is for an authorized host. Use the [learner-safe projection](docs/projection.md) to omit restricted findings, evidence references and hidden aggregate outcomes while exposing only allowlisted public feedback. The host must still decide who is allowed to see any result.
+```sh
+npm install @0xbuff/assay@0.0.1
+```
 
-For serialized records, use `decodeSerializedRecord` before contract validation.
-It rejects duplicate JSON keys and over-limit input; the host still owns transport
-limits and isolation. See [validation and safety limits](docs/contracts.md#validation-and-safety-limits).
+Until then, [build from source](#development).
 
-The pure library has **no runtime dependencies**, network requirement, model provider, private workspace or mandatory executor.
+## Quick start
+
+This example checks a measurement against an inclusive range. The caller supplies the measurement independently; no runner or service is needed.
+
+```ts
+import {
+  createAssessmentDefinition,
+  createEvidenceBundle,
+  evaluate,
+  projectPublicResult,
+} from "@0xbuff/assay";
+
+const definition = createAssessmentDefinition({
+  schemaVersion: 4,
+  assessmentId: "calibration",
+  revision: "rev1",
+  policyVersion: "composed-required-v1",
+  criteria: [
+    {
+      id: "voltage",
+      kind: "number_range",
+      mode: "required",
+      visibility: "public",
+      parameters: {
+        expected: {
+          type: "literal",
+          value: { min: 98, max: 102, minInclusive: true, maxInclusive: true },
+        },
+        unit: "mV",
+      },
+    },
+  ],
+  composition: {
+    rootGroupId: "root",
+    groups: [
+      {
+        id: "root",
+        operator: "all",
+        children: [{ kind: "criterion", id: "voltage" }],
+      },
+    ],
+  },
+});
+if (!definition.ok) throw new Error("Invalid definition");
+
+const evidence = createEvidenceBundle(definition.value, {
+  schemaVersion: 4,
+  observations: [
+    {
+      criterionId: "voltage",
+      evidenceRef: "measurement",
+      kind: "number",
+      completeness: "complete",
+      value: 101,
+      unit: "mV",
+    },
+  ],
+});
+if (!evidence.ok) throw new Error("Invalid evidence");
+
+const result = evaluate(definition.value, evidence.value);
+const view = projectPublicResult(definition.value, result);
+if (!view.ok) throw new Error("Projection rejected");
+console.log(view.value.outcome); // pass
+```
+
+A missing measurement is inconclusive. An out-of-range measurement fails; a mismatched unit makes the evidence invalid.
+
+## Features
+
+- Exact and normalized text, numeric tolerance and ranges, set equivalence, Boolean and JSON equality.
+- Explicit `all` and `any` groups over required criteria; advisory findings cannot determine the binding outcome.
+- Content-bound definitions, evidence and protected references, with deterministic SHA-256 digests.
+- Selected execution facts and optional host-supplied observation collection.
+- Attributed qualitative review with bounded feedback and citations. Required manual evidence remains review-needed.
+- Public projection with a fixed reason vocabulary and aggregate withholding whenever a criterion is restricted.
+- Bounded JSON decoding with duplicate-key rejection and value-free diagnostics.
 
 ## Architecture
 
-Assay separates pure evaluation from optional evidence acquisition and public-result projection. The diagrams below describe the current source, not the proposed follow-up contracts.
-
-### System boundary
-
 ```mermaid
-flowchart TD
-    subgraph Host["Host application"]
-        Definition["Authorized assessment definition"]
-        Evidence["Content-bound schema-4 evidence"]
-        References["Authorized optional schema-4 reference bundle"]
-        Provider["Optional host-supplied observation provider"]
-        Record["Authorized technical record"]
-        Authorization["Host access and disclosure decision"]
-    end
-
-    subgraph Assay["Assay library"]
-        Integrity["Definition content integrity"]
-        Collection["Optional observation collection"]
-        Evaluation["Validation and deterministic evaluation"]
-        Projection["Public result projection"]
-    end
-
-    Definition --> Integrity
-    Integrity -->|"Verified definition"| Evaluation
-    Evidence --> Evaluation
-    References -->|"Privileged expected values"| Evaluation
-    Integrity --> Collection
-    Evidence --> Collection
-    Collection -->|"Eligible public requests"| Provider
-    Provider -->|"Claimed observations"| Collection
-    Collection -->|"Validated combined evidence"| Evaluation
-    Evaluation -->|"Complete technical result"| Record
-    Evaluation -->|"Invalid input"| Failure["Value-free diagnostic failure"]
-    Record --> Projection
-    Integrity --> Projection
-    Projection -->|"Restricted public view"| Authorization
-    Authorization --> Consumer["Authorized recipient"]
+flowchart LR
+    H[Host records] --> V[Validate and verify]
+    V --> E[Compare and compose]
+    E --> R[Technical result]
+    R --> P[Public projection]
 ```
 
-This shows the verified evaluation path. The host supplies optional protected reference material directly to evaluation, never to observation collection or the provider. The host owns authorization, execution isolation, evidence authenticity, protected reference storage and any formal decision. Assay neither runs submitted programs nor contacts a provider unless the caller explicitly invokes collection with an injected port. A content digest is not an authentication mechanism.
-
-### Deterministic evaluation
+The host supplies the definition, evidence and optional protected reference bundle. Evaluation verifies the definition, supplied references and evidence in that order, then compares each criterion in authored order. Complete results carry evidence lineage. Malformed records return separate diagnostic failures.
 
 ```mermaid
-flowchart TD
-    Start["Definition, evidence and optional references"] --> Validate{"Definition structure valid?"}
-    Validate -->|No| InvalidDefinition["invalid_definition"]
-    Validate -->|Yes| Digest{"Definition digest valid?"}
-    Digest -->|No| InvalidDefinition
-    Digest -->|Yes| Supplied{"Reference bundle supplied?"}
-    Supplied -->|No| EvidenceCheck{"Evidence shape, digest and origin valid?"}
-    Supplied -->|Yes| ReferenceCheck{"Bundle and reference bindings valid?"}
-    ReferenceCheck -->|No| InvalidReference["invalid_reference"]
-    ReferenceCheck -->|Yes| EvidenceCheck
-    EvidenceCheck -->|No| InvalidEvidence["invalid_evidence"]
-    EvidenceCheck -->|Yes| Compare["Evaluate each criterion in authored order"]
-    Compare --> Findings["Criterion findings: pass, fail, inconclusive or error"]
-    Findings --> Composition["Fold the bounded all/any tree over required findings"]
-    Composition --> Result["Schema-4 result with evidence and artifact lineage"]
+flowchart LR
+    H[Host] --> C[Optional collector]
+    C --> O[Injected port]
+    O --> C
+    C --> B[Sealed evidence]
 ```
 
-The `evaluate(definition, evidence, references?)` entry point validates the definition and recomputes its content digest before inspecting evidence or comparing values. A supplied reference bundle is validated before evidence, including lineage, record digests and declared kinds, units and item types. Invalid material produces a value-free `invalid_reference` failure, not a learner mismatch. Omitting the bundle continues directly to evidence validation. Partial bundles are permitted; a complete observation with an unavailable reference is inconclusive. There is no unchecked public evaluation path: the evidence digest and origin scope are verified before comparison. Missing, truncated or explicitly interrupted execution evidence is inconclusive at the criterion level; an explicitly composed group can have a decisive outcome despite unresolved alternatives. Manual evidence, unresolved protected references and reported execution assertions cannot establish a pass in the current implementation.
+The collector requests eligible missing public facts without expected answers or restricted identifiers. Review observations come directly from the host. Keep full results privileged; authorize disclosure separately and use the public projection. Digests identify content, not its authenticity. See the [architecture guide](https://github.com/0xbuffdev/assay/blob/main/docs/architecture.md).
 
-### Optional observation acquisition
+## Documentation
 
-```mermaid
-sequenceDiagram
-    participant H as Host
-    participant A as Assay
-    participant P as Injected observation port
+| Guide                                                                                | Contents                                  |
+| ------------------------------------------------------------------------------------ | ----------------------------------------- |
+| [Contracts](https://github.com/0xbuffdev/assay/blob/main/docs/contracts.md)          | Input and result types, validation limits |
+| [Evaluation](https://github.com/0xbuffdev/assay/blob/main/docs/evaluation.md)        | Comparators, composition and outcomes     |
+| [Integrity](https://github.com/0xbuffdev/assay/blob/main/docs/integrity.md)          | Digests, evidence lineage and versions    |
+| [Observations](https://github.com/0xbuffdev/assay/blob/main/docs/observations.md)    | Acquisition and claimed provenance        |
+| [Public projection](https://github.com/0xbuffdev/assay/blob/main/docs/projection.md) | Safe disclosure and host responsibilities |
 
-    H->>A: collectObservations(definition, evidence, port)
-    A->>A: Verify definition and evidence digests and lineage
-    alt Invalid definition or evidence
-        A-->>H: Structured failure
-    else No eligible missing public criteria
-        A-->>H: Existing evidence, no receipt
-    else Eligible missing public criteria
-        A->>P: Bounded request without expected answers
-        alt Port throws
-            A-->>H: Redacted acquisition error
-        else Port returns a report
-            P-->>A: Claimed observations and provenance
-            A->>A: Validate report, lineage, scope and completeness
-            alt Invalid report
-                A-->>H: Structured failure
-            else Valid report
-                A-->>H: Newly sealed evidence and scoped receipt
-            end
-        end
-    end
-```
+The current contract uses schema 4, evaluator semantics `v0.0.5` and policy `composed-required-v1`. Earlier development schemas are unsupported. Use `decodeSerializedRecord` before validating untrusted JSON; enforce transport limits in the host.
 
-Collection is separate from evaluation: the caller must pass the returned evidence to the evaluator. Restricted criteria and expected answers are not sent to the port. A valid report or receipt does not prove that execution occurred as claimed.
-
-### Public-result disclosure
-
-```mermaid
-flowchart TD
-    D["Content-bound definition"] --> Verify["Verify definition and validate full result"]
-    R["Full technical result"] --> Verify
-    Verify --> Coherent{"Lineage, findings and aggregate consistent?"}
-    Coherent -->|No| Reject["Opaque projection rejection"]
-    Coherent -->|Yes| Filter["Keep public criterion IDs, outcomes and mapped reasons only"]
-    Filter --> Restricted{"Any restricted criterion?"}
-    Restricted -->|Yes| Withheld["Overall outcome: withheld"]
-    Restricted -->|No| Public["Overall technical outcome"]
-    Withheld --> View["Restricted public result"]
-    Public --> View
-    View --> Gate["Host verifies origin and authorizes access"]
-```
-
-Use `projectPublicResult` for this boundary, not direct serialization of the full technical record. The projection removes evidence and artifact digests, evidence references, raw reason codes, restricted identifiers and private aggregate outcomes. It is not an authorization or attestation service.
-
-See [architecture](docs/architecture.md) for source boundaries and the [canonical architecture and specification index](https://github.com/0xbuffdev/context/tree/main/repos/assay) for separately governed follow-up work. Mandatory definition, reference and evidence integrity are implemented. Full technical results bind the exact evidence digest and optional artifact scope; schema-4 objective comparators and direct typed execution facts are implemented; selected execution fact acquisition, bounded criterion composition and artifact-bound advisory qualitative observations are supported. Qualitative feedback is supplied by the host, never acquired by Assay or treated as correctness. Only generation 4 and `composed-required-v1` are admitted; earlier unreleased contracts are rejected.
-
-## Develop from source
-
-Requires Node.js 24+ and pnpm 11.2.2.
+## Development
 
 ```sh
 git clone https://github.com/0xbuffdev/assay.git
@@ -152,26 +138,10 @@ pnpm install --frozen-lockfile
 pnpm check
 ```
 
-The full check validates contracts, security cases, TypeScript, Biome, the tsdown ESM/types build and an **independent offline consumer of the actual npm tarball**. It does not publish or deploy anything.
+Use Node.js 24+ and pnpm 11.2.2. The full check builds the package and verifies it with an isolated offline ESM and TypeScript consumer.
 
-Use these commands for focused work:
-
-```sh
-pnpm test
-pnpm typecheck
-pnpm check:style
-pnpm build
-pnpm verify:package
-```
-
-The last command checks the packed package after a build, using a temporary isolated ESM/TypeScript consumer. Authored TypeScript files use extensionless relative imports.
-
-## Documentation
-
-The [contract reference](docs/contracts.md) defines accepted input and result types. [Architecture](docs/architecture.md) explains the responsibilities of the evaluator and host. [Release and package verification](docs/releasing.md) describes the current source-quality gate and remaining publication approvals.
-
-For changes to Assay, follow [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and the [specification](https://github.com/0xbuffdev/context/blob/main/repos/assay/specs/0001-evaluation-core.md). Accepted implementation history and decisions are maintained in the [canonical tickets](https://github.com/0xbuffdev/context/blob/main/repos/assay/tickets.md).
+Read the [development guide](https://github.com/0xbuffdev/assay/blob/main/docs/development.md), [contribution guidelines](https://github.com/0xbuffdev/assay/blob/main/CONTRIBUTING.md) and [security policy](https://github.com/0xbuffdev/assay/blob/main/SECURITY.md). Release preparation follows the [release policy](https://github.com/0xbuffdev/assay/blob/main/docs/releasing.md).
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) and [copyright and attribution](COPYRIGHT.md). Public source availability does not authorize an npm release.
+[Apache-2.0](https://github.com/0xbuffdev/assay/blob/main/LICENSE). See [copyright and attribution](https://github.com/0xbuffdev/assay/blob/main/COPYRIGHT.md).

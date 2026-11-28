@@ -6,6 +6,7 @@
  */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -74,8 +75,12 @@ try {
 
   const manifest = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   assert.equal(manifest.name, "@0xbuff/assay");
-  assert.equal(manifest.version, "0.0.0", "Unreleased source must not silently advance version");
-  assert.equal(manifest.private, true, "Package publication must remain explicitly disabled");
+  assert.equal(manifest.version, "0.0.1", "Verify the approved first release candidate");
+  assert.equal(manifest.private, false, "Approved publishable package metadata");
+  assert.deepEqual(manifest.publishConfig, {
+    access: "public",
+    registry: "https://registry.npmjs.org/",
+  });
   assert.equal(manifest.license, "Apache-2.0", "Approved source license must remain intact");
   assert.equal(manifest.type, "module", "The public entry must be ESM");
   assert.deepEqual(manifest.exports, {
@@ -204,7 +209,8 @@ try {
   assert.equal(installedManifest.version, manifest.version);
   assert.equal(installedManifest.type, manifest.type);
   assert.deepEqual(installedManifest.engines, manifest.engines);
-  assert.equal(installedManifest.private, true);
+  assert.equal(installedManifest.private, false);
+  assert.deepEqual(installedManifest.publishConfig, manifest.publishConfig);
   assert.equal(installedManifest.license, "Apache-2.0");
   assert.deepEqual(installedManifest.exports, manifest.exports);
   assert.match(
@@ -255,6 +261,17 @@ try {
   assert.match(scenarioOutput, /AY-I28 installed expanded assessment scenarios passed/);
   console.log(scenarioOutput.trim());
 
+  // Execute the exact shipped README example against the installed entry.
+  const readme = await readFile(path.join(installed, "README.md"), "utf8");
+  const quickStart = /## Quick start\r?\n[\s\S]*?```ts\r?\n([\s\S]*?)\r?\n```/.exec(readme)?.[1];
+  assert.ok(quickStart, "The shipped README must include its quick-start example");
+  await writeFile(path.join(consumerDir, "quick-start.mjs"), quickStart);
+  assert.equal(command(process.execPath, ["quick-start.mjs"], consumerDir).trim(), "pass");
+  // A separate tiny host console declaration keeps the package typecheck free of DOM/Node types.
+  await writeFile(
+    path.join(consumerDir, "quick-start.ts"),
+    `declare const console: { log(value: unknown): void };\n${quickStart}`,
+  );
   await writeFile(
     path.join(consumerDir, "consumer.ts"),
     await readFile(path.join(fixtureDir, "consumer.ts.txt"), "utf8"),
@@ -273,7 +290,7 @@ try {
           types: [],
           lib: ["ES2022"],
         },
-        include: ["consumer.ts"],
+        include: ["consumer.ts", "quick-start.ts"],
       },
       null,
       2,
@@ -285,6 +302,18 @@ try {
   // module/type resolution starts in the isolated consumer directory.
   command(process.execPath, [compiler, "--project", "tsconfig.json"], consumerDir);
   console.log("AY-I28 installed expanded TypeScript contracts verified");
+  console.log(
+    "AY-I26 candidate archive",
+    JSON.stringify({
+      name: item.name,
+      version: item.version,
+      bytes: (await readFile(archive)).byteLength,
+      sha256: createHash("sha256")
+        .update(await readFile(archive))
+        .digest("hex"),
+      files: item.files.map(({ path, size }) => ({ path, size })),
+    }),
+  );
   console.log(
     "AY-I04 packed consumer verified: exact file allowlist, Apache-2.0, no runtime deps, " +
       "offline no-script install, public ESM API, hostile cases and isolated TypeScript declarations",
