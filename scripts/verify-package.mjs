@@ -302,18 +302,26 @@ try {
   // module/type resolution starts in the isolated consumer directory.
   command(process.execPath, [compiler, "--project", "tsconfig.json"], consumerDir);
   console.log("AY-I28 installed expanded TypeScript contracts verified");
-  console.log(
-    "AY-I26 candidate archive",
-    JSON.stringify({
-      name: item.name,
-      version: item.version,
-      bytes: (await readFile(archive)).byteLength,
-      sha256: createHash("sha256")
-        .update(await readFile(archive))
-        .digest("hex"),
-      files: item.files.map(({ path, size }) => ({ path, size })),
-    }),
-  );
+  const archiveBytes = await readFile(archive);
+  const archiveMetadata = {
+    name: item.name,
+    version: item.version,
+    bytes: archiveBytes.byteLength,
+    sha256: createHash("sha256").update(archiveBytes).digest("hex"),
+    files: item.files.map(({ path, size }) => ({ path, size })),
+  };
+  const retainDirectory = process.env.ASSAY_ARCHIVE_DIR;
+  if (retainDirectory !== undefined) {
+    assert.ok(path.isAbsolute(retainDirectory), "Use a new absolute archive directory");
+    await mkdir(retainDirectory);
+    await writeFile(path.join(retainDirectory, "assay.tgz"), archiveBytes, { flag: "wx" });
+    await writeFile(
+      path.join(retainDirectory, "manifest.json"),
+      `${JSON.stringify(archiveMetadata, null, 2)}\n`,
+      { flag: "wx" },
+    );
+  }
+  console.log("AY-I26 candidate archive", JSON.stringify(archiveMetadata));
   console.log(
     "AY-I04 packed consumer verified: exact file allowlist, Apache-2.0, no runtime deps, " +
       "offline no-script install, public ESM API, hostile cases and isolated TypeScript declarations",
