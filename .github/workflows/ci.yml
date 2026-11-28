@@ -50,6 +50,19 @@ jobs:
       - name: Build and verify emitted package entry
         run: pnpm build
       - name: Independently verify exact packed package and security boundaries
+        env:
+          ASSAY_ARCHIVE_DIR: ${{ runner.temp }}/assay-verified-archive
         run: pnpm verify:package
+      - name: Retain verified main candidate
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: assay-verified-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/assay-verified-archive/assay.tgz
+            ${{ runner.temp }}/assay-verified-archive/manifest.json
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
 
   # Quality-only CI: no npm publish, deploy or write credentials.
